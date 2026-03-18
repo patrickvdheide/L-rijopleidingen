@@ -11,7 +11,8 @@
   <script src="https://unpkg.com/htm@3/dist/htm.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f5f6f8; font-family: 'DM Sans', system-ui, sans-serif; }
+    body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px 64px; }
+    #root { width: 100%; max-width: 640px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; }
   </style>
@@ -73,7 +74,7 @@ async function setBezet(v) { try{await window.storage.set("mp2",JSON.stringify(v
 
 // ── UI ATOMS ──
 function Spinner() {
-  return html`<div style=${{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"12px"}}>
+  return html`<div style=${{background:C.white,borderRadius:"12px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",minHeight:"300px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"12px"}}>
     <div class="spin" style=${{width:"28px",height:"28px",border:"2px solid "+C.border,borderTop:"2px solid "+C.accent,borderRadius:"50%"}}></div>
     <p style=${{fontSize:"13px",color:C.faint}}>Laden...</p>
   </div>`;
@@ -87,11 +88,11 @@ function Logo() {
 }
 
 function Steps({stap,labels}) {
-  return html`<div style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 24px"}}>
-    <div style=${{maxWidth:"720px",margin:"0 auto",display:"flex"}}>
+  return html`<div style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px"}}>
+    <div style=${{display:"flex"}}>
       ${labels.map((l,i) => {
         const n=i+1, act=stap===n, ged=stap>n;
-        return html`<div key=${n} style=${{display:"flex",alignItems:"center",gap:"7px",padding:"13px 12px 13px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
+        return html`<div key=${n} style=${{display:"flex",alignItems:"center",gap:"6px",padding:"10px 10px 10px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
           <div style=${{width:"22px",height:"22px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:700,flexShrink:0,background:ged||act?C.accent:"transparent",border:"1.5px solid "+(ged||act?C.accent:C.border),color:ged||act?"#fff":C.faint}}>${ged?"✓":n}</div>
           <span style=${{fontSize:"12px",fontWeight:act?600:400,color:act?C.text:C.sub,whiteSpace:"nowrap"}}>${l}</span>
           ${n<labels.length ? html`<div style=${{width:"12px",height:"1px",background:C.border,marginLeft:"4px",flexShrink:0}}></div>` : null}
@@ -102,7 +103,7 @@ function Steps({stap,labels}) {
 }
 
 function Blok({titel,sub,children}) {
-  return html`<div style=${{maxWidth:"720px",margin:"0 auto"}}>
+  return html`<div>
     <h2 style=${{fontSize:"18px",fontWeight:700,color:C.text,margin:"0 0 3px"}}>${titel}</h2>
     ${sub && html`<p style=${{fontSize:"13px",color:C.sub,margin:"0 0 18px"}}>${sub}</p>`}
     ${children}
@@ -280,7 +281,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       ...(res.opties.length>0?[["Opties", res.opties.map(id=>AO.find(o=>o.id===id)?.label||id).join(", ")]]:[] ),
       ["Betaling", res.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
     ];
-    return html`<div style=${{minHeight:"100vh",background:C.bg}}>
+    return html`<div style=${{background:C.white,borderRadius:"12px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
       <div style=${{maxWidth:"480px",margin:"48px auto",padding:"0 24px"}}>
         <div style=${{display:"flex",alignItems:"center",gap:"14px",marginBottom:"24px",padding:"16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"8px"}}>
           <div style=${{width:"40px",height:"40px",borderRadius:"50%",background:C.ok,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -310,8 +311,8 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
   const btnS = {background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"};
 
-  return html`<div style=${{minHeight:"100vh",background:C.bg}}>
-    <div style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"52px",position:"sticky",top:0,zIndex:10}}>
+  return html`<div style=${{background:C.white,borderRadius:"12px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+    <div style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
       <${Logo}/>
       ${slt.length>0&&kt&&ds.length>0 && html`<span style=${{fontSize:"13px",color:C.sub}}>${slt.length}× · Totaal: <strong style=${{color:C.text}}>€ ${p(slt.length).tot.toFixed(2)}</strong></span>`}
     </div>
@@ -320,7 +321,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     <${Steps} stap=${stap} labels=${["Klant","Locatie","Opties","Datum","Gegevens"]}/>
 
-    <div style=${{maxWidth:"860px",margin:"0 auto",padding:"28px 24px 100px"}}>
+    <div style=${{padding:"20px 20px 80px"}}>
 
       ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
         <div style=${{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}}>
@@ -510,7 +511,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     </div>
 
-    <div style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"13px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",bottom:0}}>
+    <div style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       ${stap>1 ? html`<button style=${btnS} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span></span>`}
       ${stap<5
         ? html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
