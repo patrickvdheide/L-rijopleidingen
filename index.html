@@ -266,7 +266,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
     setBz(false);
   };
 
-  const reset = () => { setRes(null);setSt(1);setKt(null);setDs([]);setOs([]);setAantalOpts({});setDag(null);setSlt([]);setNm("");setMl("");setTl("");setBd("");setKv("");setSt2("");setHnr("");setPc("");setPl("");setBm(null); };
+  const reset = () => { setRes(null);setSt(1);setKt(null);setDs([]);setOs([]);setAantalOpts({});setDag(null);setSlt([]);setNm("");setMl("");setTl("");setBd("");setKv("");setStraat("");setHnr("");setPc("");setPl("");setBm(null); };
 
   // ── BEVESTIGING ──
   if(res) {
@@ -470,7 +470,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
             <${Veld} label="E-mailadres" req=${true} val=${mail} set=${setMl} ph="jan@voorbeeld.nl"/>
             <${Veld} label="Telefoonnummer" req=${true} val=${tel} set=${setTl} ph="+31 6 12345678"/>
             <div style=${{display:"grid",gridTemplateColumns:"1fr 80px",gap:"8px"}}>
-              <${Veld} label="Straat" req=${true} val=${straat} set=${setSt2} ph="Hoofdstraat"/>
+              <${Veld} label="Straat" req=${true} val=${straat} set=${setStraat} ph="Hoofdstraat"/>
               <${Veld} label="Nr." req=${true} val=${huisnr} set=${setHnr} ph="12"/>
             </div>
             <div style=${{display:"grid",gridTemplateColumns:"120px 1fr",gap:"8px"}}>
