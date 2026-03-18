@@ -47,7 +47,6 @@ export async function onRequest(context) {
 
   const {
     id, kt, naam, email, tel, bedrijf, kvk,
-    straat, huisnummer, postcode, plaats,
     diensten, dienstLabels,
     opties, optieLabels,
     datum, slots, betaalMethode, p: prijs,
@@ -77,10 +76,6 @@ export async function onRequest(context) {
             "Klanttype":       kt,
             "Bedrijfsnaam":    bedrijf || "",
             "KVK":             kvk || "",
-            "Straat":          straat || "",
-            "Huisnummer":      huisnummer || "",
-            "Postcode":        postcode || "",
-            "Plaats":          plaats || "",
             "Datum":           datum ? String(datum).trim() : "",
             "Tijdsloten":      slotsLabel,
             "Diensten":        (dienstLabels || diensten || []).join(", "),
@@ -141,7 +136,6 @@ export async function onRequest(context) {
               ["Tijdsloten", slotsLabel],
               ["Diensten",   (dienstLabels || diensten || []).join(", ")],
               ...(optieLabels?.length || opties?.length ? [["Opties", (optieLabels || opties || []).join(", ")]] : []),
-              ["Adres",      straat && huisnummer ? straat+" "+huisnummer+(postcode?", "+postcode:"")+(plaats?", "+plaats:"") : "—"],
               ["Betaling",   betaalMethode === "pin" ? "Pin op locatie" : "Contant op locatie"],
             ].map(([l, v]) => `
             <tr>
@@ -185,7 +179,7 @@ export async function onRequest(context) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from:    env.RESEND_FROM,
+        from:    (env.RESEND_FROM || "").trim(),
         to:      [email],
         subject: `Afspraak bevestigd — ${formatDatum(datum)} · ${slotsLabel} (${id})`,
         html:    emailHtml,

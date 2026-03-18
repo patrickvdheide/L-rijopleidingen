@@ -11,10 +11,22 @@
   <script src="https://unpkg.com/htm@3/dist/htm.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
+    body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px 48px; }
+    #root { width: 100%; max-width: 640px; }
+    @media (max-width: 480px) {
+      body { padding: 0; }
+      #root { max-width: 100%; }
+    }
     #root { width: 100%; max-width: 640px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; }
+    @media (max-width: 480px) {
+      .step-label { display: none; }
+    }
+    @media (max-width: 520px) {
+      table { font-size: 12px !important; }
+      th, td { padding: 8px 10px !important; }
+    }
   </style>
 </head>
 <body>
@@ -88,8 +100,8 @@ function Logo() {
 }
 
 function Steps({stap,labels}) {
-  return html`<div style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px"}}>
-    <div style=${{display:"flex"}}>
+  return html`<div style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px",overflowX:"auto"}}>
+    <div style=${{display:"flex",minWidth:"max-content"}}>
       ${labels.map((l,i) => {
         const n=i+1, act=stap===n, ged=stap>n;
         return html`<div key=${n} style=${{display:"flex",alignItems:"center",gap:"6px",padding:"10px 10px 10px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
@@ -281,7 +293,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       ...(res.opties.length>0?[["Opties", res.opties.map(id=>AO.find(o=>o.id===id)?.label||id).join(", ")]]:[] ),
       ["Betaling", res.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
     ];
-    return html`<div style=${{background:C.white,borderRadius:"12px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+    return html`<div style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
       <div style=${{maxWidth:"480px",margin:"48px auto",padding:"0 24px"}}>
         <div style=${{display:"flex",alignItems:"center",gap:"14px",marginBottom:"24px",padding:"16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"8px"}}>
           <div style=${{width:"40px",height:"40px",borderRadius:"50%",background:C.ok,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -311,7 +323,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
   const btnS = {background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"};
 
-  return html`<div style=${{background:C.white,borderRadius:"12px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+  return html`<div style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
     <div style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
       <${Logo}/>
       ${slt.length>0&&kt&&ds.length>0 && html`<span style=${{fontSize:"13px",color:C.sub}}>${slt.length}× · Totaal: <strong style=${{color:C.text}}>€ ${p(slt.length).tot.toFixed(2)}</strong></span>`}
@@ -324,7 +336,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
     <div style=${{padding:"20px 20px 80px"}}>
 
       ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
-        <div style=${{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}}>
+        <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:"8px"}}>
           ${[{id:"consument",label:"Cursist",sub:"Particulier · incl. btw"},{id:"zzp",label:"Instructeur",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Rijschoolhouder",sub:"Organisatie · excl. btw"}].map(k=>html`
             <div key=${k.id} onClick=${()=>setKt(k.id)} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white}}>
               <div style=${{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}><${RB} on=${kt===k.id}/><span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span></div>
@@ -414,7 +426,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       </>`}
 
       ${stap===4 && html`<${Blok} titel="Kies datum en tijdsloten" sub="Meerdere aaneengesloten uren op dezelfde dag.">
-        <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"28px",alignItems:"start"}}>
+        <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(240px, 1fr))",gap:"20px",alignItems:"start"}}>
           <div>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
               <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"28px",height:"28px",borderRadius:"4px",cursor:"pointer",fontSize:"16px"}} onClick=${()=>{if(mn===0){setMn(11);setJr(y=>y-1);}else setMn(m=>m-1);}}>‹</button>
@@ -465,7 +477,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       </>`}
 
       ${stap===5 && html`<${Blok} titel="Uw gegevens" sub="Vul uw contactgegevens in.">
-        <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"20px"}}>
+        <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))",gap:"20px"}}>
           <div style=${{display:"flex",flexDirection:"column",gap:"12px"}}>
             <${Veld} label="Volledige naam" req=${true} val=${naam} set=${setNm} ph="Jan de Vries"/>
             <${Veld} label="E-mailadres" req=${true} val=${mail} set=${setMl} ph="jan@voorbeeld.nl"/>
@@ -474,7 +486,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
             ${kt==="bedrijf" && html`<${Veld} label="KVK-nummer" val=${kvk} set=${setKv} ph="12345678"/>`}
             <div>
               <label style=${{fontSize:"12px",fontWeight:500,color:C.text,display:"block",marginBottom:"8px"}}>Betaalmethode op locatie <span style=${{color:C.err}}>*</span></label>
-              <div style=${{display:"flex",gap:"8px"}}>
+              <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
                 ${[{id:"contant",label:"Contant"},{id:"pin",label:"Pinnen"}].map(m=>html`
                   <div key=${m.id} onClick=${()=>setBm(m.id)} style=${{flex:1,display:"flex",alignItems:"center",gap:"10px",padding:"11px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(bm===m.id?C.accent:C.border),background:bm===m.id?C.abg:C.white}}>
                     <${RB} on=${bm===m.id}/><span style=${{fontWeight:bm===m.id?600:400,fontSize:"14px",color:C.text}}>${m.label}</span>
