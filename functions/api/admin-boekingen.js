@@ -23,10 +23,14 @@ export async function onRequest(context) {
 
   try {
     const res = await fetch(
-      `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2?sort[0][field]=Aangemaakt%20op&sort[0][direction]=desc&maxRecords=200`,
+      `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2?maxRecords=200`,
       { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
     );
-    if (!res.ok) throw new Error("Airtable: " + res.status);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Airtable fout:", res.status, errText);
+      throw new Error("Airtable: " + res.status + " — " + errText);
+    }
     const data = await res.json();
     return new Response(JSON.stringify({ boekingen: data.records || [] }), { status: 200, headers: CORS });
   } catch(err) {

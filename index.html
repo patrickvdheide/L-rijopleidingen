@@ -21,7 +21,7 @@
       justify-content: center;
       padding: 24px 16px 48px;
     }
-    #root { width: 100%; max-width: 640px; }
+    #root { width: 100%; max-width: 560px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
     .spin { animation: spin 1s linear infinite; }
@@ -41,9 +41,9 @@
       tbody { display: block; }
       tr.data-row { display: block; border-bottom: 1px solid #dde1e9; padding: 8px 0; background: white; }
       tr.data-row:hover { background: #f9fafb; cursor: pointer; }
-      tr.data-row td:first-child { display: inline-block; width: 28px; padding: 4px 0 4px 10px !important; vertical-align: top; }
-      tr.data-row td:nth-child(2) { display: inline-block; width: calc(100% - 48px); padding: 4px 10px 4px 0 !important; vertical-align: top; }
-      tr.data-row td:last-child { display: block; width: 100%; padding: 0 10px 8px 38px !important; text-align: left !important; }
+      tr.data-row td:first-child { display: inline-block; width: 34px; padding: 8px 0 4px 10px !important; vertical-align: top; }
+      tr.data-row td:nth-child(2) { display: inline-block; width: calc(100% - 54px); padding: 8px 10px 4px 0 !important; vertical-align: top; }
+      tr.data-row td:last-child { display: block; width: 100%; padding: 2px 10px 10px 44px !important; text-align: left !important; }
       .cal-day { height: 42px !important; font-size: 14px !important; }
     }
   </style>
@@ -326,9 +326,9 @@ function Bevestiging({res,AD,AO,onNieuw}) {
 // ── WIZARD ──
 function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const today = new Date();
-  const [stap,setSt]   = useState(()=>AD.length===1?2:1); // Sla stap 1 over als maar 1 dienst
+  const [stap,setSt]   = useState(1);
   const [kt,setKt]     = useState(null);
-  const [ds,setDs]     = useState(()=>AD.length===1?[AD[0].id]:[]);
+  const [ds,setDs]     = useState([]);
   const [os,setOs]     = useState([]);
   const [aantalOpts,setAantalOpts] = useState({});
   const [mn,setMn]     = useState(today.getMonth());
@@ -349,12 +349,8 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const [sendStap,setSendStap] = useState(0);
   const [fout,setFt]   = useState("");
 
-  const stapLabels = AD.length===1
-    ? ["Klant","Opties","Datum","Gegevens"]
-    : ["Klant","Locatie","Opties","Datum","Gegevens"];
+  const stapLabels = ["Klant","Locatie","Opties","Datum","Gegevens"];
   const maxStap = stapLabels.length;
-
-  const stapNr = (logisch) => AD.length===1 ? logisch-1 : logisch;
 
   const dat = dag ? did(jr,mn,dag) : null;
   const p   = (n) => calc(ds,os,kt,n,AD,AO,aantalOpts);
@@ -396,7 +392,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   };
 
   // Logische stap nummers (altijd 1-5)
-  const logStap = AD.length===1 ? stap+1 : stap;
+  const logStap = stap;
 
   const ok = () => {
     if(logStap===1)return!!kt;
@@ -420,8 +416,8 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   };
 
   const reset = () => {
-    setSt(AD.length===1?2:1); setKt(null);
-    setDs(AD.length===1?[AD[0].id]:[]);
+    setSt(1); setKt(null);
+    setDs([]);
     setOs([]);setAantalOpts({});setDag(null);setSlt([]);
     setNm("");setMl("");setTl("");setBd("");setKv("");
     setSt2("");setHnr("");setPc("");setPl("");setBm(null);
