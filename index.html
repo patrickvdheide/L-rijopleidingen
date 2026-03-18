@@ -82,7 +82,7 @@ function Spinner() {
 function Logo() {
   return html`<div style=${{display:"flex",alignItems:"center",gap:"8px"}}>
     <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill=${C.accent}/><path d="M6 10.5l2.5 2.5L14 7" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span style=${{fontWeight:700,color:C.text,fontSize:"15px"}}>L-rijopleidingen</span>
+    <span style=${{fontWeight:700,color:C.text,fontSize:"15px"}}>L-Rijopleidingen</span>
   </div>`;
 }
 
@@ -318,13 +318,13 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     ${wrn && html`<div style=${{background:"#fffbeb",borderBottom:"1px solid #fcd34d",padding:"8px 24px",fontSize:"12px",color:"#92400e"}}>${wrn}</div>`}
 
-    <${Steps} stap=${stap} labels=${["Klanttype","Diensten","Opties","Datum","Gegevens"]}/>
+    <${Steps} stap=${stap} labels=${["Klant","Locatie","Opties","Datum","Gegevens"]}/>
 
     <div style=${{maxWidth:"860px",margin:"0 auto",padding:"28px 24px 100px"}}>
 
-      ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Dit bepaalt het tarief.">
+      ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
         <div style=${{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}}>
-          ${[{id:"consument",label:"Consument",sub:"Particulier · incl. btw"},{id:"zzp",label:"ZZP'er",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Bedrijf",sub:"Organisatie · excl. btw"}].map(k=>html`
+          ${[{id:"consument",label:"Cursist",sub:"Particulier · incl. btw"},{id:"zzp",label:"Instructeur",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Rijschoolhouder",sub:"Organisatie · excl. btw"}].map(k=>html`
             <div key=${k.id} onClick=${()=>setKt(k.id)} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white}}>
               <div style=${{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}><${RB} on=${kt===k.id}/><span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span></div>
               <span style=${{fontSize:"12px",color:C.sub,paddingLeft:"22px"}}>${k.sub}</span>
@@ -332,7 +332,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </div>
       </>`}
 
-      ${stap===2 && html`<${Blok} titel="Selecteer diensten" sub="Prijs per tijdslot.">
+      ${stap===2 && html`<${Blok} titel="Selecteer locatie" sub="Prijs per tijdslot.">
         <table style=${{width:"100%",borderCollapse:"collapse",background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden"}}>
           <thead><tr>
             <th style=${{width:"32px",padding:"9px 14px",background:C.bg,borderBottom:"1px solid "+C.border}}></th>
