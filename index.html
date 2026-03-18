@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MotoPlanning</title>
+  <title>L-Rijopleidingen - Boekingen</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -23,7 +23,9 @@
     }
     #root { width: 100%; max-width: 640px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
     .spin { animation: spin 1s linear infinite; }
+    .pulse { animation: pulse 1.5s ease-in-out infinite; }
 
     @media (max-width: 600px) {
       body { padding: 0; background: #fff; }
@@ -37,11 +39,12 @@
       table { display: block; }
       thead { display: none; }
       tbody { display: block; }
-      tr.data-row { display: flex; flex-wrap: wrap; border-bottom: 1px solid #dde1e9; padding: 8px 0; background: white; }
-      tr.data-row:hover { background: #f9fafb; }
-      tr.data-row td:first-child { width: 28px; padding: 4px 10px !important; }
-      tr.data-row td:nth-child(2) { flex: 1; min-width: 0; padding: 4px 10px 4px 0 !important; }
-      tr.data-row td:last-child { width: 100%; padding: 0 10px 6px 38px !important; text-align: left !important; }
+      tr.data-row { display: block; border-bottom: 1px solid #dde1e9; padding: 8px 0; background: white; }
+      tr.data-row:hover { background: #f9fafb; cursor: pointer; }
+      tr.data-row td:first-child { display: inline-block; width: 28px; padding: 4px 0 4px 10px !important; vertical-align: top; }
+      tr.data-row td:nth-child(2) { display: inline-block; width: calc(100% - 48px); padding: 4px 10px 4px 0 !important; vertical-align: top; }
+      tr.data-row td:last-child { display: block; width: 100%; padding: 0 10px 8px 38px !important; text-align: left !important; }
+      .cal-day { height: 42px !important; font-size: 14px !important; }
     }
   </style>
 </head>
@@ -49,25 +52,21 @@
   <div id="root"></div>
   <script>
 const html = htm.bind(React.createElement);
-const { useState, useEffect } = React;
+const { useState, useEffect, useCallback } = React;
 
-const NETLIFY = "";  // leeg = zelfde domein
+const NETLIFY = "";
 const MND = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
 const WD  = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
+const CMS_CACHE_KEY = "lrijo_cms_v1";
+const CMS_CACHE_TTL = 5 * 60 * 1000; // 5 minuten
 
 const FB = {
   diensten: [
-    { id:"les",         label:"Rijles",       duur:"90 min",  info:"Praktijkles op de openbare weg",  prijzen:{ consument:89,  zzp:79,  bedrijf:69  } },
-    { id:"examen",      label:"Examen",       duur:"45 min",  info:"Officieel CBR praktijkexamen",    prijzen:{ consument:149, zzp:139, bedrijf:129 } },
-    { id:"theorie",     label:"Theorieles",   duur:"60 min",  info:"Theorie en verkeersregels",       prijzen:{ consument:49,  zzp:44,  bedrijf:39  } },
-    { id:"rijoefening", label:"Rijoefening",  duur:"90 min",  info:"Vrij oefenen op het terrein",    prijzen:{ consument:99,  zzp:89,  bedrijf:79  } },
-    { id:"spoedcursus", label:"Spoedcursus",  duur:"Dagdeel", info:"Intensieve cursus op een dag",   prijzen:{ consument:349, zzp:319, bedrijf:289 } },
+    { id:"locatie", label:"Locatie", duur:"90 min", info:"Gebruik van CBR-gecertificeerde oefenlocatie", prijzen:{ consument:100, zzp:100, bedrijf:100 } },
   ],
   opties: [
-    { id:"instructeur", label:"Met instructeur",    prijs:25, info:"Gecertificeerde begeleiding", verplichtConsument:true  },
-    { id:"schoolmotor", label:"Motor van school",   prijs:35, info:"Gebruik van schoolmotor",     verplichtConsument:false },
-    { id:"uitrusting",  label:"Helm en uitrusting", prijs:15, info:"Volledige rijuitrusting",     verplichtConsument:false },
-    { id:"logboek",     label:"Digitaal logboek",   prijs:5,  info:"Voortgang via app",           verplichtConsument:false },
+    { id:"instructeur", label:"Met instructeur", prijs:90, info:"Je oefent met een instructeur op de locatie", verplichtConsument:true, zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
+    { id:"motor",       label:"Motor op locatie", prijs:100, info:"Gebruik van motor op locatie aanwezig",     verplichtConsument:false, zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
   ],
   beschikbaar: { tijdsloten:["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"], weekdagen:[1,2,3,4,5], geblokkeerdeData:[] }
 };
@@ -76,35 +75,68 @@ const C = {
   bg:"#f5f6f8", white:"#ffffff", border:"#dde1e9", bh:"#b0b8c8",
   text:"#1a1f2e", sub:"#6b7280", faint:"#9ca3af",
   accent:"#2c6bed", abg:"#eef3fd", abor:"#c3d4f9",
-  ok:"#16a34a", okbg:"#f0fdf4", err:"#dc2626", rh:"#f9fafb"
+  ok:"#16a34a", okbg:"#f0fdf4", err:"#dc2626", rh:"#f9fafb",
+  warn:"#92400e", warnbg:"#fffbeb", warnbor:"#fcd34d"
 };
 
+// ── HELPERS ──
 const sk  = (d,t) => d+"||"+t;
 const did = (j,m,d) => j+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
 const ew  = (j,m) => { const d=new Date(j,m,1).getDay(); return d===0?6:d-1; };
 const nd  = (j,m) => new Date(j,m+1,0).getDate();
 
+function tRange(t) {
+  const [h,m]=t.split(":").map(Number);
+  const eh=(h+1)%24;
+  return t+" – "+String(eh).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+
 function calc(ds,os,kt,n,AD,AO,aantalOpts) {
   if (!kt||!n) return {sub:0,btw:0,tot:0};
   const ao = aantalOpts || {};
   const ps = ds.reduce((s,id)=>s+(AD.find(d=>d.id===id)?.prijzen?.[kt]||0),0)
-           + os.reduce((s,id)=>{
-               const prijs = AO.find(o=>o.id===id)?.prijs||0;
-               const aantal = ao[id]||1;
-               return s+(prijs*aantal);
-             },0);
+           + os.reduce((s,id)=>{ const o=AO.find(o=>o.id===id); return s+((o?.prijs||0)*(ao[id]||1)); },0);
   const sub=ps*n, btw=kt==="consument"?sub*0.21:0;
   return {sub,btw,tot:sub+btw};
 }
 
+// ── STORAGE ──
 async function getBezet()  { try{const r=await window.storage.get("mp2");return r?JSON.parse(r.value):{}}catch{return{}} }
 async function setBezet(v) { try{await window.storage.set("mp2",JSON.stringify(v))}catch{} }
 
+function getCmsCache() {
+  try {
+    const raw = localStorage.getItem(CMS_CACHE_KEY);
+    if (!raw) return null;
+    const {ts, data} = JSON.parse(raw);
+    if (Date.now()-ts > CMS_CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+function setCmsCache(data) {
+  try { localStorage.setItem(CMS_CACHE_KEY, JSON.stringify({ts:Date.now(),data})); } catch {}
+}
+
+// ── FETCH MET RETRY ──
+async function fetchRetry(url, opts={}, retries=2) {
+  for (let i=0; i<=retries; i++) {
+    try {
+      const res = await fetch(url, opts);
+      if (res.ok) return res;
+      if (i===retries) return res;
+      await new Promise(r=>setTimeout(r, 500*(i+1)));
+    } catch(e) {
+      if (i===retries) throw e;
+      await new Promise(r=>setTimeout(r, 500*(i+1)));
+    }
+  }
+}
+
 // ── UI ATOMS ──
-function Spinner() {
+function Spinner({msg}) {
   return html`<div style=${{background:C.white,borderRadius:"12px",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",minHeight:"300px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"12px"}}>
     <div class="spin" style=${{width:"28px",height:"28px",border:"2px solid "+C.border,borderTop:"2px solid "+C.accent,borderRadius:"50%"}}></div>
-    <p style=${{fontSize:"13px",color:C.faint}}>Laden...</p>
+    <p style=${{fontSize:"13px",color:C.faint}}>${msg||"Laden..."}</p>
   </div>`;
 }
 
@@ -161,22 +193,56 @@ function PR({label,val,dim}) {
   return html`<div style=${{display:"flex",justifyContent:"space-between",fontSize:"13px",padding:"3px 0",color:dim?C.sub:C.text}}><span>${label}</span><span>${val}</span></div>`;
 }
 
+// ── PROGRESS STEPS ──
+function SendProgress({stap}) {
+  const stappen = ["Boeking opslaan","Bevestiging versturen","Gereed"];
+  return html`<div style=${{display:"flex",flexDirection:"column",gap:"10px",padding:"16px 0"}}>
+    ${stappen.map((s,i)=>html`<div key=${i} style=${{display:"flex",alignItems:"center",gap:"10px"}}>
+      <div style=${{width:"20px",height:"20px",borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+        background: stap>i+1?C.ok:stap===i+1?C.accent:"transparent",
+        border:"1.5px solid "+(stap>i+1?C.ok:stap===i+1?C.accent:C.border)}}>
+        ${stap>i+1
+          ? html`<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+          : stap===i+1
+            ? html`<div class="spin" style=${{width:"10px",height:"10px",border:"1.5px solid rgba(255,255,255,0.4)",borderTop:"1.5px solid white",borderRadius:"50%"}}></div>`
+            : null}
+      </div>
+      <span style=${{fontSize:"13px",color:stap>i?C.text:C.faint,fontWeight:stap===i+1?600:400}}>${s}</span>
+    </div>`)}
+  </div>`;
+}
+
 // ── APP ROOT ──
 function App() {
-  const [AD,setAD] = useState([]);
-  const [AO,setAO] = useState([]);
+  const [AD,setAD]       = useState([]);
+  const [AO,setAO]       = useState([]);
   const [besch,setBesch] = useState(null);
   const [bezet,setBzt]   = useState({});
   const [klaar,setKlaar] = useState(false);
   const [wrn,setWrn]     = useState("");
+  const [initRes,setInitRes] = useState(null);
 
   useEffect(()=>{
+    // Herstel bevestiging uit URL hash
+    const hash = window.location.hash;
+    if (hash.startsWith("#boeking=")) {
+      try {
+        const data = JSON.parse(decodeURIComponent(hash.slice(9)));
+        setInitRes(data);
+      } catch {}
+    }
+
     (async()=>{
       try {
-        const [r,bz] = await Promise.all([
-          fetch(NETLIFY+"/api/cms-data").then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
+        // Probeer cache eerst
+        const cached = getCmsCache();
+        const [r, bz] = await Promise.all([
+          cached
+            ? Promise.resolve(cached)
+            : fetchRetry(NETLIFY+"/api/cms-data").then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
           getBezet()
         ]);
+        if (!cached) setCmsCache(r);
         setAD(r.diensten||FB.diensten);
         setAO(r.opties||FB.opties);
         setBesch(r.beschikbaar||FB.beschikbaar);
@@ -193,7 +259,7 @@ function App() {
   const boek = async(b) => {
     const nb={...bezet}; b.slots.forEach(t=>{nb[sk(b.datum,t)]=b.id;});
     setBzt(nb); await setBezet(nb);
-    const boekRes = await fetch(NETLIFY+"/api/boeking-opslaan",{
+    const boekRes = await fetchRetry(NETLIFY+"/api/boeking-opslaan",{
       method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({...b,
         dienstLabels:b.diensten.map(id=>AD.find(d=>d.id===id)?.label||id),
@@ -204,20 +270,67 @@ function App() {
       const errData = await boekRes.json().catch(()=>({error:"Onbekende fout"}));
       throw new Error(errData.error || "Opslaan mislukt: "+boekRes.status);
     }
+    // Sla bevestiging op in URL hash voor refresh-persistentie
+    window.location.hash = "boeking=" + encodeURIComponent(JSON.stringify(b));
   };
 
-  if(!klaar) return html`<${Spinner}/>`;
+  if (!klaar) return html`<${Spinner} msg="Beschikbaarheid ophalen..."/>`;
+  if (initRes) return html`<${Bevestiging} res=${initRes} AD=${AD} AO=${AO} onNieuw=${()=>{ window.location.hash=""; setInitRes(null); }}/>`;
   return html`<${Wizard} bezet=${bezet} AD=${AD} AO=${AO} besch=${besch} wrn=${wrn} onBoek=${boek}/>`;
+}
+
+// ── BEVESTIGING ──
+function Bevestiging({res,AD,AO,onNieuw}) {
+  const [dd,mm,jj] = res.datum.split("-").reverse();
+  const datStr = dd+" "+MND[parseInt(mm)-1]+" "+jj;
+  const sltStr = res.slots[0]+(res.slots.length>1?" – "+res.slots[res.slots.length-1]:"")+` (${res.slots.length}×)`;
+  const rows = [
+    ["Datum", datStr],
+    ["Tijdsloten", sltStr],
+    ["Diensten", res.diensten.map(id=>AD.find(d=>d.id===id)?.label||id).join(", ")],
+    ...(res.opties?.length>0?[["Opties", res.opties.map(id=>AO.find(o=>o.id===id)?.label||id).join(", ")]]:[] ),
+    ["Betaling", res.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
+  ];
+  return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+    <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",height:"48px"}}>
+      <${Logo}/>
+    </div>
+    <div style=${{padding:"24px 20px"}}>
+      <div style=${{display:"flex",alignItems:"center",gap:"14px",marginBottom:"20px",padding:"16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"8px"}}>
+        <div style=${{width:"40px",height:"40px",borderRadius:"50%",background:C.ok,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9.5l3 3L14 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div style=${{fontWeight:700,color:C.ok,fontSize:"15px"}}>Afspraak bevestigd</div>
+          <div style=${{fontSize:"12px",color:C.sub,marginTop:"2px"}}>Bevestiging verzonden naar ${res.email}</div>
+          <div style=${{fontSize:"11px",color:C.faint,marginTop:"1px"}}>Boekingsnummer: <strong style=${{color:C.accent}}>${res.id}</strong></div>
+        </div>
+      </div>
+      <div style=${{background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden",marginBottom:"16px"}}>
+        ${rows.map(([l,v])=>html`<div key=${l} style=${{display:"flex",gap:"12px",padding:"10px 16px",borderBottom:"1px solid "+C.border,fontSize:"13px"}}>
+          <span style=${{color:C.sub,minWidth:"90px",flexShrink:0}}>${l}</span>
+          <span style=${{color:C.text}}>${v}</span>
+        </div>`)}
+        <div style=${{display:"flex",justifyContent:"space-between",padding:"12px 16px"}}>
+          <span style=${{fontWeight:600,color:C.text,fontSize:"14px"}}>Te betalen op locatie</span>
+          <span style=${{fontWeight:700,fontSize:"18px",color:C.accent}}>€ ${(res.p?.tot||res.p?.totaal||0).toFixed(2)}</span>
+        </div>
+      </div>
+      <div style=${{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+        <button style=${{background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"}} onClick=${onNieuw}>+ Nieuwe afspraak</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 // ── WIZARD ──
 function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const today = new Date();
-  const [stap,setSt]   = useState(1);
+  const [stap,setSt]   = useState(()=>AD.length===1?2:1); // Sla stap 1 over als maar 1 dienst
   const [kt,setKt]     = useState(null);
-  const [ds,setDs]     = useState([]);
+  const [ds,setDs]     = useState(()=>AD.length===1?[AD[0].id]:[]);
   const [os,setOs]     = useState([]);
-  const [aantalOpts,setAantalOpts] = useState({});  // { optieId: aantal }
+  const [aantalOpts,setAantalOpts] = useState({});
   const [mn,setMn]     = useState(today.getMonth());
   const [jr,setJr]     = useState(today.getFullYear());
   const [dag,setDag]   = useState(null);
@@ -227,17 +340,28 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const [tel,setTl]    = useState("");
   const [bedr,setBd]   = useState("");
   const [kvk,setKv]    = useState("");
+  const [straat,setSt2]   = useState("");
+  const [huisnr,setHnr]   = useState("");
+  const [postcode,setPc]  = useState("");
+  const [plaats,setPl]    = useState("");
   const [bm,setBm]     = useState(null);
   const [bezig,setBz]  = useState(false);
-  const [res,setRes]   = useState(null);
+  const [sendStap,setSendStap] = useState(0);
   const [fout,setFt]   = useState("");
+
+  const stapLabels = AD.length===1
+    ? ["Klant","Opties","Datum","Gegevens"]
+    : ["Klant","Locatie","Opties","Datum","Gegevens"];
+  const maxStap = stapLabels.length;
+
+  const stapNr = (logisch) => AD.length===1 ? logisch-1 : logisch;
 
   const dat = dag ? did(jr,mn,dag) : null;
   const p   = (n) => calc(ds,os,kt,n,AD,AO,aantalOpts);
   const visAO = AO.filter(o => {
-    if (kt === "consument") return o.zichtbaarConsument !== false;
-    if (kt === "zzp")       return o.zichtbaarZzp       !== false;
-    if (kt === "bedrijf")   return o.zichtbaarBedrijf   !== false;
+    if (kt==="consument") return o.zichtbaarConsument!==false;
+    if (kt==="zzp")       return o.zichtbaarZzp!==false;
+    if (kt==="bedrijf")   return o.zichtbaarBedrijf!==false;
     return true;
   });
 
@@ -252,18 +376,14 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const togO = id => { if(AO.find(o=>o.id===id)?.verplichtConsument&&kt==="consument")return; setOs(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id]); };
   const togS = t => {
     if(bezet[sk(dat,t)])return;
-    if(slt.includes(t)){
-      // Deselecteren altijd toegestaan
-      setSlt(v=>v.filter(x=>x!==t).sort());
-    } else {
-      setSlt(v=>[...v,t].sort());
-    }
+    if(slt.includes(t)) setSlt(v=>v.filter(x=>x!==t).sort());
+    else setSlt(v=>[...v,t].sort());
   };
 
   const kanS = t => {
     if(bezet[sk(dat,t)])return false;
-    if(slt.includes(t))return true;       // altijd deselecteerbaar
-    if(slt.length===0)return true;        // eerste slot altijd selecteerbaar
+    if(slt.includes(t))return true;
+    if(slt.length===0)return true;
     const idx=besch.tijdsloten.indexOf(t);
     return slt.some(s=>Math.abs(besch.tijdsloten.indexOf(s)-idx)===1);
   };
@@ -275,83 +395,72 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       ||besch.geblokkeerdeData.includes(did(jr,mn,d));
   };
 
+  // Logische stap nummers (altijd 1-5)
+  const logStap = AD.length===1 ? stap+1 : stap;
+
   const ok = () => {
-    if(stap===1)return!!kt;
-    if(stap===2)return ds.length>0;
-    if(stap===4)return!!dag&&slt.length>0;
-    if(stap===5)return naam&&mail&&tel&&bm;
+    if(logStap===1)return!!kt;
+    if(logStap===2)return ds.length>0;
+    if(logStap===4)return!!dag&&slt.length>0;
+    if(logStap===5)return naam&&mail&&tel&&straat&&huisnr&&postcode&&plaats&&bm;
     return true;
   };
 
   const send = async() => {
-    setBz(true); setFt("");
+    setBz(true); setFt(""); setSendStap(1);
     try {
       const b={id:"BK-"+Date.now(),kt,diensten:ds,opties:os,datum:dat,slots:slt,
         naam,email:mail,tel,bedrijf:kt!=="consument"?bedr:null,kvk:kt==="bedrijf"?kvk:null,
+        straat,huisnummer:huisnr,postcode,plaats,
         betaalMethode:bm,aantalOpts,p:p(slt.length),ts:new Date().toISOString()};
+      setSendStap(2);
       await onBoek(b);
-      setRes(b);
-    } catch(e){ setFt("Fout: " + e.message); console.error("Boeking fout:", e); }
-    setBz(false);
+      setSendStap(3);
+    } catch(e){ setFt("Fout: "+e.message); setBz(false); setSendStap(0); }
   };
 
-  const reset = () => { setRes(null);setSt(1);setKt(null);setDs([]);setOs([]);setAantalOpts({});setDag(null);setSlt([]);setNm("");setMl("");setTl("");setBd("");setKv("");setBm(null); };
+  const reset = () => {
+    setSt(AD.length===1?2:1); setKt(null);
+    setDs(AD.length===1?[AD[0].id]:[]);
+    setOs([]);setAantalOpts({});setDag(null);setSlt([]);
+    setNm("");setMl("");setTl("");setBd("");setKv("");
+    setSt2("");setHnr("");setPc("");setPl("");setBm(null);
+    setSendStap(0);setFt("");
+  };
 
-  // ── BEVESTIGING ──
-  if(res) {
-    const [dd,mm,jj] = res.datum.split("-").reverse();
-    const datStr = dd+" "+MND[parseInt(mm)-1]+" "+jj;
-    const sltStr = res.slots[0]+(res.slots.length>1?" - "+res.slots[res.slots.length-1]:"")+` (${res.slots.length}x)`;
-    const rows = [
-      ["Datum", datStr],
-      ["Tijdsloten", sltStr],
-      ["Diensten", res.diensten.map(id=>AD.find(d=>d.id===id)?.label||id).join(", ")],
-      ...(res.opties.length>0?[["Opties", res.opties.map(id=>AO.find(o=>o.id===id)?.label||id).join(", ")]]:[] ),
-      ["Betaling", res.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
-    ];
-    return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
-      <div style=${{maxWidth:"480px",margin:"48px auto",padding:"0 24px"}}>
-        <div style=${{display:"flex",alignItems:"center",gap:"14px",marginBottom:"24px",padding:"16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"8px"}}>
-          <div style=${{width:"40px",height:"40px",borderRadius:"50%",background:C.ok,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9.5l3 3L14 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div>
-            <div style=${{fontWeight:700,color:C.ok,fontSize:"15px"}}>Afspraak bevestigd</div>
-            <div style=${{fontSize:"12px",color:C.sub,marginTop:"2px"}}>Bevestiging naar ${res.email} · ${res.id}</div>
-          </div>
-        </div>
-        <div style=${{background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden",marginBottom:"16px"}}>
-          ${rows.map(([l,v])=>html`<div key=${l} style=${{display:"flex",gap:"12px",padding:"10px 16px",borderBottom:"1px solid "+C.border,fontSize:"13px"}}>
-            <span style=${{color:C.sub,minWidth:"90px",flexShrink:0}}>${l}</span>
-            <span style=${{color:C.text}}>${v}</span>
-          </div>`)}
-          <div style=${{display:"flex",justifyContent:"space-between",padding:"12px 16px"}}>
-            <span style=${{fontWeight:600,color:C.text,fontSize:"14px"}}>Te betalen op locatie</span>
-            <span style=${{fontWeight:700,fontSize:"18px",color:C.accent}}>€ ${res.p.tot.toFixed(2)}</span>
-          </div>
-        </div>
-        <button style=${{background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"}} onClick=${reset}>+ Nieuwe afspraak</button>
+  const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
+  const btnS = {background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"};
+
+  // Bezig met verzenden — toon progress
+  if (bezig) {
+    return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+      <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",height:"48px"}}>
+        <${Logo}/>
+      </div>
+      <div style=${{padding:"32px 24px"}}>
+        <h2 style=${{fontSize:"17px",fontWeight:700,color:C.text,marginBottom:"6px"}}>Afspraak wordt bevestigd</h2>
+        <p style=${{fontSize:"13px",color:C.sub,marginBottom:"20px"}}>Even geduld...</p>
+        <${SendProgress} stap=${sendStap}/>
+        ${sendStap===3 && html`<div style=${{marginTop:"20px",padding:"12px 16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"6px",fontSize:"13px",color:C.ok,fontWeight:600}}>
+          ✓ Alles gelukt! Je wordt doorgestuurd...
+        </div>`}
       </div>
     </div>`;
   }
 
-  // ── STAP INHOUD ──
-  const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
-  const btnS = {background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"};
-
-  return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+  return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
     <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
       <${Logo}/>
-      ${slt.length>0&&kt&&ds.length>0 && html`<span style=${{fontSize:"13px",color:C.sub}}>${slt.length}× · Totaal: <strong style=${{color:C.text}}>€ ${p(slt.length).tot.toFixed(2)}</strong></span>`}
+      ${slt.length>0&&kt&&ds.length>0 && html`<span style=${{fontSize:"13px",color:C.sub}}>${slt.length}× · <strong style=${{color:C.text}}>€ ${p(slt.length).tot.toFixed(2)}</strong></span>`}
     </div>
 
-    ${wrn && html`<div style=${{background:"#fffbeb",borderBottom:"1px solid #fcd34d",padding:"8px 24px",fontSize:"12px",color:"#92400e"}}>${wrn}</div>`}
+    ${wrn && html`<div style=${{background:C.warnbg,borderBottom:"1px solid "+C.warnbor,padding:"8px 24px",fontSize:"12px",color:C.warn}}>${wrn}</div>`}
 
-    <${Steps} stap=${stap} labels=${["Klant","Locatie","Opties","Datum","Gegevens"]}/>
+    <${Steps} stap=${stap} labels=${stapLabels}/>
 
     <div class="body-pad" style=${{padding:"20px 20px 80px"}}>
 
-      ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
+      ${logStap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
         <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:"8px"}}>
           ${[{id:"consument",label:"Cursist",sub:"Particulier · incl. btw"},{id:"zzp",label:"Instructeur",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Rijschoolhouder",sub:"Organisatie · excl. btw"}].map(k=>html`
             <div key=${k.id} onClick=${()=>setKt(k.id)} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white}}>
@@ -361,7 +470,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </div>
       </>`}
 
-      ${stap===2 && html`<${Blok} titel="Selecteer locatie" sub="Prijs per tijdslot.">
+      ${logStap===2 && html`<${Blok} titel="Selecteer locatie" sub="Prijs per tijdslot.">
         <table style=${{width:"100%",borderCollapse:"collapse",background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden"}}>
           <thead><tr>
             <th style=${{width:"32px",padding:"9px 14px",background:C.bg,borderBottom:"1px solid "+C.border}}></th>
@@ -392,7 +501,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </div>`}
       </>`}
 
-      ${stap===3 && html`<${Blok} titel="Extra opties" sub="Opties gelden per tijdslot.">
+      ${logStap===3 && html`<${Blok} titel="Extra opties" sub="Opties gelden per tijdslot.">
         <table style=${{width:"100%",borderCollapse:"collapse",background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden"}}>
           <thead><tr>
             <th style=${{width:"32px",padding:"9px 14px",background:C.bg,borderBottom:"1px solid "+C.border}}></th>
@@ -441,24 +550,28 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </div>
       </>`}
 
-      ${stap===4 && html`<${Blok} titel="Kies datum en tijdsloten" sub="Meerdere aaneengesloten uren op dezelfde dag.">
-        <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px",alignItems:"start"}}>
+      ${logStap===4 && html`<${Blok} titel="Kies datum en tijdsloten" sub="Meerdere aaneengesloten uren op dezelfde dag.">
+        <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px"}}>
           <div>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-              <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"28px",height:"28px",borderRadius:"4px",cursor:"pointer",fontSize:"16px"}} onClick=${()=>{if(mn===0){setMn(11);setJr(y=>y-1);}else setMn(m=>m-1);}}>‹</button>
-              <span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${MND[mn]} ${jr}</span>
-              <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"28px",height:"28px",borderRadius:"4px",cursor:"pointer",fontSize:"16px"}} onClick=${()=>{if(mn===11){setMn(0);setJr(y=>y+1);}else setMn(m=>m+1);}}>›</button>
+              <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"32px",height:"32px",borderRadius:"4px",cursor:"pointer",fontSize:"18px"}}>
+                <span onClick=${()=>{if(mn===0){setMn(11);setJr(y=>y-1);}else setMn(m=>m-1);}}>‹</span>
+              </button>
+              <span style=${{fontWeight:600,fontSize:"15px",color:C.text}}>${MND[mn]} ${jr}</span>
+              <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"32px",height:"32px",borderRadius:"4px",cursor:"pointer",fontSize:"18px"}}>
+                <span onClick=${()=>{if(mn===11){setMn(0);setJr(y=>y+1);}else setMn(m=>m+1);}}>›</span>
+              </button>
             </div>
             <div style=${{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:"4px"}}>
-              ${WD.map(w=>html`<div key=${w} style=${{textAlign:"center",fontSize:"11px",color:C.faint,padding:"6px 0"}}>${w}</div>`)}
+              ${WD.map(w=>html`<div key=${w} style=${{textAlign:"center",fontSize:"12px",color:C.faint,padding:"6px 0",fontWeight:500}}>${w}</div>`)}
             </div>
-            <div style=${{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"2px"}}>
+            <div style=${{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"3px"}}>
               ${Array.from({length:ew(jr,mn)}).map((_,i)=>html`<div key=${"e"+i}></div>`)}
               ${Array.from({length:nd(jr,mn)}).map((_,i)=>{
                 const d=i+1, uitg=dUitg(d,i), gesel=dag===d;
                 const vand=jr===today.getFullYear()&&mn===today.getMonth()&&d===today.getDate();
-                return html`<div key=${d} onClick=${()=>!uitg&&(setDag(d),setSlt([]))}
-                  style=${{height:"34px",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"4px",fontSize:"13px",cursor:uitg?"default":"pointer",fontWeight:gesel?700:400,background:gesel?C.accent:"transparent",color:gesel?"#fff":uitg?C.faint:C.text,border:"1px solid "+(gesel?C.accent:vand?C.bh:"transparent")}}
+                return html`<div key=${d} class="cal-day" onClick=${()=>!uitg&&(setDag(d),setSlt([]))}
+                  style=${{height:"38px",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"6px",fontSize:"14px",cursor:uitg?"default":"pointer",fontWeight:gesel?700:400,background:gesel?C.accent:"transparent",color:gesel?"#fff":uitg?C.faint:C.text,border:"1px solid "+(gesel?C.accent:vand?C.bh:"transparent")}}
                   onMouseEnter=${e=>{if(!uitg&&!gesel)e.currentTarget.style.background=C.bg;}}
                   onMouseLeave=${e=>{if(!uitg&&!gesel)e.currentTarget.style.background="transparent";}}>
                   ${d}
@@ -468,43 +581,51 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
           </div>
           <div>
             ${dag ? html`
-              <div style=${{fontSize:"13px",color:C.sub,marginBottom:"10px",fontWeight:500}}>${dag} ${MND[mn]}</div>
+              <div style=${{fontSize:"13px",color:C.sub,marginBottom:"10px",fontWeight:600}}>${dag} ${MND[mn]} — kies tijdsloten</div>
               <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
                 ${besch.tijdsloten.map(t=>{
                   const gbz=!!bezet[sk(dat,t)], gesel=slt.includes(t), kan=kanS(t);
                   return html`<div key=${t} onClick=${()=>kan&&togS(t)}
-                    style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 12px",borderRadius:"5px",fontSize:"14px",border:"1.5px solid "+(gesel?C.accent:C.border),background:gesel?C.abg:gbz?C.bg:C.white,color:gbz?C.faint:(!kan&&!gesel)?C.faint:C.text,cursor:(!kan||gbz)?"default":"pointer",fontWeight:gesel?600:400,opacity:(!kan&&!gesel&&!gbz)?0.45:1}}>
-                    <span>${(()=>{const [h,m]=t.split(":").map(Number);const eh=(h+1)%24;return t+" – "+String(eh).padStart(2,"0")+":"+String(m).padStart(2,"0");})()}</span>
+                    style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",borderRadius:"6px",fontSize:"13px",border:"1.5px solid "+(gesel?C.accent:C.border),background:gesel?C.abg:gbz?C.bg:C.white,color:gbz?C.faint:(!kan&&!gesel)?C.faint:C.text,cursor:(!kan||gbz)?"default":"pointer",fontWeight:gesel?600:400,opacity:(!kan&&!gesel&&!gbz)?0.4:1}}>
+                    <span>${tRange(t)}</span>
                     ${gbz&&html`<span style=${{fontSize:"11px",color:C.faint}}>Bezet</span>`}
-                    ${gesel&&html`<span style=${{fontSize:"11px",color:C.accent}}>✓ Geselecteerd</span>`}
+                    ${gesel&&html`<span style=${{fontSize:"14px",color:C.accent,fontWeight:700}}>✓</span>`}
                   </div>`;
                 })}
               </div>
-              ${slt.length>0 && html`<div style=${{marginTop:"12px",background:C.abg,border:"1px solid "+C.abor,borderRadius:"5px",padding:"10px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              ${slt.length>0 && html`<div style=${{marginTop:"12px",background:C.abg,border:"1px solid "+C.abor,borderRadius:"6px",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
-                  <div style=${{fontSize:"13px",fontWeight:600,color:C.accent}}>${slt.length} slot${slt.length>1?"en":""}: ${slt[0]}${slt.length>1?" – "+slt[slt.length-1]:""}</div>
+                  <div style=${{fontSize:"13px",fontWeight:600,color:C.accent}}>${slt.length} uur: ${tRange(slt[0])}${slt.length>1?" t/m "+tRange(slt[slt.length-1]):""}</div>
                   <div style=${{fontSize:"12px",color:C.sub,marginTop:"2px"}}>€ ${p(1).sub.toFixed(2)} × ${slt.length} = <strong>€ ${p(slt.length).sub.toFixed(2)}</strong></div>
                 </div>
-                <button onClick=${()=>setSlt([])} style=${{background:"transparent",border:"none",color:C.faint,cursor:"pointer",fontSize:"12px"}}>Wissen</button>
+                <button onClick=${()=>setSlt([])} style=${{background:"transparent",border:"none",color:C.faint,cursor:"pointer",fontSize:"12px",padding:"4px 8px"}}>Wissen</button>
               </div>`}
-            ` : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"200px"}}><p style=${{color:C.faint,fontSize:"13px",textAlign:"center"}}>Selecteer eerst een datum</p></div>`}
+            ` : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"120px",background:C.bg,borderRadius:"8px"}}><p style=${{color:C.faint,fontSize:"13px"}}>Selecteer eerst een datum</p></div>`}
           </div>
         </div>
       </>`}
 
-      ${stap===5 && html`<${Blok} titel="Uw gegevens" sub="Vul uw contactgegevens in.">
+      ${logStap===5 && html`<${Blok} titel="Uw gegevens" sub="Vul uw contactgegevens in.">
         <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px"}}>
           <div style=${{display:"flex",flexDirection:"column",gap:"12px"}}>
             <${Veld} label="Volledige naam" req=${true} val=${naam} set=${setNm} ph="Jan de Vries"/>
             <${Veld} label="E-mailadres" req=${true} val=${mail} set=${setMl} ph="jan@voorbeeld.nl"/>
             <${Veld} label="Telefoonnummer" req=${true} val=${tel} set=${setTl} ph="+31 6 12345678"/>
+            <div style=${{display:"grid",gridTemplateColumns:"1fr 72px",gap:"8px"}}>
+              <${Veld} label="Straat" req=${true} val=${straat} set=${setSt2} ph="Hoofdstraat"/>
+              <${Veld} label="Nr." req=${true} val=${huisnr} set=${setHnr} ph="12"/>
+            </div>
+            <div style=${{display:"grid",gridTemplateColumns:"120px 1fr",gap:"8px"}}>
+              <${Veld} label="Postcode" req=${true} val=${postcode} set=${setPc} ph="1234 AB"/>
+              <${Veld} label="Plaats" req=${true} val=${plaats} set=${setPl} ph="Amsterdam"/>
+            </div>
             ${kt!=="consument" && html`<${Veld} label="Bedrijfsnaam" val=${bedr} set=${setBd} ph="Bedrijf B.V."/>`}
             ${kt==="bedrijf" && html`<${Veld} label="KVK-nummer" val=${kvk} set=${setKv} ph="12345678"/>`}
             <div>
               <label style=${{fontSize:"12px",fontWeight:500,color:C.text,display:"block",marginBottom:"8px"}}>Betaalmethode op locatie <span style=${{color:C.err}}>*</span></label>
               <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
                 ${[{id:"contant",label:"Contant"},{id:"pin",label:"Pinnen"}].map(m=>html`
-                  <div key=${m.id} onClick=${()=>setBm(m.id)} style=${{flex:1,display:"flex",alignItems:"center",gap:"10px",padding:"11px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(bm===m.id?C.accent:C.border),background:bm===m.id?C.abg:C.white}}>
+                  <div key=${m.id} onClick=${()=>setBm(m.id)} style=${{display:"flex",alignItems:"center",gap:"10px",padding:"11px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(bm===m.id?C.accent:C.border),background:bm===m.id?C.abg:C.white}}>
                     <${RB} on=${bm===m.id}/><span style=${{fontWeight:bm===m.id?600:400,fontSize:"14px",color:C.text}}>${m.label}</span>
                   </div>`)}
               </div>
@@ -514,7 +635,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
             <div style=${{padding:"10px 14px",borderBottom:"1px solid "+C.border,fontSize:"11px",fontWeight:600,color:C.sub,textTransform:"uppercase",letterSpacing:"0.6px"}}>Overzicht</div>
             ${[
               ["Datum", dag?dag+" "+MND[mn]+" "+jr:"-"],
-              ["Tijdsloten", slt.length>0?slt[0]+(slt.length>1?" – "+slt[slt.length-1]:"")+` (${slt.length}×)`:"-"],
+              ["Tijdsloten", slt.length>0?tRange(slt[0])+(slt.length>1?" t/m "+tRange(slt[slt.length-1]):"")+` (${slt.length}×)`:"-"],
               ["Diensten", ds.map(id=>AD.find(d=>d.id===id)?.label).join(", ")||"-"],
               ...(os.length>0?[["Opties",os.map(id=>AO.find(o=>o.id===id)?.label).join(", ")]]:[] ),
               ...(bm?[["Betaling",bm==="pin"?"Pin op locatie":"Contant op locatie"]]:[] ),
@@ -534,16 +655,16 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
             </div>
           </div>
         </div>
-        ${fout && html`<p style=${{color:C.err,fontSize:"13px",marginTop:"12px"}}>${fout}</p>`}
+        ${fout && html`<p style=${{color:C.err,fontSize:"13px",marginTop:"12px",padding:"10px 12px",background:"#fef2f2",borderRadius:"5px"}}>${fout}</p>`}
       </>`}
 
     </div>
 
     <div class="footer-bar" style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       ${stap>1 ? html`<button style=${btnS} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span></span>`}
-      ${stap<5
+      ${stap<maxStap
         ? html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
-        : html`<button style=${{...btnP,opacity:(ok()&&!bezig)?1:.4}} onClick=${(ok()&&!bezig)?send:null}>${bezig?"Bezig...":"Afspraak bevestigen"}</button>`
+        : html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>Afspraak bevestigen</button>`
       }
     </div>
   </div>`;

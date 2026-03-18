@@ -53,6 +53,8 @@ export async function onRequest(context) {
   } = boeking;
 
   console.log("Ontvangen datum:", datum, "slots:", slots, "kt:", kt);
+  const cancelToken = btoa(id).replace(/=/g,"").slice(0,12);
+  const cancelUrl = `https://l-rijopleidingen.pages.dev/api/annuleer?id=${id}&token=${cancelToken}`;
   const slotsLabel = slots?.length > 0
     ? `${slots[0]}${slots.length > 1 ? ` – ${slots[slots.length - 1]}` : ""} (${slots.length}×)`
     : "—";
@@ -76,6 +78,9 @@ export async function onRequest(context) {
             "Klanttype":       kt,
             "Bedrijfsnaam":    bedrijf || "",
             "KVK":             kvk || "",
+            "Straat":          (boeking.straat || "") + " " + (boeking.huisnummer || ""),
+            "Postcode":        boeking.postcode || "",
+            "Plaats":          boeking.plaats || "",
             "Datum":           datum ? String(datum).trim() : "",
             "Tijdsloten":      slotsLabel,
             "Diensten":        (dienstLabels || diensten || []).join(", "),
@@ -160,6 +165,13 @@ export async function onRequest(context) {
           </p>
         </td></tr>
 
+        <!-- Annuleren -->
+        <tr><td style="padding:16px 32px;border-top:1px solid #f3f4f6;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9ca3af;">Wilt u deze afspraak annuleren?
+            <a href="${cancelUrl}" style="color:#dc2626;text-decoration:underline;">Klik hier om te annuleren</a>
+          </p>
+        </td></tr>
+
         <!-- Footer -->
         <tr><td style="background:#f5f6f8;padding:16px 32px;border-top:1px solid #dde1e9;">
           <p style="margin:0;font-size:12px;color:#9ca3af;">L-Rijopleidingen · Vragen? Neem contact op via info@l-rijopleidingen.nl</p>
@@ -197,8 +209,8 @@ export async function onRequest(context) {
   // ── 3. Beheerdersmail ──────────────────────────────────────────────────────
   try {
     const adminEmail = env.ADMIN_EMAIL || (env.RESEND_FROM || "").trim();
-    const adminHtml = `
-<!DOCTYPE html>
+    const ktLabels = { consument:"Cursist", zzp:"Instructeur", bedrijf:"Rijschoolhouder" };
+    const adminHtml = `<!DOCTYPE html>
 <html lang="nl">
 <head><meta charset="UTF-8"><title>Nieuwe boeking</title></head>
 <body style="margin:0;padding:0;background:#f5f6f8;font-family:Arial,sans-serif;">
@@ -207,7 +219,7 @@ export async function onRequest(context) {
       <table width="540" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #dde1e9;">
         <tr><td style="background:#1a1f2e;padding:20px 32px;">
           <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">🔔 Nieuwe boeking ontvangen</p>
-          <p style="margin:4px 0 0;color:#9ca3af;font-size:13px;">L-Rijopleidingen Boekingssysteem</p>
+          <p style="margin:4px 0 0;color:#9ca3af;font-size:13px;">L-Rijopleidingen Boekingssysteem · ${new Date().toLocaleString("nl-NL")}</p>
         </td></tr>
         <tr><td style="padding:24px 32px;">
           <table width="100%" cellpadding="0" cellspacing="0">
@@ -216,17 +228,17 @@ export async function onRequest(context) {
               ["Naam",           naam],
               ["Email",          email],
               ["Telefoon",       tel || "—"],
-              ["Klanttype",      kt === "consument" ? "Cursist" : kt === "zzp" ? "Instructeur" : "Rijschoolhouder"],
+              ["Klanttype",      ktLabels[kt] || kt],
               ...(bedrijf ? [["Bedrijf", bedrijf]] : []),
               ["Datum",          formatDatum(datum)],
               ["Tijdsloten",     slotsLabel],
-              ["Locatie",        (dienstLabels || diensten || []).join(", ")],
+              ["Diensten",       (dienstLabels || diensten || []).join(", ")],
               ...(optieLabels?.length ? [["Opties", optieLabels.join(", ")]] : []),
               ["Betaling",       betaalMethode === "pin" ? "Pin op locatie" : "Contant op locatie"],
               ["Totaal",         "€ " + (prijs?.totaal || prijs?.tot || 0).toFixed(2)],
             ].map(([l, v]) => `
             <tr>
-              <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;width:140px;vertical-align:top;">${l}</td>
+              <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;width:140px;">${l}</td>
               <td style="padding:8px 0 8px 12px;border-bottom:1px solid #f3f4f6;color:#1a1f2e;font-size:13px;font-weight:500;">${v}</td>
             </tr>`).join("")}
           </table>
@@ -242,10 +254,7 @@ export async function onRequest(context) {
 
     await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${env.RESEND_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Authorization": `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from:    (env.RESEND_FROM || "").trim(),
         to:      [adminEmail],

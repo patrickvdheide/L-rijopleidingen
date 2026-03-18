@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>L-Rijopleidingen - Beheer</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; }
+    .topbar { background: #1a1f2e; color: white; padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h1 { font-size: 15px; font-weight: 700; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 8px; border: 1px solid #dde1e9; overflow: hidden; }
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); }
+    .login-box { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 32px; width: 320px; }
+    input { width: 100%; border: 1px solid #dde1e9; border-radius: 5px; padding: 8px 11px; font-size: 14px; margin-top: 6px; outline: none; font-family: inherit; }
+    input:focus { border-color: #2c6bed; }
+    button { background: #2c6bed; color: white; border: none; padding: 9px 20px; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; font-family: inherit; }
+    .err { color: #dc2626; font-size: 13px; margin-top: 8px; }
+    .stat { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 16px; }
+    .stat-val { font-size: 28px; font-weight: 700; color: #2c6bed; }
+    .stat-lbl { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f5f6f8; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #dde1e9; }
+    td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge-cursist { background: #eef3fd; color: #2c6bed; }
+    .badge-instructeur { background: #f0fdf4; color: #16a34a; }
+    .badge-rijschool { background: #fef3c7; color: #92400e; }
+    .badge-pin { background: #f5f3ff; color: #6d28d9; }
+    .badge-contant { background: #f5f6f8; color: #6b7280; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-bar input { width: auto; flex: 1; min-width: 200px; margin: 0; }
+    .search-bar select { border: 1px solid #dde1e9; border-radius: 5px; padding: 8px 11px; font-size: 14px; outline: none; font-family: inherit; color: #1a1f2e; background: white; }
+    .loading { text-align: center; padding: 48px; color: #9ca3af; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 24px; height: 24px; border: 2px solid #dde1e9; border-top-color: #2c6bed; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+    @media (max-width: 600px) {
+      th:nth-child(n+4), td:nth-child(n+4) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🏍️ L-Rijopleidingen — Beheer</h1>
+    <span id="logout-btn" style="font-size:13px;cursor:pointer;opacity:0.7;display:none" onclick="uitloggen()">Uitloggen</span>
+  </div>
+
+  <div id="login-view" class="login-wrap">
+    <div class="login-box">
+      <h2 style="font-size:18px;font-weight:700;color:#1a1f2e;margin-bottom:6px">Inloggen</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Beheeromgeving L-Rijopleidingen</p>
+      <label style="font-size:12px;font-weight:500;color:#1a1f2e">Wachtwoord</label>
+      <input type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')inloggen()"/>
+      <button onclick="inloggen()">Inloggen</button>
+      <div id="login-err" class="err" style="display:none">Onjuist wachtwoord</div>
+    </div>
+  </div>
+
+  <div id="admin-view" style="display:none">
+    <div class="container">
+      <div class="stat" id="stats"></div>
+      <div class="card">
+        <div style="padding:16px 20px;border-bottom:1px solid #dde1e9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <h2 style="font-size:15px;font-weight:700;color:#1a1f2e">Boekingen</h2>
+          <div class="search-bar" style="margin:0">
+            <input type="text" id="zoek-input" placeholder="Zoek op naam, email..." oninput="filterBoekingen()"/>
+            <select id="kt-filter" onchange="filterBoekingen()">
+              <option value="">Alle klanttypes</option>
+              <option value="consument">Cursist</option>
+              <option value="zzp">Instructeur</option>
+              <option value="bedrijf">Rijschoolhouder</option>
+            </select>
+          </div>
+        </div>
+        <div id="tabel-wrap">
+          <div class="loading"><div class="spinner"></div>Boekingen laden...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PWD_KEY = "lrijo_admin_v1";
+    const ADMIN_PASSWORD = "rijschool2026"; // ← verander dit wachtwoord
+
+    let alleBoekingen = [];
+
+    function inloggen() {
+      const pwd = document.getElementById("pwd-input").value;
+      if (pwd === ADMIN_PASSWORD) {
+        sessionStorage.setItem(ADMIN_PWD_KEY, "1");
+        toonAdmin();
+      } else {
+        document.getElementById("login-err").style.display = "block";
+      }
+    }
+
+    function uitloggen() {
+      sessionStorage.removeItem(ADMIN_PWD_KEY);
+      document.getElementById("admin-view").style.display = "none";
+      document.getElementById("login-view").style.display = "flex";
+      document.getElementById("logout-btn").style.display = "none";
+    }
+
+    function toonAdmin() {
+      document.getElementById("login-view").style.display = "none";
+      document.getElementById("admin-view").style.display = "block";
+      document.getElementById("logout-btn").style.display = "block";
+      laadBoekingen();
+    }
+
+    function ktLabel(kt) {
+      if (kt === "consument") return '<span class="badge badge-cursist">Cursist</span>';
+      if (kt === "zzp")       return '<span class="badge badge-instructeur">Instructeur</span>';
+      if (kt === "bedrijf")   return '<span class="badge badge-rijschool">Rijschoolhouder</span>';
+      return kt||"-";
+    }
+
+    function bmLabel(bm) {
+      if (bm === "pin")     return '<span class="badge badge-pin">Pin</span>';
+      if (bm === "contant") return '<span class="badge badge-contant">Contant</span>';
+      return bm||"-";
+    }
+
+    function formatDatum(str) {
+      if (!str) return "-";
+      const mnd = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+      const [j,m,d] = str.split("-");
+      return parseInt(d)+" "+mnd[parseInt(m)-1]+" "+j;
+    }
+
+    async function laadBoekingen() {
+      try {
+        const res = await fetch("/api/admin-boekingen", {
+          headers: { "x-admin-key": ADMIN_PASSWORD }
+        });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        alleBoekingen = data.boekingen || [];
+        toonStats(alleBoekingen);
+        renderTabel(alleBoekingen);
+      } catch(e) {
+        document.getElementById("tabel-wrap").innerHTML =
+          '<div class="loading" style="color:#dc2626">Fout bij laden: '+e.message+'</div>';
+      }
+    }
+
+    function toonStats(boekingen) {
+      const totaal = boekingen.length;
+      const omzet  = boekingen.reduce((s,b)=>s+Number(b.fields?.Totaal||0), 0);
+      const vandaag = new Date().toISOString().slice(0,10);
+      const vandaagN = boekingen.filter(b=>b.fields?.Datum===vandaag).length;
+      const statsEl = document.getElementById("stats");
+      statsEl.innerHTML = `
+        <div class="stat-card"><div class="stat-val">${totaal}</div><div class="stat-lbl">Totaal boekingen</div></div>
+        <div class="stat-card"><div class="stat-val">${vandaagN}</div><div class="stat-lbl">Vandaag</div></div>
+        <div class="stat-card"><div class="stat-val">€ ${omzet.toFixed(2)}</div><div class="stat-lbl">Totale omzet</div></div>
+      `;
+    }
+
+    function filterBoekingen() {
+      const zoek = document.getElementById("zoek-input").value.toLowerCase();
+      const kt   = document.getElementById("kt-filter").value;
+      const gefilterd = alleBoekingen.filter(b => {
+        const f = b.fields || {};
+        const matchZoek = !zoek
+          || (f.Naam||"").toLowerCase().includes(zoek)
+          || (f.Email||"").toLowerCase().includes(zoek)
+          || (f.Boekingsnummer||"").toLowerCase().includes(zoek);
+        const matchKt = !kt || f.Klanttype === kt;
+        return matchZoek && matchKt;
+      });
+      renderTabel(gefilterd);
+    }
+
+    function renderTabel(boekingen) {
+      if (!boekingen.length) {
+        document.getElementById("tabel-wrap").innerHTML = '<div class="loading">Geen boekingen gevonden</div>';
+        return;
+      }
+      const rijen = boekingen.map(b => {
+        const f = b.fields || {};
+        return `<tr>
+          <td><strong>${f.Naam||"-"}</strong><br><span style="color:#6b7280;font-size:12px">${f.Email||""}</span></td>
+          <td>${ktLabel(f.Klanttype)}</td>
+          <td>${formatDatum(f.Datum)}<br><span style="color:#6b7280;font-size:12px">${f.Tijdsloten||""}</span></td>
+          <td>${f.Diensten||"-"}</td>
+          <td style="font-weight:600;color:#2c6bed">€ ${Number(f.Totaal||0).toFixed(2)}</td>
+          <td>${bmLabel(f.Betaalmethode)}</td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("tabel-wrap").innerHTML = `
+        <table>
+          <thead><tr>
+            <th>Klant</th>
+            <th>Type</th>
+            <th>Datum</th>
+            <th>Dienst</th>
+            <th>Totaal</th>
+            <th>Betaling</th>
+          </tr></thead>
+          <tbody>${rijen}</tbody>
+        </table>`;
+    }
+
+    // Auto-inloggen als sessie actief
+    if (sessionStorage.getItem(ADMIN_PWD_KEY)) toonAdmin();
+  </script>
+</body>
+</html>

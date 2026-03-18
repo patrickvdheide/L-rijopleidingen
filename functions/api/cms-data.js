@@ -98,7 +98,7 @@ export async function onRequest(context) {
       beschikbaar: parseBeschikbaar(bItems),
     });
 
-    return new Response(body, { status: 200, headers: CORS });
+    return new Response(body, { status: 200, headers: {...CORS, "Cache-Control": "public, max-age=300"} });
   } catch (err) {
     console.error("CMS fout:", err.message);
     return new Response(
