@@ -94,6 +94,7 @@ export async function onRequest(context) {
 
     const body = JSON.stringify({
       diensten:    parseDiensten(dItems),
+      debug:       dItems[0]?.fieldData,
       opties:      parseOpties(oItems),
       beschikbaar: parseBeschikbaar(bItems),
     });
