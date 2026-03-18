@@ -32,9 +32,9 @@ function parseDiensten(items) {
       info:   i.fieldData?.omschrijving ?? "",
       actief: true,
       prijzen: {
-        consument: Number(i.fieldData?.["prijs-consument"] ?? 0),
-        zzp:       Number(i.fieldData?.["prijs-zzp"]       ?? 0),
-        bedrijf:   Number(i.fieldData?.["prijs-bedrijf"]   ?? 0),
+        consument: Number(i.fieldData?.["prijs-consument"] ?? i.fieldData?.["prijs-cursist"] ?? 0),
+        zzp:       Number(i.fieldData?.["prijs-zzp"] ?? i.fieldData?.["prijs-zzp-er"] ?? i.fieldData?.["prijs-instructeur"] ?? 0),
+        bedrijf:   Number(i.fieldData?.["prijs-bedrijf"] ?? i.fieldData?.["prijs-rijschoolhouder"] ?? i.fieldData?.["prijs-rijschool"] ?? 0),
       },
     }));
 }
@@ -98,7 +98,7 @@ export async function onRequest(context) {
       beschikbaar: parseBeschikbaar(bItems),
     });
 
-    return new Response(body, { status: 200, headers: {...CORS, "Cache-Control": "public, max-age=300"} });
+    return new Response(body, { status: 200, headers: {...CORS, "Cache-Control": "no-cache"} });
   } catch (err) {
     console.error("CMS fout:", err.message);
     return new Response(

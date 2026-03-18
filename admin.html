@@ -136,9 +136,7 @@
 
     async function laadBoekingen() {
       try {
-        const res = await fetch("/api/admin-boekingen", {
-          headers: { "x-admin-key": ADMIN_PASSWORD }
-        });
+        const res = await fetch("/api/admin-boekingen?key=" + encodeURIComponent(ADMIN_PASSWORD));
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         alleBoekingen = data.boekingen || [];
@@ -185,13 +183,21 @@
       }
       const rijen = boekingen.map(b => {
         const f = b.fields || {};
-        return `<tr>
+        const geannuleerd = f.Status === "Geannuleerd";
+        const idx = alleBoekingen.indexOf(b);
+        return `<tr style="${geannuleerd?"opacity:0.5;":""}">
           <td><strong>${f.Naam||"-"}</strong><br><span style="color:#6b7280;font-size:12px">${f.Email||""}</span></td>
           <td>${ktLabel(f.Klanttype)}</td>
           <td>${formatDatum(f.Datum)}<br><span style="color:#6b7280;font-size:12px">${f.Tijdsloten||""}</span></td>
           <td>${f.Diensten||"-"}</td>
           <td style="font-weight:600;color:#2c6bed">€ ${Number(f.Totaal||0).toFixed(2)}</td>
-          <td>${bmLabel(f.Betaalmethode)}</td>
+          <td>${geannuleerd ? '<span class="badge" style="background:#fee2e2;color:#dc2626">Geannuleerd</span>' : bmLabel(f.Betaalmethode)}</td>
+          <td>
+            ${!geannuleerd ? `
+              <button onclick="openWijzig(${idx})" style="background:#eef3fd;color:#2c6bed;border:none;padding:5px 10px;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:4px">Wijzigen</button>
+              <button onclick="annuleerBoeking(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:5px 10px;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit">Annuleren</button>
+            ` : ""}
+          </td>
         </tr>`;
       }).join("");
 
@@ -204,6 +210,7 @@
             <th>Dienst</th>
             <th>Totaal</th>
             <th>Betaling</th>
+            <th></th>
           </tr></thead>
           <tbody>${rijen}</tbody>
         </table>`;
@@ -211,6 +218,132 @@
 
     // Auto-inloggen als sessie actief
     if (sessionStorage.getItem(ADMIN_PWD_KEY)) toonAdmin();
+
+    // ── WIJZIGEN MODAL ──
+    function openWijzig(idx) {
+      const b = alleBoekingen[idx];
+      const f = b.fields || {};
+      document.getElementById("modal-titel").textContent = "Boeking wijzigen — " + (f.Boekingsnummer||"");
+      document.getElementById("modal-id").value = b.id;
+      document.getElementById("modal-email").value = f.Email||"";
+      document.getElementById("modal-naam").value = f.Naam||"";
+      document.getElementById("modal-bknr").value = f.Boekingsnummer||"";
+      document.getElementById("modal-datum").value = f.Datum||"";
+      document.getElementById("modal-tijdsloten").value = f.Tijdsloten||"";
+      document.getElementById("modal-diensten").value = f.Diensten||"";
+      document.getElementById("modal-opties").value = f.Opties||"";
+      document.getElementById("modal-betaalmethode").value = f.Betaalmethode||"";
+      document.getElementById("modal-totaal").value = f.Totaal||"";
+      document.getElementById("modal-fout").textContent = "";
+      document.getElementById("wijzig-modal").style.display = "flex";
+    }
+
+    function sluitModal() {
+      document.getElementById("wijzig-modal").style.display = "none";
+    }
+
+    async function slaWijzigingOp() {
+      const recordId = document.getElementById("modal-id").value;
+      const email    = document.getElementById("modal-email").value;
+      const naam     = document.getElementById("modal-naam").value;
+      const bknr     = document.getElementById("modal-bknr").value;
+      const btn      = document.getElementById("opslaan-btn");
+
+      const velden = {
+        Datum:        document.getElementById("modal-datum").value,
+        Tijdsloten:   document.getElementById("modal-tijdsloten").value,
+        Diensten:     document.getElementById("modal-diensten").value,
+        Opties:       document.getElementById("modal-opties").value,
+        Betaalmethode:document.getElementById("modal-betaalmethode").value,
+        Totaal:       Number(document.getElementById("modal-totaal").value)||0,
+      };
+
+      btn.textContent = "Opslaan...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/wijzig-boeking?key=" + encodeURIComponent(ADMIN_PASSWORD), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recordId, velden, email, naam, boekingsnummer: bknr })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error||"Onbekende fout");
+        sluitModal();
+        laadBoekingen();
+      } catch(e) {
+        document.getElementById("modal-fout").textContent = "Fout: " + e.message;
+      }
+      btn.textContent = "Opslaan";
+      btn.disabled = false;
+    }
+
+    async function annuleerBoeking(idx) {
+      const b = alleBoekingen[idx];
+      const f = b.fields || {};
+      if (!confirm(`Boeking van ${f.Naam} op ${f.Datum} annuleren? Er wordt een mail gestuurd naar ${f.Email}.`)) return;
+
+      try {
+        const res = await fetch("/api/wijzig-boeking?key=" + encodeURIComponent(ADMIN_PASSWORD), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recordId: b.id, annuleer: true, email: f.Email, naam: f.Naam, boekingsnummer: f.Boekingsnummer })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error||"Onbekende fout");
+        laadBoekingen();
+      } catch(e) {
+        alert("Fout: " + e.message);
+      }
+    }
   </script>
+
+  <!-- WIJZIG MODAL -->
+  <div id="wijzig-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:white;border-radius:10px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">
+      <div style="padding:20px 24px;border-bottom:1px solid #dde1e9;display:flex;justify-content:space-between;align-items:center;">
+        <h2 id="modal-titel" style="font-size:16px;font-weight:700;color:#1a1f2e"></h2>
+        <button onclick="sluitModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280">×</button>
+      </div>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+        <input type="hidden" id="modal-id"/>
+        <input type="hidden" id="modal-email"/>
+        <input type="hidden" id="modal-naam"/>
+        <input type="hidden" id="modal-bknr"/>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#1a1f2e;display:block;margin-bottom:4px">Datum (YYYY-MM-DD)</label>
+          <input id="modal-datum" placeholder="2026-03-18"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#1a1f2e;display:block;margin-bottom:4px">Tijdsloten</label>
+          <input id="modal-tijdsloten" placeholder="10:00 – 11:00 (1×)"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#1a1f2e;display:block;margin-bottom:4px">Diensten</label>
+          <input id="modal-diensten" placeholder="Locatie"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#1a1f2e;display:block;margin-bottom:4px">Opties</label>
+          <input id="modal-opties" placeholder="Met instructeur"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#1a1f2e;display:block;margin-bottom:4px">Betaalmethode</label>
+          <select id="modal-betaalmethode" style="width:100%;border:1px solid #dde1e9;border-radius:5px;padding:8px 11px;font-size:14px;font-family:inherit;">
+            <option value="pin">Pin op locatie</option>
+            <option value="contant">Contant op locatie</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#1a1f2e;display:block;margin-bottom:4px">Totaal (€)</label>
+          <input id="modal-totaal" type="number" step="0.01" placeholder="190.00"/>
+        </div>
+        <p id="modal-fout" style="color:#dc2626;font-size:13px"></p>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid #dde1e9;display:flex;justify-content:flex-end;gap:8px;">
+        <button onclick="sluitModal()" style="background:white;color:#1a1f2e;border:1px solid #dde1e9;padding:8px 16px;border-radius:5px;font-size:14px;cursor:pointer;font-family:inherit;">Annuleren</button>
+        <button id="opslaan-btn" onclick="slaWijzigingOp()" style="background:#2c6bed;color:white;border:none;padding:8px 16px;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Opslaan & mail versturen</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

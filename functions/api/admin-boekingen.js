@@ -15,7 +15,8 @@ export async function onRequest(context) {
   }
 
   // Controleer admin wachtwoord
-  const adminKey = request.headers.get("x-admin-key");
+  const url = new URL(request.url);
+  const adminKey = url.searchParams.get("key") || request.headers.get("x-admin-key");
   const adminPwd = env.ADMIN_PASSWORD || "rijschool2026";
   if (adminKey !== adminPwd) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
