@@ -47,6 +47,7 @@ export async function onRequest(context) {
 
   const {
     id, kt, naam, email, tel, bedrijf, kvk,
+    straat, huisnummer, postcode, plaats,
     diensten, dienstLabels,
     opties, optieLabels,
     datum, slots, betaalMethode, p: prijs,
@@ -76,6 +77,10 @@ export async function onRequest(context) {
             "Klanttype":       kt,
             "Bedrijfsnaam":    bedrijf || "",
             "KVK":             kvk || "",
+            "Straat":          straat || "",
+            "Huisnummer":      huisnummer || "",
+            "Postcode":        postcode || "",
+            "Plaats":          plaats || "",
             "Datum":           datum ? String(datum).trim() : "",
             "Tijdsloten":      slotsLabel,
             "Diensten":        (dienstLabels || diensten || []).join(", "),
@@ -136,6 +141,7 @@ export async function onRequest(context) {
               ["Tijdsloten", slotsLabel],
               ["Diensten",   (dienstLabels || diensten || []).join(", ")],
               ...(optieLabels?.length || opties?.length ? [["Opties", (optieLabels || opties || []).join(", ")]] : []),
+              ["Adres",      straat && huisnummer ? straat+" "+huisnummer+(postcode?", "+postcode:"")+(plaats?", "+plaats:"") : "—"],
               ["Betaling",   betaalMethode === "pin" ? "Pin op locatie" : "Contant op locatie"],
             ].map(([l, v]) => `
             <tr>
@@ -150,7 +156,7 @@ export async function onRequest(context) {
               <span style="font-size:14px;font-weight:600;color:#1a1f2e;">Te betalen op locatie</span>
             </td></tr>
             <tr><td style="padding:0 16px 14px;">
-              <span style="font-size:24px;font-weight:700;color:#2c6bed;">€ ${prijs?.totaal?.toFixed(2) || "0.00"}</span>
+              <span style="font-size:24px;font-weight:700;color:#2c6bed;">€ ${(prijs?.totaal || prijs?.tot || 0).toFixed(2)}</span>
               ${kt === "consument" ? '<span style="font-size:11px;color:#9ca3af;margin-left:6px;">incl. btw</span>' : ""}
             </td></tr>
           </table>

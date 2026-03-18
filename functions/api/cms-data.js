@@ -33,8 +33,8 @@ function parseDiensten(items) {
       actief: true,
       prijzen: {
         consument: Number(i.fieldData?.["prijs-consument"] ?? 0),
-        zzp:       Number(i.fieldData?.["prijs-zzp-er"]    ?? 0),
-        bedrijf:   Number(i.fieldData?.["prijs-rijschoolhouder"] ?? 0),
+        zzp:       Number(i.fieldData?.["prijs-zzp"]       ?? 0),
+        bedrijf:   Number(i.fieldData?.["prijs-bedrijf"]   ?? 0),
       },
     }));
 }
