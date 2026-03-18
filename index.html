@@ -346,7 +346,6 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const [plaats,setPl]    = useState("");
   const [bm,setBm]     = useState(null);
   const [bezig,setBz]  = useState(false);
-  const [sendStap,setSendStap] = useState(0);
   const [fout,setFt]   = useState("");
 
   const stapLabels = ["Klant","Locatie","Opties","Datum","Gegevens"];
@@ -403,16 +402,13 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   };
 
   const send = async() => {
-    setBz(true); setFt(""); setSendStap(1);
-    try {
+    setBz(true); setFt(""); try {
       const b={id:"BK-"+Date.now(),kt,diensten:ds,opties:os,datum:dat,slots:slt,
         naam,email:mail,tel,bedrijf:kt!=="consument"?bedr:null,kvk:kt==="bedrijf"?kvk:null,
         straat,huisnummer:huisnr,postcode,plaats,
         betaalMethode:bm,aantalOpts,p:p(slt.length),ts:new Date().toISOString()};
-      setSendStap(2);
       await onBoek(b);
-      setSendStap(3);
-    } catch(e){ setFt("Fout: "+e.message); setBz(false); setSendStap(0); }
+    } catch(e){ setFt("Fout: "+e.message); setBz(false); }
   };
 
   const reset = () => {
@@ -427,22 +423,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
   const btnS = {background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"};
 
-  // Bezig met verzenden — toon progress
-  if (bezig) {
-    return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
-      <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",height:"48px"}}>
-        <${Logo}/>
-      </div>
-      <div style=${{padding:"32px 24px"}}>
-        <h2 style=${{fontSize:"17px",fontWeight:700,color:C.text,marginBottom:"6px"}}>Afspraak wordt bevestigd</h2>
-        <p style=${{fontSize:"13px",color:C.sub,marginBottom:"20px"}}>Even geduld...</p>
-        <${SendProgress} stap=${sendStap}/>
-        ${sendStap===3 && html`<div style=${{marginTop:"20px",padding:"12px 16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"6px",fontSize:"13px",color:C.ok,fontWeight:600}}>
-          ✓ Alles gelukt! Je wordt doorgestuurd...
-        </div>`}
-      </div>
-    </div>`;
-  }
+  // Bezig — toon simpele spinner in de footer knop, geen apart scherm
 
   return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
     <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
@@ -660,7 +641,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       ${stap>1 ? html`<button style=${btnS} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span></span>`}
       ${stap<maxStap
         ? html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
-        : html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>Afspraak bevestigen</button>`
+        : html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>${bezig ? html`<span style=${{display:"flex",alignItems:"center",gap:"8px"}}><span style=${{width:"14px",height:"14px",border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",display:"inline-block",animation:"spin 1s linear infinite"}}></span>Bezig...</span>` : "Afspraak bevestigen"}</button>`
       }
     </div>
   </div>`;

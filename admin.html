@@ -86,18 +86,32 @@
 
   <script>
     const ADMIN_PWD_KEY = "lrijo_admin_v1";
-    const ADMIN_PASSWORD = "rijschool2026"; // ← verander dit wachtwoord
+    let ADMIN_PASSWORD = "";
 
     let alleBoekingen = [];
 
-    function inloggen() {
+    async function inloggen() {
       const pwd = document.getElementById("pwd-input").value;
-      if (pwd === ADMIN_PASSWORD) {
-        sessionStorage.setItem(ADMIN_PWD_KEY, "1");
-        toonAdmin();
-      } else {
+      if (!pwd) return;
+      const btn = document.querySelector(".login-box button");
+      btn.textContent = "Bezig..."; btn.disabled = true;
+      try {
+        const res = await fetch("/api/admin-boekingen?key=" + encodeURIComponent(pwd) + "&maxRecords=1");
+        if (res.status === 401) {
+          document.getElementById("login-err").style.display = "block";
+        } else if (res.ok) {
+          ADMIN_PASSWORD = pwd;
+          sessionStorage.setItem(ADMIN_PWD_KEY, pwd);
+          toonAdmin();
+        } else {
+          document.getElementById("login-err").textContent = "Serverfout, probeer opnieuw.";
+          document.getElementById("login-err").style.display = "block";
+        }
+      } catch(e) {
+        document.getElementById("login-err").textContent = "Verbindingsfout.";
         document.getElementById("login-err").style.display = "block";
       }
+      btn.textContent = "Inloggen"; btn.disabled = false;
     }
 
     function uitloggen() {
@@ -150,14 +164,14 @@
 
     function toonStats(boekingen) {
       const totaal = boekingen.length;
-      const omzet  = boekingen.reduce((s,b)=>s+Number(b.fields?.Totaal||0), 0);
+      const omzet  = boekingen.filter(b=>b.fields?.Status!=="Geannuleerd").reduce((s,b)=>s+Number(b.fields?.Totaal||0), 0);
       const vandaag = new Date().toISOString().slice(0,10);
       const vandaagN = boekingen.filter(b=>b.fields?.Datum===vandaag).length;
       const statsEl = document.getElementById("stats");
       statsEl.innerHTML = `
         <div class="stat-card"><div class="stat-val">${totaal}</div><div class="stat-lbl">Totaal boekingen</div></div>
         <div class="stat-card"><div class="stat-val">${vandaagN}</div><div class="stat-lbl">Vandaag</div></div>
-        <div class="stat-card"><div class="stat-val">€ ${omzet.toFixed(2)}</div><div class="stat-lbl">Totale omzet</div></div>
+        <div class="stat-card"><div class="stat-val">€ ${omzet.toLocaleString('nl-NL', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><div class="stat-lbl">Totale omzet (excl. geannuleerd)</div></div>
       `;
     }
 
@@ -190,7 +204,7 @@
           <td>${ktLabel(f.Klanttype)}</td>
           <td>${formatDatum(f.Datum)}<br><span style="color:#6b7280;font-size:12px">${f.Tijdsloten||""}</span></td>
           <td>${f.Diensten||"-"}</td>
-          <td style="font-weight:600;color:#2c6bed">€ ${Number(f.Totaal||0).toFixed(2)}</td>
+          <td style="font-weight:600;color:#2c6bed">€ ${Number(f.Totaal||0).toLocaleString('nl-NL', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
           <td>${geannuleerd ? '<span class="badge" style="background:#fee2e2;color:#dc2626">Geannuleerd</span>' : bmLabel(f.Betaalmethode)}</td>
           <td>
             ${!geannuleerd ? `
@@ -217,7 +231,8 @@
     }
 
     // Auto-inloggen als sessie actief
-    if (sessionStorage.getItem(ADMIN_PWD_KEY)) toonAdmin();
+    const opgeslagenPwd = sessionStorage.getItem(ADMIN_PWD_KEY);
+    if (opgeslagenPwd) { ADMIN_PASSWORD = opgeslagenPwd; toonAdmin(); }
 
     // ── WIJZIGEN MODAL ──
     function openWijzig(idx) {
