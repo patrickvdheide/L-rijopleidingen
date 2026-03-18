@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Boekingen - L-rijopleidingen</title>
+  <title>MotoPlanning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -11,21 +11,37 @@
   <script src="https://unpkg.com/htm@3/dist/htm.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px 48px; }
-    #root { width: 100%; max-width: 640px; }
-    @media (max-width: 480px) {
-      body { padding: 0; }
-      #root { max-width: 100%; }
+    html, body { height: 100%; }
+    body {
+      background: #eef0f5;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px 48px;
     }
     #root { width: 100%; max-width: 640px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; }
-    @media (max-width: 480px) {
+
+    @media (max-width: 600px) {
+      body { padding: 0; background: #fff; }
+      #root { max-width: 100%; }
+      .card { border-radius: 0 !important; box-shadow: none !important; }
       .step-label { display: none; }
-    }
-    @media (max-width: 520px) {
-      table { font-size: 12px !important; }
-      th, td { padding: 8px 10px !important; }
+      .body-pad { padding: 14px 12px 80px !important; }
+      .footer-bar { padding: 10px 12px !important; }
+      .topbar { padding: 0 12px !important; }
+      .steps-bar { padding: 0 12px !important; }
+      table { display: block; }
+      thead { display: none; }
+      tbody { display: block; }
+      tr.data-row { display: flex; flex-wrap: wrap; border-bottom: 1px solid #dde1e9; padding: 8px 0; background: white; }
+      tr.data-row:hover { background: #f9fafb; }
+      tr.data-row td:first-child { width: 28px; padding: 4px 10px !important; }
+      tr.data-row td:nth-child(2) { flex: 1; min-width: 0; padding: 4px 10px 4px 0 !important; }
+      tr.data-row td:last-child { width: 100%; padding: 0 10px 6px 38px !important; text-align: left !important; }
     }
   </style>
 </head>
@@ -100,13 +116,13 @@ function Logo() {
 }
 
 function Steps({stap,labels}) {
-  return html`<div style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px",overflowX:"auto"}}>
-    <div style=${{display:"flex",minWidth:"max-content"}}>
+  return html`<div class="steps-bar" style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px"}}>
+    <div style=${{display:"flex"}}>
       ${labels.map((l,i) => {
         const n=i+1, act=stap===n, ged=stap>n;
         return html`<div key=${n} style=${{display:"flex",alignItems:"center",gap:"6px",padding:"10px 10px 10px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
           <div style=${{width:"22px",height:"22px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:700,flexShrink:0,background:ged||act?C.accent:"transparent",border:"1.5px solid "+(ged||act?C.accent:C.border),color:ged||act?"#fff":C.faint}}>${ged?"✓":n}</div>
-          <span style=${{fontSize:"12px",fontWeight:act?600:400,color:act?C.text:C.sub,whiteSpace:"nowrap"}}>${l}</span>
+          <span class="step-label" style=${{fontSize:"12px",fontWeight:act?600:400,color:act?C.text:C.sub,whiteSpace:"nowrap"}}>${l}</span>
           ${n<labels.length ? html`<div style=${{width:"12px",height:"1px",background:C.border,marginLeft:"4px",flexShrink:0}}></div>` : null}
         </div>`;
       })}
@@ -293,7 +309,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       ...(res.opties.length>0?[["Opties", res.opties.map(id=>AO.find(o=>o.id===id)?.label||id).join(", ")]]:[] ),
       ["Betaling", res.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
     ];
-    return html`<div style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+    return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
       <div style=${{maxWidth:"480px",margin:"48px auto",padding:"0 24px"}}>
         <div style=${{display:"flex",alignItems:"center",gap:"14px",marginBottom:"24px",padding:"16px",background:C.okbg,border:"1px solid #bbf7d0",borderRadius:"8px"}}>
           <div style=${{width:"40px",height:"40px",borderRadius:"50%",background:C.ok,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -323,8 +339,8 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
   const btnS = {background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"};
 
-  return html`<div style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
-    <div style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
+  return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px, 2vw, 12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
+    <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
       <${Logo}/>
       ${slt.length>0&&kt&&ds.length>0 && html`<span style=${{fontSize:"13px",color:C.sub}}>${slt.length}× · Totaal: <strong style=${{color:C.text}}>€ ${p(slt.length).tot.toFixed(2)}</strong></span>`}
     </div>
@@ -333,7 +349,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     <${Steps} stap=${stap} labels=${["Klant","Locatie","Opties","Datum","Gegevens"]}/>
 
-    <div style=${{padding:"20px 20px 80px"}}>
+    <div class="body-pad" style=${{padding:"20px 20px 80px"}}>
 
       ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
         <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:"8px"}}>
@@ -356,7 +372,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
           <tbody>
             ${AD.map((d,i)=>{
               const a=ds.includes(d.id);
-              return html`<tr key=${d.id} onClick=${()=>togD(d.id)} style=${{cursor:"pointer",borderBottom:"1px solid "+C.border,borderTop:i===0?"1px solid "+C.border:"none",background:a?C.abg:C.white}}
+              return html`<tr key=${d.id} class="data-row" onClick=${()=>togD(d.id)} style=${{cursor:"pointer",borderBottom:"1px solid "+C.border,borderTop:i===0?"1px solid "+C.border:"none",background:a?C.abg:C.white}}
                 onMouseEnter=${e=>{if(!a)e.currentTarget.style.background=C.rh;}}
                 onMouseLeave=${e=>{e.currentTarget.style.background=a?C.abg:C.white;}}>
                 <td style=${{padding:"12px 14px",verticalAlign:"middle"}}><${CB} on=${a}/></td>
@@ -386,7 +402,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
           <tbody>
             ${visAO.map((o,i)=>{
               const a=os.includes(o.id), vp=o.verplichtConsument&&kt==="consument";
-              return html`<tr key=${o.id} onClick=${()=>!vp&&togO(o.id)} style=${{cursor:vp?"default":"pointer",borderBottom:"1px solid "+C.border,borderTop:i===0?"1px solid "+C.border:"none",background:a?C.abg:C.white}}
+              return html`<tr key=${o.id} class="data-row" onClick=${()=>!vp&&togO(o.id)} style=${{cursor:vp?"default":"pointer",borderBottom:"1px solid "+C.border,borderTop:i===0?"1px solid "+C.border:"none",background:a?C.abg:C.white}}
                 onMouseEnter=${e=>{if(!a&&!vp)e.currentTarget.style.background=C.rh;}}
                 onMouseLeave=${e=>{e.currentTarget.style.background=a?C.abg:C.white;}}>
                 <td style=${{padding:"12px 14px",verticalAlign:"middle"}}><${CB} on=${a}/></td>
@@ -426,7 +442,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       </>`}
 
       ${stap===4 && html`<${Blok} titel="Kies datum en tijdsloten" sub="Meerdere aaneengesloten uren op dezelfde dag.">
-        <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(240px, 1fr))",gap:"20px",alignItems:"start"}}>
+        <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px",alignItems:"start"}}>
           <div>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
               <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"28px",height:"28px",borderRadius:"4px",cursor:"pointer",fontSize:"16px"}} onClick=${()=>{if(mn===0){setMn(11);setJr(y=>y-1);}else setMn(m=>m-1);}}>‹</button>
@@ -453,12 +469,12 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
           <div>
             ${dag ? html`
               <div style=${{fontSize:"13px",color:C.sub,marginBottom:"10px",fontWeight:500}}>${dag} ${MND[mn]}</div>
-              <div style=${{display:"flex",flexDirection:"column",gap:"4px"}}>
+              <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
                 ${besch.tijdsloten.map(t=>{
                   const gbz=!!bezet[sk(dat,t)], gesel=slt.includes(t), kan=kanS(t);
                   return html`<div key=${t} onClick=${()=>kan&&togS(t)}
                     style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 12px",borderRadius:"5px",fontSize:"14px",border:"1.5px solid "+(gesel?C.accent:C.border),background:gesel?C.abg:gbz?C.bg:C.white,color:gbz?C.faint:(!kan&&!gesel)?C.faint:C.text,cursor:(!kan||gbz)?"default":"pointer",fontWeight:gesel?600:400,opacity:(!kan&&!gesel&&!gbz)?0.45:1}}>
-                    <span>${t}</span>
+                    <span>${(()=>{const [h,m]=t.split(":").map(Number);const eh=(h+1)%24;return t+" – "+String(eh).padStart(2,"0")+":"+String(m).padStart(2,"0");})()}</span>
                     ${gbz&&html`<span style=${{fontSize:"11px",color:C.faint}}>Bezet</span>`}
                     ${gesel&&html`<span style=${{fontSize:"11px",color:C.accent}}>✓ Geselecteerd</span>`}
                   </div>`;
@@ -477,7 +493,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       </>`}
 
       ${stap===5 && html`<${Blok} titel="Uw gegevens" sub="Vul uw contactgegevens in.">
-        <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))",gap:"20px"}}>
+        <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px"}}>
           <div style=${{display:"flex",flexDirection:"column",gap:"12px"}}>
             <${Veld} label="Volledige naam" req=${true} val=${naam} set=${setNm} ph="Jan de Vries"/>
             <${Veld} label="E-mailadres" req=${true} val=${mail} set=${setMl} ph="jan@voorbeeld.nl"/>
@@ -523,7 +539,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     </div>
 
-    <div style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    <div class="footer-bar" style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       ${stap>1 ? html`<button style=${btnS} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span></span>`}
       ${stap<5
         ? html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
