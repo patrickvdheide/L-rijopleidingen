@@ -2,6 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8"/>
+  <link rel="icon" href="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b93f2a24f1bc8f413211af_L-rijopleidingen-webclip.jpg" type="image/jpeg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>L-Rijopleidingen - Beheer</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,18 +16,18 @@
     .login-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); }
     .login-box { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 32px; width: 320px; }
     input, select { width: 100%; border: 1px solid #dde1e9; border-radius: 5px; padding: 8px 11px; font-size: 14px; margin-top: 0; outline: none; font-family: inherit; color: #1a1f2e; background: white; }
-    input:focus, select:focus { border-color: #2c6bed; }
+    input:focus, select:focus { border-color: #0586f0; }
     .btn { border: none; padding: 9px 18px; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-    .btn-primary  { background: #2c6bed; color: white; }
+    .btn-primary  { background: #0586f0; color: white; }
     .btn-secondary{ background: white; color: #1a1f2e; border: 1px solid #dde1e9; }
     .btn-danger   { background: #dc2626; color: white; }
     .btn-warn     { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
     .btn-ok       { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-    .btn-login    { background: #2c6bed; color: white; border: none; padding: 9px 20px; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; font-family: inherit; }
+    .btn-login    { background: #0586f0; color: white; border: none; padding: 9px 20px; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; font-family: inherit; }
     .err { color: #dc2626; font-size: 13px; margin-top: 8px; }
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
     .stat-card { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 16px; }
-    .stat-val { font-size: 24px; font-weight: 700; color: #2c6bed; }
+    .stat-val { font-size: 24px; font-weight: 700; color: #0586f0; }
     .stat-lbl { font-size: 12px; color: #6b7280; margin-top: 2px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { background: #f5f6f8; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #dde1e9; white-space: nowrap; }
@@ -34,7 +35,7 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f9fafb; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-    .b-cursist  { background:#eef3fd; color:#2c6bed; }
+    .b-cursist  { background:#e6f4fe; color:#0586f0; }
     .b-instr    { background:#f0fdf4; color:#16a34a; }
     .b-rijschool{ background:#fef3c7; color:#92400e; }
     .b-pin      { background:#f5f3ff; color:#6d28d9; }
@@ -46,10 +47,10 @@
     .filter-bar input, .filter-bar select { width: auto; flex: 1; min-width: 150px; }
     .search-wrap { padding: 14px 20px; border-bottom: 1px solid #dde1e9; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .pencil-btn { background: none; border: 1px solid #e5e7eb; border-radius: 5px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #9ca3af; }
-    .pencil-btn:hover { background: #eef3fd; border-color: #2c6bed; color: #2c6bed; }
+    .pencil-btn:hover { background: #e6f4fe; border-color: #0586f0; color: #0586f0; }
     .loading { text-align: center; padding: 48px; color: #9ca3af; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner { width: 24px; height: 24px; border: 2px solid #dde1e9; border-top-color: #2c6bed; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+    .spinner { width: 24px; height: 24px; border: 2px solid #dde1e9; border-top-color: #0586f0; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
     .modal-box { background: white; border-radius: 10px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .modal-header { padding: 16px 20px; border-bottom: 1px solid #dde1e9; display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: white; z-index: 1; }
@@ -292,7 +293,7 @@
            <tbody>${top.map(k=>`<tr>
              <td><strong>${k.naam||"-"}</strong><br><span style="color:#6b7280;font-size:12px">${k.email||""}</span></td>
              <td>${ktLabel(k.kt)}</td><td style="text-align:center">${k.n}</td>
-             <td style="font-weight:600;color:#2c6bed;text-align:right">${fmtBedrag(k.tot)}</td></tr>`).join("")}</tbody></table>`
+             <td style="font-weight:600;color:#0586f0;text-align:right">${fmtBedrag(k.tot)}</td></tr>`).join("")}</tbody></table>`
         : '<div class="loading">Geen data</div>';
     }
 
@@ -308,7 +309,7 @@
           <td>${ktLabel(f.Klanttype)}</td>
           <td>${formatDatum(f.Datum)}<br><span style="color:#6b7280;font-size:12px">${f.Tijdsloten||""}</span></td>
           <td>${f.Diensten||"-"}</td>
-          <td style="font-weight:600;color:#2c6bed;white-space:nowrap">${fmtBedrag(f.Totaal)}</td>
+          <td style="font-weight:600;color:#0586f0;white-space:nowrap">${fmtBedrag(f.Totaal)}</td>
           <td>${statusLabel(f)}</td>
           <td style="text-align:right;padding-right:14px">
             <button class="pencil-btn" onclick="openBewerk(${idx})" title="Bewerken">
