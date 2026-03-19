@@ -1,3 +1,5 @@
+import { verifieerSessie } from "./_auth.js";
+
 // functions/api/admin-boekingen.js
 // Geeft boekingen terug uit Airtable voor de beheerpagina
 
@@ -14,12 +16,16 @@ export async function onRequest(context) {
     return new Response("", { status: 200, headers: CORS });
   }
 
-  // Controleer admin wachtwoord
-  const url = new URL(request.url);
-  const adminKey = url.searchParams.get("key") || request.headers.get("x-admin-key");
-  const adminPwd = env.ADMIN_PASSWORD || "rijschool2026";
-  if (adminKey !== adminPwd) {
+  // Verifieer sessie
+  const url   = new URL(request.url);
+  const token = url.searchParams.get("key");
+  const user  = url.searchParams.get("user");
+  if (!token || !user) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  }
+  const geldig = await verifieerSessie(token, user, env.AIRTABLE_TOKEN);
+  if (!geldig) {
+    return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
   }
 
   try {

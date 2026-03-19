@@ -1,3 +1,5 @@
+import { verifieerSessie } from './_auth-helper.js';
+
 // functions/api/wijzig-boeking.js
 // Wijzigt of annuleert een boeking in Airtable en stuurt update-mail
 
@@ -23,20 +25,17 @@ export async function onRequest(context) {
     return new Response("", { status: 200, headers: CORS });
   }
 
-  // Verifieer sessie token
+// Verifieer sessie
   const url   = new URL(request.url);
   const token = url.searchParams.get("key");
   const user  = url.searchParams.get("user");
   if (!token || !user) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
   }
-  const authRes = await fetch(new URL("/api/admin-auth", request.url).href, {
-    method: "POST", headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({actie:"verifieer", token, gebruikersnaam:user})
-  }).catch(()=>null);
-  const authData = authRes ? await authRes.json() : {};
-  if (!authRes?.ok || !authData.geldig) {
-    return new Response(JSON.stringify({ error: "Sessie verlopen" }), { status: 401, headers: CORS });
+  const geldig = await verifieerSessie(token, user, env.AIRTABLE_TOKEN);
+  if (!geldig) {
+    return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
+  }), { status: 401, headers: CORS });
   }
 
   let body;
