@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" href="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b93f2a24f1bc8f413211af_L-rijopleidingen-webclip.jpg" type="image/jpeg"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>L-Rijopleidingen - Beheer</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; }
+    .topbar { background: #1a1f2e; color: white; padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h1 { font-size: 15px; font-weight: 700; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px 48px; }
+    .card { background: white; border-radius: 8px; border: 1px solid #dde1e9; overflow: hidden; margin-bottom: 16px; }
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); }
+    .login-box { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 32px; width: 320px; }
+    input, select { width: 100%; border: 1px solid #dde1e9; border-radius: 5px; padding: 8px 11px; font-size: 14px; margin-top: 0; outline: none; font-family: inherit; color: #1a1f2e; background: white; }
+    input:focus, select:focus { border-color: #0586f0; }
+    .btn { border: none; padding: 9px 18px; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-primary  { background: #0586f0; color: white; }
+    .btn-secondary{ background: white; color: #1a1f2e; border: 1px solid #dde1e9; }
+    .btn-danger   { background: #dc2626; color: white; }
+    .btn-warn     { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .btn-ok       { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .btn-login    { background: #0586f0; color: white; border: none; padding: 9px 20px; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; font-family: inherit; }
+    .err { color: #dc2626; font-size: 13px; margin-top: 8px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 16px; }
+    .stat-val { font-size: 24px; font-weight: 700; color: #0586f0; }
+    .stat-lbl { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f5f6f8; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #dde1e9; white-space: nowrap; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .b-cursist  { background:#e6f4fe; color:#0586f0; }
+    .b-instr    { background:#f0fdf4; color:#16a34a; }
+    .b-rijschool{ background:#fef3c7; color:#92400e; }
+    .b-pin      { background:#f5f3ff; color:#6d28d9; }
+    .b-contant  { background:#f5f6f8; color:#6b7280; }
+    .b-geann    { background:#fee2e2; color:#dc2626; }
+    .b-gewij    { background:#fff7ed; color:#c2410c; }
+    .b-nieuw    { background:#f0fdf4; color:#16a34a; }
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-bar input, .filter-bar select { width: auto; flex: 1; min-width: 150px; }
+    .search-wrap { padding: 14px 20px; border-bottom: 1px solid #dde1e9; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .pencil-btn { background: none; border: 1px solid #e5e7eb; border-radius: 5px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #9ca3af; }
+    .pencil-btn:hover { background: #e6f4fe; border-color: #0586f0; color: #0586f0; }
+    .loading { text-align: center; padding: 48px; color: #9ca3af; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 24px; height: 24px; border: 2px solid #dde1e9; border-top-color: #0586f0; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: white; border-radius: 10px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid #dde1e9; display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: white; z-index: 1; }
+    .modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .modal-section { background: #f8f9fb; border-radius: 6px; padding: 14px; border: 1px solid #e5e7eb; }
+    .modal-section-title { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+    .modal-footer { padding: 14px 20px; border-top: 1px solid #dde1e9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .modal-footer-danger { padding: 12px 20px; border-top: 1px solid #fee2e2; background: #fff5f5; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-group input, .form-group select { font-size: 13px; padding: 7px 10px; }
+    .nav-btn { background:none; border:none; color:rgba(255,255,255,0.6); padding:10px 16px; font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; }
+    .nav-btn:hover { color:white; }
+    .nav-active { color:white !important; border-bottom-color:#0586f0 !important; }
+    .nav-btn { background:transparent;border:none;color:rgba(255,255,255,0.6);padding:6px 14px;border-radius:5px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all 0.15s; }
+    .nav-btn:hover { background:rgba(255,255,255,0.1);color:white; }
+    .nav-btn.active { background:rgba(255,255,255,0.15);color:white;font-weight:600; }
+    @media (max-width: 700px) {
+      th:nth-child(n+4), td:nth-child(n+4) { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:24px">
+      <h1>L-Rijopleidingen &mdash; Beheer</h1>
+      <nav id="admin-nav" style="display:none;gap:4px;display:none">
+        <button onclick="toonPagina('boekingen')" id="nav-boekingen" class="nav-btn active">Boekingen</button>
+        <button onclick="toonPagina('gebruikers')" id="nav-gebruikers" class="nav-btn">Gebruikers</button>
+      </nav>
+    </div>
+    <span id="logout-btn" style="font-size:13px;cursor:pointer;opacity:0.6;display:none" onclick="uitloggen()">Uitloggen</span>
+  </div>
+  <div id="nav-bar" style="display:none;background:#232936;border-bottom:1px solid #2e3647;">
+    <div style="max-width:1100px;margin:0 auto;padding:0 16px;display:flex;gap:4px;">
+      <button onclick="toonPagina('boekingen')" id="nav-boekingen" class="nav-btn nav-active">Boekingen</button>
+      <button onclick="toonPagina('gebruikers')" id="nav-gebruikers" class="nav-btn">Gebruikers</button>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="login-view" class="login-wrap">
+    <div class="login-box">
+      <h2 style="font-size:18px;font-weight:700;color:#1a1f2e;margin-bottom:4px">Inloggen</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Beheeromgeving L-Rijopleidingen</p>
+      <div id="login-form">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-group">
+            <label>Gebruikersnaam</label>
+            <input type="text" id="login-user" placeholder="admin" onkeydown="if(event.key==='Enter')inloggen()" style="margin:0"/>
+          </div>
+          <div class="form-group">
+            <label>Wachtwoord</label>
+            <input type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')inloggen()" style="margin:0"/>
+          </div>
+        </div>
+        <button class="btn-login" onclick="inloggen()" style="margin-top:16px">Inloggen</button>
+        <div id="login-err" class="err" style="display:none"></div>
+        <button onclick="toonVergeten()" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;margin-top:12px;padding:0;font-family:inherit;width:100%;text-align:center">Wachtwoord vergeten?</button>
+      </div>
+
+      <!-- WACHTWOORD VERGETEN -->
+      <div id="vergeten-form" style="display:none">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Vul je e-mailadres in. Je ontvangt een resetlink als het adres bekend is.</p>
+        <div class="form-group">
+          <label>E-mailadres</label>
+          <input type="email" id="vergeten-email" placeholder="info@l-rijopleidingen.nl" style="margin:0"/>
+        </div>
+        <button class="btn-login" onclick="vraagReset()" style="margin-top:16px">Resetlink versturen</button>
+        <div id="vergeten-msg" style="display:none;font-size:13px;margin-top:10px"></div>
+        <button onclick="toonLogin()" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;margin-top:12px;padding:0;font-family:inherit;width:100%;text-align:center">Terug naar inloggen</button>
+      </div>
+
+      <!-- WACHTWOORD RESET -->
+      <div id="reset-form" style="display:none">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Stel een nieuw wachtwoord in.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-group">
+            <label>Nieuw wachtwoord</label>
+            <input type="password" id="reset-pwd1" placeholder="Minimaal 8 tekens" style="margin:0"/>
+          </div>
+          <div class="form-group">
+            <label>Herhaal wachtwoord</label>
+            <input type="password" id="reset-pwd2" placeholder="Herhaal wachtwoord" style="margin:0"/>
+          </div>
+        </div>
+        <button class="btn-login" onclick="voerResetUit()" style="margin-top:16px">Wachtwoord opslaan</button>
+        <div id="reset-msg" style="display:none;font-size:13px;margin-top:10px"></div>
+      </div>
+
+      <!-- SETUP (eerste wachtwoord) -->
+      <div id="setup-form" style="display:none">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Welkom! Stel een wachtwoord in voor je account.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-group">
+            <label>Gebruikersnaam</label>
+            <input type="text" id="setup-user" style="margin:0" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Nieuw wachtwoord</label>
+            <input type="password" id="setup-pwd1" placeholder="Minimaal 8 tekens" style="margin:0"/>
+          </div>
+          <div class="form-group">
+            <label>Herhaal wachtwoord</label>
+            <input type="password" id="setup-pwd2" placeholder="Herhaal wachtwoord" style="margin:0"/>
+          </div>
+        </div>
+        <button class="btn-login" onclick="voerSetupUit()" style="margin-top:16px">Wachtwoord instellen</button>
+        <div id="setup-msg" style="display:none;font-size:13px;margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-view" style="display:none">
+    <div class="container">
+      <!-- GEBRUIKERS PAGINA -->
+      <div id="pagina-gebruikers" style="display:none">
+        <div class="card">
+          <div style="padding:14px 20px;border-bottom:1px solid #dde1e9;display:flex;justify-content:space-between;align-items:center">
+            <h2 style="font-size:14px;font-weight:700;color:#1a1f2e">Gebruikers</h2>
+            <button class="btn btn-primary" onclick="toonNieuweGebruiker()" style="font-size:13px;padding:7px 14px">+ Nieuwe gebruiker</button>
+          </div>
+          <div id="gebruikers-tabel"><div class="loading"><div class="spinner"></div>Laden...</div></div>
+        </div>
+      </div>
+      <!-- BOEKINGEN PAGINA -->
+      <div id="pagina-boekingen">
+      <div class="stat-grid" id="stats"></div>
+      <div class="card">
+        <div style="padding:14px 20px;border-bottom:1px solid #dde1e9">
+          <h2 style="font-size:14px;font-weight:700;color:#1a1f2e">Omzet per klant <span style="font-size:12px;font-weight:400;color:#9ca3af">top 10 &middot; excl. geannuleerd</span></h2>
+        </div>
+        <div id="omzet-klant-wrap"><div class="loading"><div class="spinner"></div>Laden...</div></div>
+      </div>
+      <div class="card">
+        <div class="search-wrap">
+          <div>
+            <h2 style="font-size:14px;font-weight:700;color:#1a1f2e">Boekingen</h2>
+            <p id="filter-info" style="font-size:12px;color:#6b7280;margin-top:2px"></p>
+          </div>
+          <div class="filter-bar">
+            <input type="text" id="zoek-input" placeholder="Naam, e-mail, nr..." oninput="filterBoekingen()"/>
+            <select id="kt-filter" onchange="filterBoekingen()">
+              <option value="">Alle klanttypes</option>
+              <option value="consument">Cursist</option>
+              <option value="zzp">Instructeur</option>
+              <option value="bedrijf">Rijschoolhouder</option>
+            </select>
+            <select id="status-filter" onchange="filterBoekingen()">
+              <option value="">Alle statussen</option>
+              <option value="actief">Actief</option>
+              <option value="Gewijzigd">Gewijzigd</option>
+              <option value="Geannuleerd">Geannuleerd</option>
+            </select>
+            <input type="month" id="maand-filter" onchange="filterBoekingen()" style="min-width:auto;flex:0"/>
+            <button class="btn btn-secondary" onclick="resetFilters()" style="white-space:nowrap;padding:8px 12px;font-size:12px">Reset</button>
+          </div>
+        </div>
+        <div id="tabel-wrap"><div class="loading"><div class="spinner"></div>Laden...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GEBRUIKERS VIEW -->
+  <div id="gebruikers-view" style="display:none">
+    <div class="container">
+      <div class="card">
+        <div style="padding:16px 20px;border-bottom:1px solid #dde1e9;display:flex;align-items:center;justify-content:space-between">
+          <h2 style="font-size:14px;font-weight:700;color:#1a1f2e">Beheerders</h2>
+          <button class="btn btn-primary" onclick="openNieuweGebruiker()" style="font-size:13px;padding:7px 14px">+ Nieuwe gebruiker</button>
+        </div>
+        <div id="gebruikers-tabel"><div class="loading"><div class="spinner"></div>Laden...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIEUWE GEBRUIKER MODAL -->
+  <div id="gebruiker-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width:420px">
+      <div class="modal-header">
+        <h2 id="gebruiker-modal-titel" style="font-size:15px;font-weight:700;color:#1a1f2e">Nieuwe gebruiker</h2>
+        <button onclick="sluitGebruikerModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;padding:0 2px;line-height:1">&#215;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Gebruikersnaam</label>
+          <input id="nieuw-user" placeholder="bijv. beheerder2"/>
+        </div>
+        <div class="form-group">
+          <label>E-mailadres</label>
+          <input id="nieuw-email" type="email" placeholder="naam@l-rijopleidingen.nl"/>
+        </div>
+        <p style="font-size:12px;color:#6b7280">Na aanmaken ontvangt de gebruiker een e-mail om een wachtwoord in te stellen.</p>
+        <div id="gebruiker-fout" style="display:none;color:#dc2626;font-size:13px;padding:10px 12px;background:#fef2f2;border-radius:5px"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="aanmaken-btn" class="btn btn-primary" onclick="maakGebruikerAan()">Aanmaken en uitnodiging sturen</button>
+        <button class="btn btn-secondary" onclick="sluitGebruikerModal()" style="margin-left:auto">Annuleren</button>
+      </div>
+    </div>
+      </div><!-- einde pagina-boekingen -->
+    </div><!-- einde container -->
+  </div><!-- einde admin-view -->
+
+  <!-- BEWERK MODAL -->
+  <div id="bewerk-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-titel" style="font-size:15px;font-weight:700;color:#1a1f2e"></h2>
+          <p id="modal-subtitel" style="font-size:12px;color:#6b7280;margin-top:2px"></p>
+        </div>
+        <button onclick="sluitModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;padding:0 2px;line-height:1">&#215;</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="modal-id"/>
+        <input type="hidden" id="modal-email"/>
+        <input type="hidden" id="modal-naam"/>
+        <input type="hidden" id="modal-bknr"/>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Afspraakgegevens</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="form-grid">
+              <div class="form-group"><label>Datum</label><input id="modal-datum" placeholder="2026-03-18"/></div>
+              <div class="form-group"><label>Tijdsloten</label><input id="modal-tijdsloten" placeholder="10:00 – 11:00 (1x)"/></div>
+            </div>
+            <div class="form-group"><label>Locatie / Dienst</label><input id="modal-diensten" placeholder="Locatie"/></div>
+            <div class="form-group"><label>Opties</label><input id="modal-opties" placeholder="Met instructeur"/></div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Financieel</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Betaalmethode</label>
+              <select id="modal-betaalmethode">
+                <option value="pin">Pin op locatie</option>
+                <option value="contant">Contant op locatie</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Bedrag (euro)</label><input id="modal-totaal" type="number" step="0.01" placeholder="190.00"/></div>
+          </div>
+        </div>
+
+        <div id="modal-fout" style="display:none;color:#dc2626;font-size:13px;padding:10px 12px;background:#fef2f2;border-radius:5px"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="opslaan-btn" class="btn btn-primary" onclick="slaWijzigingOp()">Opslaan en mail versturen</button>
+        <button id="herstel-btn" class="btn btn-ok" onclick="herstelVanuitModal()" style="display:none">Boeking herstellen</button>
+        <button class="btn btn-secondary" onclick="sluitModal()" style="margin-left:auto">Sluiten</button>
+      </div>
+
+      <div class="modal-footer-danger">
+        <span style="font-size:11px;color:#9ca3af;flex:1">Onomkeerbaar:</span>
+        <button id="annuleer-btn" class="btn btn-warn" onclick="annuleerVanuitModal()">Annuleren</button>
+        <button class="btn btn-danger" onclick="verwijderVanuitModal()">Definitief verwijderen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIEUWE GEBRUIKER MODAL -->
+  <div id="nieuwe-gebruiker-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width:400px">
+      <div class="modal-header">
+        <h2 style="font-size:15px;font-weight:700;color:#1a1f2e">Nieuwe gebruiker</h2>
+        <button onclick="sluitNieuweGebruiker()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;padding:0 2px;line-height:1">&#215;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <div class="modal-section-title">Accountgegevens</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="form-group"><label>Gebruikersnaam</label><input id="nu-user" placeholder="jan" style="margin:0"/></div>
+            <div class="form-group"><label>E-mailadres</label><input id="nu-email" type="email" placeholder="jan@l-rijopleidingen.nl" style="margin:0"/></div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:#6b7280">De gebruiker ontvangt een e-mail om een wachtwoord in te stellen.</p>
+        <div id="nu-fout" style="display:none;color:#dc2626;font-size:13px;padding:10px;background:#fef2f2;border-radius:5px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="maakGebruiker()">Aanmaken en mail sturen</button>
+        <button class="btn btn-secondary" onclick="sluitNieuweGebruiker()" style="margin-left:auto">Annuleren</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SESS_KEY = "lrijo_sess_v1";
+    const USER_KEY = "lrijo_user_v1";
+    let ADMIN_TOKEN = "";
+    let ADMIN_USER  = "";
+    let alleBoekingen = [];
+    let huidigIdx = null;
+    let resetTokenUrl = null;
+    let resetUserUrl  = null;
+
+    // ── URL params checken (reset/setup link) ──
+    function checkUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const reset  = params.get("reset");
+      const user   = params.get("user");
+      const setup  = params.get("setup");
+
+      if (reset && user) {
+        resetTokenUrl = reset; resetUserUrl = user;
+        toonScherm("reset-form");
+        return true;
+      }
+      if (setup && user) {
+        document.getElementById("setup-user").value = user;
+        // Sla setup token op voor gebruik bij voerSetupUit
+        window._setupToken = params.get("token") || null;
+        toonScherm("setup-form");
+        return true;
+      }
+      return false;
+    }
+
+    function toonScherm(id) {
+      ["login-form","vergeten-form","reset-form","setup-form"].forEach(s=>{
+        document.getElementById(s).style.display = s===id?"block":"none";
+      });
+    }
+
+    function toonVergeten() { toonScherm("vergeten-form"); }
+    function toonLogin()    { toonScherm("login-form"); }
+
+    function setBtnState(btn, bezig, tekst) {
+      btn.disabled = bezig; btn.textContent = bezig ? "Bezig..." : tekst;
+    }
+
+    async function authPost(body) {
+      const res = await fetch("/api/admin-auth", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body)
+      });
+      return { ok: res.ok, data: await res.json() };
+    }
+
+    // ── INLOGGEN ──
+    async function inloggen() {
+      const user = document.getElementById("login-user").value.trim();
+      const pwd  = document.getElementById("login-pwd").value;
+      const err  = document.getElementById("login-err");
+      const btn  = document.querySelectorAll(".btn-login")[0];
+      err.style.display = "none";
+      if (!user || !pwd) { err.textContent="Vul alle velden in"; err.style.display="block"; return; }
+      setBtnState(btn, true, "Inloggen");
+      const {ok, data} = await authPost({actie:"login", gebruikersnaam:user, wachtwoord:pwd});
+      if (ok) {
+        ADMIN_TOKEN = data.token;
+        ADMIN_USER  = data.gebruiker;
+        sessionStorage.setItem(SESS_KEY, data.token);
+        sessionStorage.setItem(USER_KEY, data.gebruiker);
+        toonAdmin();
+      } else {
+        err.textContent = data.error || "Inloggen mislukt";
+        err.style.display = "block";
+      }
+      setBtnState(btn, false, "Inloggen");
+    }
+
+    // ── WACHTWOORD VERGETEN ──
+    async function vraagReset() {
+      const email = document.getElementById("vergeten-email").value.trim();
+      const msg   = document.getElementById("vergeten-msg");
+      const btns  = document.querySelectorAll(".btn-login");
+      if (!email) return;
+      btns[0].disabled = true; btns[0].textContent = "Versturen...";
+      await authPost({actie:"vergeten", email});
+      msg.textContent = "Als dit e-mailadres bekend is ontvang je een resetlink.";
+      msg.style.color = "#16a34a"; msg.style.display = "block";
+      btns[0].disabled = false; btns[0].textContent = "Resetlink versturen";
+    }
+
+    // ── WACHTWOORD RESET ──
+    async function voerResetUit() {
+      const pwd1 = document.getElementById("reset-pwd1").value;
+      const pwd2 = document.getElementById("reset-pwd2").value;
+      const msg  = document.getElementById("reset-msg");
+      if (pwd1 !== pwd2) { msg.textContent="Wachtwoorden komen niet overeen"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      if (pwd1.length < 8) { msg.textContent="Minimaal 8 tekens"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      const {ok, data} = await authPost({actie:"reset", resetToken:resetTokenUrl, gebruikersnaam:resetUserUrl, nieuwWachtwoord:pwd1});
+      if (ok) {
+        msg.textContent = "Wachtwoord opgeslagen! Je wordt doorgestuurd...";
+        msg.style.color = "#16a34a"; msg.style.display = "block";
+        setTimeout(()=>{ window.location.href = "/admin.html"; }, 1500);
+      } else {
+        msg.textContent = data.error || "Fout"; msg.style.color="#dc2626"; msg.style.display="block";
+      }
+    }
+
+    // ── SETUP (eerste wachtwoord) ──
+    async function voerSetupUit() {
+      const user = document.getElementById("setup-user").value;
+      const pwd1 = document.getElementById("setup-pwd1").value;
+      const pwd2 = document.getElementById("setup-pwd2").value;
+      const msg  = document.getElementById("setup-msg");
+      if (pwd1 !== pwd2) { msg.textContent="Wachtwoorden komen niet overeen"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      if (pwd1.length < 8) { msg.textContent="Minimaal 8 tekens"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      // Als er een setup token is, gebruik dan reset flow (veiliger)
+      const actie = window._setupToken ? "reset" : "setup";
+      const extraVelden = window._setupToken ? { resetToken: window._setupToken } : {};
+      const {ok, data} = await authPost({actie, gebruikersnaam:user, nieuwWachtwoord:pwd1, ...extraVelden});
+      if (ok) {
+        msg.textContent = "Wachtwoord ingesteld! Je wordt doorgestuurd om in te loggen.";
+        msg.style.color = "#16a34a"; msg.style.display = "block";
+        setTimeout(()=>{ window.location.href = "/admin.html"; }, 1500);
+      } else {
+        msg.textContent = data.error || "Fout"; msg.style.color="#dc2626"; msg.style.display="block";
+      }
+    }
+
+    function uitloggen() {
+      sessionStorage.removeItem(SESS_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      ADMIN_TOKEN = ""; ADMIN_USER = "";
+      document.getElementById("admin-view").style.display = "none";
+      document.getElementById("login-view").style.display = "flex";
+      document.getElementById("logout-btn").style.display = "none";
+      document.getElementById("logout-btn").textContent = "Uitloggen";
+    }
+
+    function toonAdmin() {
+      document.getElementById("login-view").style.display = "none";
+      document.getElementById("admin-view").style.display = "block";
+      document.getElementById("admin-nav").style.display  = "flex";
+      document.getElementById("nav-bar").style.display    = "block";
+      document.getElementById("logout-btn").style.display = "inline-block";
+      toonPagina("boekingen");
+      laadBoekingen();
+    }
+
+    function ktLabel(kt) {
+      if (kt==="consument") return '<span class="badge b-cursist">Cursist</span>';
+      if (kt==="zzp")       return '<span class="badge b-instr">Instructeur</span>';
+      if (kt==="bedrijf")   return '<span class="badge b-rijschool">Rijschoolhouder</span>';
+      return kt||"-";
+    }
+
+    function statusLabel(f) {
+      if (f.Status==="Geannuleerd") return '<span class="badge b-geann">Geannuleerd</span>';
+      if (f.Status==="Gewijzigd")   return '<span class="badge b-gewij">Gewijzigd</span>';
+      if (f.Betaalmethode==="pin")  return '<span class="badge b-pin">Pin</span>';
+      if (f.Betaalmethode==="contant") return '<span class="badge b-contant">Contant</span>';
+      return '<span class="badge b-nieuw">Nieuw</span>';
+    }
+
+    function formatDatum(str) {
+      if (!str) return "-";
+      const m = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+      const [j,mn,d] = str.split("-");
+      return parseInt(d)+" "+m[parseInt(mn)-1]+" "+j;
+    }
+
+    function fmtBedrag(v) {
+      return "EUR " + Number(v||0).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+
+    async function laadBoekingen() {
+      document.getElementById("tabel-wrap").innerHTML = '<div class="loading"><div class="spinner"></div>Laden...</div>';
+      try {
+        const res = await fetch("/api/admin-boekingen?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        alleBoekingen = data.boekingen || [];
+        toonStats(alleBoekingen);
+        toonOmzetPerKlant(alleBoekingen);
+        renderTabel(alleBoekingen);
+      } catch(e) {
+        document.getElementById("tabel-wrap").innerHTML = '<div class="loading" style="color:#dc2626">Fout: '+e.message+'</div>';
+      }
+    }
+
+    function toonStats(b) {
+      const actief  = b.filter(x=>x.fields?.Status!=="Geannuleerd");
+      const omzet   = actief.reduce((s,x)=>s+Number(x.fields?.Totaal||0),0);
+      const vandaag = new Date().toISOString().slice(0,10);
+      const vN      = b.filter(x=>x.fields?.Datum===vandaag).length;
+      const geann   = b.filter(x=>x.fields?.Status==="Geannuleerd").length;
+      document.getElementById("stats").innerHTML = `
+        <div class="stat-card"><div class="stat-val">${b.length}</div><div class="stat-lbl">Totaal boekingen</div></div>
+        <div class="stat-card"><div class="stat-val">${vN}</div><div class="stat-lbl">Vandaag</div></div>
+        <div class="stat-card"><div class="stat-val">${fmtBedrag(omzet)}</div><div class="stat-lbl">Omzet excl. geannuleerd</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:#dc2626">${geann}</div><div class="stat-lbl">Geannuleerd</div></div>`;
+    }
+
+    function toonOmzetPerKlant(b) {
+      const pk = {};
+      b.filter(x=>x.fields?.Status!=="Geannuleerd").forEach(x=>{
+        const f=x.fields||{}, k=(f.Naam||"?")+"|"+(f.Email||"");
+        if (!pk[k]) pk[k]={naam:f.Naam,email:f.Email,kt:f.Klanttype,tot:0,n:0};
+        pk[k].tot+=Number(f.Totaal||0); pk[k].n++;
+      });
+      const top=Object.values(pk).sort((a,b)=>b.tot-a.tot).slice(0,10);
+      document.getElementById("omzet-klant-wrap").innerHTML = top.length
+        ? `<table><thead><tr><th>Klant</th><th>Type</th><th style="text-align:center">Boekingen</th><th style="text-align:right">Omzet</th></tr></thead>
+           <tbody>${top.map(k=>`<tr>
+             <td><strong>${k.naam||"-"}</strong><br><span style="color:#6b7280;font-size:12px">${k.email||""}</span></td>
+             <td>${ktLabel(k.kt)}</td><td style="text-align:center">${k.n}</td>
+             <td style="font-weight:600;color:#0586f0;text-align:right">${fmtBedrag(k.tot)}</td></tr>`).join("")}</tbody></table>`
+        : '<div class="loading">Geen data</div>';
+    }
+
+    function renderTabel(boekingen) {
+      if (!boekingen.length) {
+        document.getElementById("tabel-wrap").innerHTML='<div class="loading">Geen boekingen gevonden</div>';
+        return;
+      }
+      const rijen = boekingen.map(b=>{
+        const f=b.fields||{}, idx=alleBoekingen.indexOf(b), geann=f.Status==="Geannuleerd";
+        return `<tr style="${geann?"opacity:0.55;":""}">
+          <td><strong>${f.Naam||"-"}</strong><br><span style="color:#6b7280;font-size:12px">${f.Email||""}</span></td>
+          <td>${ktLabel(f.Klanttype)}</td>
+          <td>${formatDatum(f.Datum)}<br><span style="color:#6b7280;font-size:12px">${f.Tijdsloten||""}</span></td>
+          <td>${f.Diensten||"-"}</td>
+          <td style="font-weight:600;color:#0586f0;white-space:nowrap">${fmtBedrag(f.Totaal)}</td>
+          <td>${statusLabel(f)}</td>
+          <td style="text-align:right;padding-right:14px">
+            <button class="pencil-btn" onclick="openBewerk(${idx})" title="Bewerken">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z"/>
+              </svg>
+            </button>
+          </td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("tabel-wrap").innerHTML = `
+        <table><thead><tr>
+          <th>Klant</th><th>Type</th><th>Datum</th><th>Dienst</th><th>Bedrag</th><th>Status</th><th></th>
+        </tr></thead><tbody>${rijen}</tbody></table>`;
+    }
+
+    function filterBoekingen() {
+      const zoek  = document.getElementById("zoek-input").value.toLowerCase();
+      const kt    = document.getElementById("kt-filter").value;
+      const stat  = document.getElementById("status-filter").value;
+      const maand = document.getElementById("maand-filter").value;
+      const gef   = alleBoekingen.filter(b=>{
+        const f=b.fields||{};
+        return (!zoek||(f.Naam||"").toLowerCase().includes(zoek)||(f.Email||"").toLowerCase().includes(zoek)||(f.Boekingsnummer||"").toLowerCase().includes(zoek))
+          && (!kt||f.Klanttype===kt)
+          && (!stat||(stat==="actief"&&!f.Status)||f.Status===stat)
+          && (!maand||(f.Datum||"").startsWith(maand));
+      });
+      const omzet=gef.filter(b=>b.fields?.Status!=="Geannuleerd").reduce((s,b)=>s+Number(b.fields?.Totaal||0),0);
+      document.getElementById("filter-info").textContent=gef.length+" boeking"+(gef.length!==1?"en":"")+" - Omzet: "+fmtBedrag(omzet);
+      renderTabel(gef);
+    }
+
+    function resetFilters() {
+      ["zoek-input","maand-filter"].forEach(id=>document.getElementById(id).value="");
+      ["kt-filter","status-filter"].forEach(id=>document.getElementById(id).value="");
+      document.getElementById("filter-info").textContent="";
+      renderTabel(alleBoekingen);
+    }
+
+    function openBewerk(idx) {
+      huidigIdx = idx;
+      const b=alleBoekingen[idx], f=b.fields||{}, geann=f.Status==="Geannuleerd";
+      document.getElementById("modal-titel").textContent    = f.Naam||"Boeking bewerken";
+      document.getElementById("modal-subtitel").textContent = (f.Boekingsnummer||"")+(f.Datum?" - "+formatDatum(f.Datum):"");
+      document.getElementById("modal-id").value             = b.id;
+      document.getElementById("modal-email").value          = f.Email||"";
+      document.getElementById("modal-naam").value           = f.Naam||"";
+      document.getElementById("modal-bknr").value           = f.Boekingsnummer||"";
+      document.getElementById("modal-datum").value          = f.Datum||"";
+      document.getElementById("modal-tijdsloten").value     = f.Tijdsloten||"";
+      document.getElementById("modal-diensten").value       = f.Diensten||"";
+      document.getElementById("modal-opties").value         = f.Opties||"";
+      document.getElementById("modal-betaalmethode").value  = f.Betaalmethode||"pin";
+      document.getElementById("modal-totaal").value         = f.Totaal||"";
+      document.getElementById("modal-fout").style.display   = "none";
+      document.getElementById("opslaan-btn").style.display  = geann?"none":"inline-block";
+      document.getElementById("annuleer-btn").style.display = geann?"none":"inline-block";
+      document.getElementById("herstel-btn").style.display  = geann?"inline-block":"none";
+      document.getElementById("bewerk-modal").style.display = "flex";
+    }
+
+    function sluitModal() {
+      document.getElementById("bewerk-modal").style.display="none";
+      huidigIdx=null;
+    }
+
+    function toonFout(msg) {
+      const el=document.getElementById("modal-fout");
+      el.textContent=msg; el.style.display="block";
+    }
+
+    async function slaWijzigingOp() {
+      const btn=document.getElementById("opslaan-btn");
+      btn.textContent="Opslaan..."; btn.disabled=true;
+      try {
+        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            recordId: document.getElementById("modal-id").value,
+            email:    document.getElementById("modal-email").value,
+            naam:     document.getElementById("modal-naam").value,
+            boekingsnummer: document.getElementById("modal-bknr").value,
+            velden:{
+              Datum:         document.getElementById("modal-datum").value,
+              Tijdsloten:    document.getElementById("modal-tijdsloten").value,
+              Diensten:      document.getElementById("modal-diensten").value,
+              Opties:        document.getElementById("modal-opties").value,
+              Betaalmethode: document.getElementById("modal-betaalmethode").value,
+              Totaal:        Number(document.getElementById("modal-totaal").value)||0,
+            }
+          })
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        sluitModal(); laadBoekingen();
+      } catch(e) { toonFout("Fout: "+e.message); }
+      btn.textContent="Opslaan en mail versturen"; btn.disabled=false;
+    }
+
+    async function annuleerVanuitModal() {
+      const b=alleBoekingen[huidigIdx],f=b.fields||{};
+      if (!confirm("Boeking van "+f.Naam+" annuleren?\nDe klant ontvangt een annuleringsmail.")) return;
+      try {
+        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({recordId:b.id,annuleer:true,email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        sluitModal(); laadBoekingen();
+      } catch(e) { toonFout("Fout: "+e.message); }
+    }
+
+    async function herstelVanuitModal() {
+      const b=alleBoekingen[huidigIdx],f=b.fields||{};
+      if (!confirm("Annulering van "+f.Naam+" ongedaan maken?")) return;
+      try {
+        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({recordId:b.id,velden:{Status:""},email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        sluitModal(); laadBoekingen();
+      } catch(e) { toonFout("Fout: "+e.message); }
+    }
+
+    async function verwijderVanuitModal() {
+      const b=alleBoekingen[huidigIdx],f=b.fields||{};
+      if (!confirm("Boeking van "+f.Naam+" DEFINITIEF verwijderen?\nDit kan niet ongedaan worden gemaakt.")) return;
+      try {
+        const res=await fetch("/api/verwijder-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({recordId:b.id})
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        sluitModal(); laadBoekingen();
+      } catch(e) { toonFout("Fout: "+e.message); }
+    }
+
+    // ── NAVIGATIE ──
+    function toonPagina(naam) {
+      ["boekingen","gebruikers"].forEach(p => {
+        const el = document.getElementById("pagina-"+p);
+        if (el) el.style.display = p===naam?"block":"none";
+        const btn = document.getElementById("nav-"+p);
+        if (btn) btn.className = "nav-btn"+(p===naam?" active":"");
+      });
+      if (naam==="gebruikers") laadGebruikers();
+    }
+
+    // ── GEBRUIKERS ──
+    async function laadGebruikers() {
+      document.getElementById("gebruikers-tabel").innerHTML = '<div class="loading"><div class="spinner"></div>Laden...</div>';
+      try {
+        const res = await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderGebruikers(data.gebruikers||[]);
+      } catch(e) {
+        document.getElementById("gebruikers-tabel").innerHTML = '<div class="loading" style="color:#dc2626">Fout: '+e.message+'</div>';
+      }
+    }
+
+    function renderGebruikers(gebruikers) {
+      if (!gebruikers.length) {
+        document.getElementById("gebruikers-tabel").innerHTML = '<div class="loading">Geen gebruikers gevonden</div>';
+        return;
+      }
+      const rijen = gebruikers.map(g => {
+        const f=g.fields||{}, heeftWw=!!f.WachtwoordHash;
+        return `<tr>
+          <td><strong>${f.Gebruikersnaam||"-"}</strong></td>
+          <td>${f.Email||"-"}</td>
+          <td>${heeftWw?'<span class="badge b-nieuw">Actief</span>':'<span class="badge b-geann">Geen wachtwoord</span>'}</td>
+          <td style="text-align:right;padding-right:14px">
+            <button onclick="stuurResetMail('${g.id}','${f.Email||""}','${f.Gebruikersnaam||""}')" class="btn btn-secondary" style="font-size:12px;padding:5px 10px;margin-right:4px">Reset mail</button>
+            <button onclick="verwijderGebruiker('${g.id}','${f.Gebruikersnaam||""}')" class="btn btn-danger" style="font-size:12px;padding:5px 10px">Verwijderen</button>
+          </td>
+        </tr>`;
+      }).join("");
+      document.getElementById("gebruikers-tabel").innerHTML = `
+        <table><thead><tr><th>Gebruikersnaam</th><th>E-mail</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rijen}</tbody></table>`;
+    }
+
+    function toonNieuweGebruiker() {
+      document.getElementById("nu-user").value="";
+      document.getElementById("nu-email").value="";
+      document.getElementById("nu-fout").style.display="none";
+      document.getElementById("nieuwe-gebruiker-modal").style.display="flex";
+    }
+    function sluitNieuweGebruiker() { document.getElementById("nieuwe-gebruiker-modal").style.display="none"; }
+
+    async function maakGebruiker() {
+      const user=document.getElementById("nu-user").value.trim();
+      const email=document.getElementById("nu-email").value.trim();
+      const fout=document.getElementById("nu-fout");
+      fout.style.display="none";
+      if (!user||!email) { fout.textContent="Vul alle velden in"; fout.style.display="block"; return; }
+      try {
+        const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({actie:"aanmaken",gebruikersnaam:user,email})
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        sluitNieuweGebruiker(); laadGebruikers();
+      } catch(e) { fout.textContent="Fout: "+e.message; fout.style.display="block"; }
+    }
+
+    async function stuurResetMail(recordId,email,gebruikersnaam) {
+      if (!confirm("Reset mail sturen naar "+email+"?")) return;
+      try {
+        const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({actie:"reset-mail",recordId,email,gebruikersnaam})
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        alert("Reset mail verstuurd naar "+email);
+      } catch(e) { alert("Fout: "+e.message); }
+    }
+
+    async function verwijderGebruiker(recordId,gebruikersnaam) {
+      if (gebruikersnaam===ADMIN_USER) { alert("Je kunt je eigen account niet verwijderen."); return; }
+      if (!confirm("Gebruiker '"+gebruikersnaam+"' definitief verwijderen?")) return;
+      try {
+        const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({actie:"verwijderen",recordId})
+        });
+        const d=await res.json();
+        if (!res.ok) throw new Error(d.error||"Fout");
+        laadGebruikers();
+      } catch(e) { alert("Fout: "+e.message); }
+    }
+
+    document.getElementById("nieuwe-gebruiker-modal").addEventListener("click",function(e){
+      if(e.target===this) sluitNieuweGebruiker();
+    });
+
+    document.getElementById("bewerk-modal").addEventListener("click",function(e){
+      if(e.target===this) sluitModal();
+    });
+
+    // Check URL params eerst (reset/setup links)
+    if (!checkUrlParams()) {
+      // Dan sessie checken
+      const _tok  = sessionStorage.getItem(SESS_KEY);
+      const _user = sessionStorage.getItem(USER_KEY);
+      if (_tok && _user) {
+        ADMIN_TOKEN = _tok; ADMIN_USER = _user;
+        // Verifieer sessie nog geldig
+        authPost({actie:"verifieer", token:_tok, gebruikersnaam:_user}).then(({data})=>{
+          if (data.geldig) toonAdmin();
+          else { sessionStorage.clear(); }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
