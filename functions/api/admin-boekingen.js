@@ -1,5 +1,3 @@
-import { verifieerSessie } from "./_auth.js";
-
 // functions/api/admin-boekingen.js
 // Geeft boekingen terug uit Airtable voor de beheerpagina
 
@@ -16,17 +14,26 @@ export async function onRequest(context) {
     return new Response("", { status: 200, headers: CORS });
   }
 
-  // Verifieer sessie
-  const url   = new URL(request.url);
-  const token = url.searchParams.get("key");
-  const user  = url.searchParams.get("user");
-  if (!token || !user) {
+
+  // ── Sessie verificatie ──
+  const _url   = new URL(request.url);
+  const _token = _url.searchParams.get("key");
+  const _user  = _url.searchParams.get("user");
+  if (!_token || !_user) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
   }
-  const geldig = await verifieerSessie(token, user, env.AIRTABLE_TOKEN);
-  if (!geldig) {
+  const _ar = await fetch(
+    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tblxPXaRSgAHiiauP?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="'+_user+'"')}`,
+    { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
+  ).catch(()=>null);
+  if (!_ar?.ok) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  const _ad = await _ar.json();
+  const _ar2 = _ad.records?.[0];
+  if (!_ar2 || !(_ar2.fields?.ResetToken||"").startsWith("sessie_"+_token) || new Date(_ar2.fields?.ResetVerloopt||0) < new Date()) {
     return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
   }
+  // ── Einde verificatie ──
+
 
   try {
     const res = await fetch(

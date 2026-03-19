@@ -1,4 +1,3 @@
-import { verifieerSessie } from './_auth-helper.js';
 
 // functions/api/verwijder-boeking.js
 // Verwijdert een boeking definitief uit Airtable

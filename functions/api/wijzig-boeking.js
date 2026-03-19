@@ -1,4 +1,3 @@
-import { verifieerSessie } from './_auth-helper.js';
 
 // functions/api/wijzig-boeking.js
 // Wijzigt of annuleert een boeking in Airtable en stuurt update-mail
