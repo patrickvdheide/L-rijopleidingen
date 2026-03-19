@@ -1,10 +1,9 @@
-
 // functions/api/verwijder-boeking.js
 // Verwijdert een boeking definitief uit Airtable
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "Content-Type, x-admin-key",
+  "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type":                 "application/json",
 };
@@ -16,18 +15,24 @@ export async function onRequest(context) {
     return new Response("", { status: 200, headers: CORS });
   }
 
-// Verifieer sessie
-  const url   = new URL(request.url);
-  const token = url.searchParams.get("key");
-  const user  = url.searchParams.get("user");
-  if (!token || !user) {
+  // ── Sessie verificatie ──
+  const _url   = new URL(request.url);
+  const _token = _url.searchParams.get("key");
+  const _user  = _url.searchParams.get("user");
+  if (!_token || !_user) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
   }
-  const geldig = await verifieerSessie(token, user, env.AIRTABLE_TOKEN);
-  if (!geldig) {
+  const _ar = await fetch(
+    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tblxPXaRSgAHiiauP?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _user + '"')}`,
+    { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
+  ).catch(() => null);
+  if (!_ar?.ok) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  const _ad  = await _ar.json();
+  const _rec = _ad.records?.[0];
+  if (!_rec || !(_rec.fields?.ResetToken || "").startsWith("sessie_" + _token) || new Date(_rec.fields?.ResetVerloopt || 0) < new Date()) {
     return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
-  }), { status: 401, headers: CORS });
   }
+  // ── Einde verificatie ──
 
   let body;
   try {
@@ -52,13 +57,11 @@ export async function onRequest(context) {
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("Airtable verwijder fout:", res.status, err);
       return new Response(JSON.stringify({ error: "Airtable: " + err }), { status: 500, headers: CORS });
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
   } catch (err) {
-    console.error("Verwijder exception:", err.message);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS });
   }
 }
