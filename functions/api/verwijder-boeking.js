@@ -1,71 +1,67 @@
-<script>
-// Zorg dat het script alleen geladen wordt als de pagina volledig geladen is.
-document.addEventListener("DOMContentLoaded", function() {
-    
-    // Verzamel alle items uit de Webflow Collection List (CI = Collection Item)
-    const collectionItems = document.querySelectorAll('.ci_apps');
+// functions/api/verwijder-boeking.js
+// Verwijdert een boeking definitief uit Airtable
 
-    // Haal het Developer ID op uit het HTML-element met id "devId" via de `getDevId()` functie
-    const developerId = getDevId(); // Haal de developerId op en sla op in de variabele `developerId`.
+const CORS = {
+  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type":                 "application/json",
+};
 
-    // Variabele om het aantal zichtbare apps bij te houden (optie om aantal te tonen)
-    let countVisibleApps = 0;
+export async function onRequest(context) {
+  const { request, env } = context;
 
-    // Selecteer het tekstveld voor de ontwikkelaar (als deze bestaat)
-    const appsOntwikkelaarTekstveld = document.getElementById('appsOntwikkelaarTekstveld');
+  if (request.method === "OPTIONS") {
+    return new Response("", { status: 200, headers: CORS });
+  }
 
-    // Controleer of er een developerId aanwezig is op de pagina
-    if (developerId) {
-        // Itereer door de collectie items en vergelijk `data-developer-id` met `developerId`
-        collectionItems.forEach(item => {
-            const itemDeveloperId = item.getAttribute('data-developer-id');
-            //log de waarde naar de console
-            console.log("Item Developer ID:", itemDeveloperId);
+  // ── Sessie verificatie ──
+  const _url   = new URL(request.url);
+  const _token = _url.searchParams.get("key");
+  const _user  = _url.searchParams.get("user");
+  if (!_token || !_user) {
+    return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  }
+  const _ar = await fetch(
+    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tblxPXaRSgAHiiauP?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _user + '"')}`,
+    { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
+  ).catch(() => null);
+  if (!_ar?.ok) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  const _ad  = await _ar.json();
+  const _rec = _ad.records?.[0];
+  if (!_rec || !(_rec.fields?.ResetToken || "").startsWith("sessie_" + _token) || new Date(_rec.fields?.ResetVerloopt || 0) < new Date()) {
+    return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
+  }
+  // ── Einde verificatie ──
 
-            // Als de `data-developer-id` overeenkomt met de huidige `developerId`, toon het item
-            if (itemDeveloperId === developerId) {
-                toggleVisibility(item, true); // Toon het item
-                countVisibleApps++; // Tel het aantal zichtbare apps
-            } else {
-                toggleVisibility(item, false); // Verberg het item
-            }
-        });
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS });
+  }
 
-        // Toon de titel alleen als er meer dan één app is
-        if (countVisibleApps > 0) {
-            if (appsOntwikkelaarTekstveld) {
-                appsOntwikkelaarTekstveld.textContent = " More of the same developer.";
-                appsOntwikkelaarTekstveld.style.display = 'block'; // Zorg ervoor dat de titel zichtbaar is
-            }
-        } else if (appsOntwikkelaarTekstveld) {
-            appsOntwikkelaarTekstveld.style.display = 'none'; // Verberg de titel als er 1 of minder apps zijn
-        }
-    } else {
-        console.error('Geen developerId gevonden op deze pagina.');
+  const { recordId } = body;
+  if (!recordId) {
+    return new Response(JSON.stringify({ error: "recordId ontbreekt" }), { status: 400, headers: CORS });
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2/${recordId}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` },
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.text();
+      return new Response(JSON.stringify({ error: "Airtable: " + err }), { status: 500, headers: CORS });
     }
 
-    // Functie om het `developerId` op te halen uit een HTML-element
-    function getDevId() {
-        const devIdElement = document.getElementById('devId');
-        return devIdElement ? devIdElement.textContent.trim() : null;
-    }
-
-    // Functie om de zichtbaarheid van een item aan te passen
-    function toggleVisibility(item, isVisible) {
-        item.style.display = isVisible ? 'block' : 'none';
-        item.style.visibility = isVisible ? 'visible' : 'hidden';
-    }
-
-    // Debug-informatie naar de console loggen
-    console.log("developerId:", developerId);
-    console.log("Aantal zichtbare apps:", countVisibleApps);
-
-}); // Sluit de `DOMContentLoaded` eventlistener correct af.
-</script>
-
-
-
-fs-cmsload-element 
-list
-fs-cmsload-mode 
-render-all
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS });
+  }
+}
