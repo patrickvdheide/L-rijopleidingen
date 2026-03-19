@@ -75,14 +75,76 @@
     <span id="logout-btn" style="font-size:13px;cursor:pointer;opacity:0.6;display:none" onclick="uitloggen()">Uitloggen</span>
   </div>
 
+  <!-- LOGIN -->
   <div id="login-view" class="login-wrap">
     <div class="login-box">
       <h2 style="font-size:18px;font-weight:700;color:#1a1f2e;margin-bottom:4px">Inloggen</h2>
       <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Beheeromgeving L-Rijopleidingen</p>
-      <label style="font-size:12px;font-weight:500;color:#1a1f2e">Wachtwoord</label>
-      <input type="password" id="pwd-input" placeholder="••••••••" style="margin-top:6px" onkeydown="if(event.key==='Enter')inloggen()"/>
-      <button class="btn-login" onclick="inloggen()">Inloggen</button>
-      <div id="login-err" class="err" style="display:none">Onjuist wachtwoord</div>
+      <div id="login-form">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-group">
+            <label>Gebruikersnaam</label>
+            <input type="text" id="login-user" placeholder="admin" onkeydown="if(event.key==='Enter')inloggen()" style="margin:0"/>
+          </div>
+          <div class="form-group">
+            <label>Wachtwoord</label>
+            <input type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')inloggen()" style="margin:0"/>
+          </div>
+        </div>
+        <button class="btn-login" onclick="inloggen()" style="margin-top:16px">Inloggen</button>
+        <div id="login-err" class="err" style="display:none"></div>
+        <button onclick="toonVergeten()" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;margin-top:12px;padding:0;font-family:inherit;width:100%;text-align:center">Wachtwoord vergeten?</button>
+      </div>
+
+      <!-- WACHTWOORD VERGETEN -->
+      <div id="vergeten-form" style="display:none">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Vul je e-mailadres in. Je ontvangt een resetlink als het adres bekend is.</p>
+        <div class="form-group">
+          <label>E-mailadres</label>
+          <input type="email" id="vergeten-email" placeholder="info@l-rijopleidingen.nl" style="margin:0"/>
+        </div>
+        <button class="btn-login" onclick="vraagReset()" style="margin-top:16px">Resetlink versturen</button>
+        <div id="vergeten-msg" style="display:none;font-size:13px;margin-top:10px"></div>
+        <button onclick="toonLogin()" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;margin-top:12px;padding:0;font-family:inherit;width:100%;text-align:center">Terug naar inloggen</button>
+      </div>
+
+      <!-- WACHTWOORD RESET -->
+      <div id="reset-form" style="display:none">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Stel een nieuw wachtwoord in.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-group">
+            <label>Nieuw wachtwoord</label>
+            <input type="password" id="reset-pwd1" placeholder="Minimaal 8 tekens" style="margin:0"/>
+          </div>
+          <div class="form-group">
+            <label>Herhaal wachtwoord</label>
+            <input type="password" id="reset-pwd2" placeholder="Herhaal wachtwoord" style="margin:0"/>
+          </div>
+        </div>
+        <button class="btn-login" onclick="voerResetUit()" style="margin-top:16px">Wachtwoord opslaan</button>
+        <div id="reset-msg" style="display:none;font-size:13px;margin-top:10px"></div>
+      </div>
+
+      <!-- SETUP (eerste wachtwoord) -->
+      <div id="setup-form" style="display:none">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Welkom! Stel een wachtwoord in voor je account.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-group">
+            <label>Gebruikersnaam</label>
+            <input type="text" id="setup-user" style="margin:0" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Nieuw wachtwoord</label>
+            <input type="password" id="setup-pwd1" placeholder="Minimaal 8 tekens" style="margin:0"/>
+          </div>
+          <div class="form-group">
+            <label>Herhaal wachtwoord</label>
+            <input type="password" id="setup-pwd2" placeholder="Herhaal wachtwoord" style="margin:0"/>
+          </div>
+        </div>
+        <button class="btn-login" onclick="voerSetupUit()" style="margin-top:16px">Wachtwoord instellen</button>
+        <div id="setup-msg" style="display:none;font-size:13px;margin-top:10px"></div>
+      </div>
     </div>
   </div>
 
@@ -185,44 +247,142 @@
   </div>
 
   <script>
-    const ADMIN_PWD_KEY = "lrijo_admin_v1";
-    let ADMIN_PASSWORD = "";
+    const SESS_KEY = "lrijo_sess_v1";
+    const USER_KEY = "lrijo_user_v1";
+    let ADMIN_TOKEN = "";
+    let ADMIN_USER  = "";
     let alleBoekingen = [];
     let huidigIdx = null;
+    let resetTokenUrl = null;
+    let resetUserUrl  = null;
 
-    async function inloggen() {
-      const pwd = document.getElementById("pwd-input").value;
-      if (!pwd) return;
-      const btn = document.querySelector(".btn-login");
-      btn.textContent = "Bezig..."; btn.disabled = true;
-      try {
-        const res = await fetch("/api/admin-boekingen?key=" + encodeURIComponent(pwd) + "&check=1");
-        if (res.ok) {
-          ADMIN_PASSWORD = pwd;
-          sessionStorage.setItem(ADMIN_PWD_KEY, pwd);
-          toonAdmin();
-        } else {
-          document.getElementById("login-err").style.display = "block";
-        }
-      } catch(e) {
-        document.getElementById("login-err").textContent = "Verbindingsfout.";
-        document.getElementById("login-err").style.display = "block";
+    // ── URL params checken (reset/setup link) ──
+    function checkUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const reset  = params.get("reset");
+      const user   = params.get("user");
+      const setup  = params.get("setup");
+
+      if (reset && user) {
+        resetTokenUrl = reset; resetUserUrl = user;
+        toonScherm("reset-form");
+        return true;
       }
-      btn.textContent = "Inloggen"; btn.disabled = false;
+      if (setup && user) {
+        document.getElementById("setup-user").value = user;
+        toonScherm("setup-form");
+        return true;
+      }
+      return false;
+    }
+
+    function toonScherm(id) {
+      ["login-form","vergeten-form","reset-form","setup-form"].forEach(s=>{
+        document.getElementById(s).style.display = s===id?"block":"none";
+      });
+    }
+
+    function toonVergeten() { toonScherm("vergeten-form"); }
+    function toonLogin()    { toonScherm("login-form"); }
+
+    function setBtnState(btn, bezig, tekst) {
+      btn.disabled = bezig; btn.textContent = bezig ? "Bezig..." : tekst;
+    }
+
+    async function authPost(body) {
+      const res = await fetch("/api/admin-auth", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body)
+      });
+      return { ok: res.ok, data: await res.json() };
+    }
+
+    // ── INLOGGEN ──
+    async function inloggen() {
+      const user = document.getElementById("login-user").value.trim();
+      const pwd  = document.getElementById("login-pwd").value;
+      const err  = document.getElementById("login-err");
+      const btn  = document.querySelectorAll(".btn-login")[0];
+      err.style.display = "none";
+      if (!user || !pwd) { err.textContent="Vul alle velden in"; err.style.display="block"; return; }
+      setBtnState(btn, true, "Inloggen");
+      const {ok, data} = await authPost({actie:"login", gebruikersnaam:user, wachtwoord:pwd});
+      if (ok) {
+        ADMIN_TOKEN = data.token;
+        ADMIN_USER  = data.gebruiker;
+        sessionStorage.setItem(SESS_KEY, data.token);
+        sessionStorage.setItem(USER_KEY, data.gebruiker);
+        toonAdmin();
+      } else {
+        err.textContent = data.error || "Inloggen mislukt";
+        err.style.display = "block";
+      }
+      setBtnState(btn, false, "Inloggen");
+    }
+
+    // ── WACHTWOORD VERGETEN ──
+    async function vraagReset() {
+      const email = document.getElementById("vergeten-email").value.trim();
+      const msg   = document.getElementById("vergeten-msg");
+      const btns  = document.querySelectorAll(".btn-login");
+      if (!email) return;
+      btns[0].disabled = true; btns[0].textContent = "Versturen...";
+      await authPost({actie:"vergeten", email});
+      msg.textContent = "Als dit e-mailadres bekend is ontvang je een resetlink.";
+      msg.style.color = "#16a34a"; msg.style.display = "block";
+      btns[0].disabled = false; btns[0].textContent = "Resetlink versturen";
+    }
+
+    // ── WACHTWOORD RESET ──
+    async function voerResetUit() {
+      const pwd1 = document.getElementById("reset-pwd1").value;
+      const pwd2 = document.getElementById("reset-pwd2").value;
+      const msg  = document.getElementById("reset-msg");
+      if (pwd1 !== pwd2) { msg.textContent="Wachtwoorden komen niet overeen"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      if (pwd1.length < 8) { msg.textContent="Minimaal 8 tekens"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      const {ok, data} = await authPost({actie:"reset", resetToken:resetTokenUrl, gebruikersnaam:resetUserUrl, nieuwWachtwoord:pwd1});
+      if (ok) {
+        msg.textContent = "Wachtwoord opgeslagen! Je wordt doorgestuurd...";
+        msg.style.color = "#16a34a"; msg.style.display = "block";
+        setTimeout(()=>{ window.location.href = "/admin.html"; }, 1500);
+      } else {
+        msg.textContent = data.error || "Fout"; msg.style.color="#dc2626"; msg.style.display="block";
+      }
+    }
+
+    // ── SETUP (eerste wachtwoord) ──
+    async function voerSetupUit() {
+      const user = document.getElementById("setup-user").value;
+      const pwd1 = document.getElementById("setup-pwd1").value;
+      const pwd2 = document.getElementById("setup-pwd2").value;
+      const msg  = document.getElementById("setup-msg");
+      if (pwd1 !== pwd2) { msg.textContent="Wachtwoorden komen niet overeen"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      if (pwd1.length < 8) { msg.textContent="Minimaal 8 tekens"; msg.style.color="#dc2626"; msg.style.display="block"; return; }
+      const {ok, data} = await authPost({actie:"setup", gebruikersnaam:user, nieuwWachtwoord:pwd1});
+      if (ok) {
+        msg.textContent = "Wachtwoord ingesteld! Je kunt nu inloggen.";
+        msg.style.color = "#16a34a"; msg.style.display = "block";
+        setTimeout(()=>{ window.location.href = "/admin.html"; }, 1500);
+      } else {
+        msg.textContent = data.error || "Fout"; msg.style.color="#dc2626"; msg.style.display="block";
+      }
     }
 
     function uitloggen() {
-      sessionStorage.removeItem(ADMIN_PWD_KEY);
-      ADMIN_PASSWORD = "";
+      sessionStorage.removeItem(SESS_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      ADMIN_TOKEN = ""; ADMIN_USER = "";
       document.getElementById("admin-view").style.display = "none";
       document.getElementById("login-view").style.display = "flex";
       document.getElementById("logout-btn").style.display = "none";
+      document.getElementById("logout-btn").textContent = "Uitloggen";
     }
 
     function toonAdmin() {
       document.getElementById("login-view").style.display = "none";
       document.getElementById("admin-view").style.display = "block";
       document.getElementById("logout-btn").style.display = "block";
+      document.getElementById("logout-btn").textContent = ADMIN_USER + " — Uitloggen";
       laadBoekingen();
     }
 
@@ -255,7 +415,7 @@
     async function laadBoekingen() {
       document.getElementById("tabel-wrap").innerHTML = '<div class="loading"><div class="spinner"></div>Laden...</div>';
       try {
-        const res = await fetch("/api/admin-boekingen?key="+encodeURIComponent(ADMIN_PASSWORD));
+        const res = await fetch("/api/admin-boekingen?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         alleBoekingen = data.boekingen || [];
@@ -387,7 +547,7 @@
       const btn=document.getElementById("opslaan-btn");
       btn.textContent="Opslaan..."; btn.disabled=true;
       try {
-        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_PASSWORD),{
+        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
             recordId: document.getElementById("modal-id").value,
@@ -415,7 +575,7 @@
       const b=alleBoekingen[huidigIdx],f=b.fields||{};
       if (!confirm("Boeking van "+f.Naam+" annuleren?\nDe klant ontvangt een annuleringsmail.")) return;
       try {
-        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_PASSWORD),{
+        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({recordId:b.id,annuleer:true,email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
         });
@@ -429,7 +589,7 @@
       const b=alleBoekingen[huidigIdx],f=b.fields||{};
       if (!confirm("Annulering van "+f.Naam+" ongedaan maken?")) return;
       try {
-        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_PASSWORD),{
+        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({recordId:b.id,velden:{Status:""},email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
         });
@@ -443,7 +603,7 @@
       const b=alleBoekingen[huidigIdx],f=b.fields||{};
       if (!confirm("Boeking van "+f.Naam+" DEFINITIEF verwijderen?\nDit kan niet ongedaan worden gemaakt.")) return;
       try {
-        const res=await fetch("/api/verwijder-boeking?key="+encodeURIComponent(ADMIN_PASSWORD),{
+        const res=await fetch("/api/verwijder-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({recordId:b.id})
         });
@@ -457,8 +617,20 @@
       if(e.target===this) sluitModal();
     });
 
-    const _sess=sessionStorage.getItem(ADMIN_PWD_KEY);
-    if (_sess) { ADMIN_PASSWORD=_sess; toonAdmin(); }
+    // Check URL params eerst (reset/setup links)
+    if (!checkUrlParams()) {
+      // Dan sessie checken
+      const _tok  = sessionStorage.getItem(SESS_KEY);
+      const _user = sessionStorage.getItem(USER_KEY);
+      if (_tok && _user) {
+        ADMIN_TOKEN = _tok; ADMIN_USER = _user;
+        // Verifieer sessie nog geldig
+        authPost({actie:"verifieer", token:_tok, gebruikersnaam:_user}).then(({data})=>{
+          if (data.geldig) toonAdmin();
+          else { sessionStorage.clear(); }
+        });
+      }
+    }
   </script>
 </body>
 </html>

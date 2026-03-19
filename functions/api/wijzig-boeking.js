@@ -23,12 +23,20 @@ export async function onRequest(context) {
     return new Response("", { status: 200, headers: CORS });
   }
 
-  // Auth
-  const url = new URL(request.url);
-  const adminKey = url.searchParams.get("key") || request.headers.get("x-admin-key");
-  const adminPwd = env.ADMIN_PASSWORD || "rijschool2026";
-  if (adminKey !== adminPwd) {
+  // Verifieer sessie token
+  const url   = new URL(request.url);
+  const token = url.searchParams.get("key");
+  const user  = url.searchParams.get("user");
+  if (!token || !user) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  }
+  const authRes = await fetch(new URL("/api/admin-auth", request.url).href, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({actie:"verifieer", token, gebruikersnaam:user})
+  }).catch(()=>null);
+  const authData = authRes ? await authRes.json() : {};
+  if (!authRes?.ok || !authData.geldig) {
+    return new Response(JSON.stringify({ error: "Sessie verlopen" }), { status: 401, headers: CORS });
   }
 
   let body;
