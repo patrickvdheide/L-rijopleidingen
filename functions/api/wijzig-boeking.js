@@ -38,7 +38,7 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS });
   }
 
-  const { recordId, velden, annuleer, email, naam, boekingsnummer } = body;
+  const { recordId, velden, annuleer, herstel, email, naam, boekingsnummer } = body;
 
   if (!recordId) {
     return new Response(JSON.stringify({ error: "recordId ontbreekt" }), { status: 400, headers: CORS });
@@ -48,7 +48,9 @@ export async function onRequest(context) {
   try {
     const updateFields = annuleer
       ? { "Status": "Geannuleerd" }
-      : { ...velden, "Status": "Gewijzigd" };
+      : herstel
+        ? { "Status": "Actief" }
+        : { ...velden, "Status": "Gewijzigd" };
 
     const airtableRes = await fetch(
       `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2/${recordId}`,
@@ -75,11 +77,13 @@ export async function onRequest(context) {
     try {
       const onderwerp = annuleer
         ? `Afspraak geannuleerd — ${boekingsnummer}`
-        : `Afspraak gewijzigd — ${boekingsnummer}`;
+        : herstel
+          ? `Afspraak hersteld — ${boekingsnummer}`
+          : `Afspraak gewijzigd — ${boekingsnummer}`;
 
-      const kleur   = annuleer ? "#dc2626" : "#2c6bed";
-      const ikoon   = annuleer ? "❌" : "✏️";
-      const koptekst = annuleer ? "Uw afspraak is geannuleerd" : "Uw afspraak is gewijzigd";
+      const kleur   = annuleer ? "#dc2626" : herstel ? "#16a34a" : "#2c6bed";
+      const ikoon   = annuleer ? "❌" : herstel ? "✅" : "✏️";
+      const koptekst = annuleer ? "Uw afspraak is geannuleerd" : herstel ? "Uw afspraak is hersteld" : "Uw afspraak is gewijzigd";
 
       const rijen = annuleer ? [] : Object.entries(velden || {}).map(([k,v]) => {
         const labels = {
@@ -112,8 +116,11 @@ export async function onRequest(context) {
         <tr><td style="padding:24px 32px;">
           ${annuleer
             ? `<p style="font-size:14px;color:#1a1f2e;line-height:1.6;">Beste ${naam},<br><br>Uw afspraak met boekingsnummer <strong>${boekingsnummer}</strong> is geannuleerd door de rijschool.<br><br>Neem contact op via <a href="mailto:info@l-rijopleidingen.nl">info@l-rijopleidingen.nl</a> als u een nieuwe afspraak wilt maken.</p>`
-            : `<p style="font-size:13px;color:#6b7280;margin:0 0 16px;">Beste ${naam}, uw afspraak is bijgewerkt met de volgende gegevens:</p>
-               <table width="100%" cellpadding="0" cellspacing="0">${rijen}</table>`
+            : herstel
+              ? `<p style="font-size:14px;color:#1a1f2e;line-height:1.6;">Beste ${naam},<br><br>Goed nieuws! De annulering van uw afspraak met boekingsnummer <strong>${boekingsnummer}</strong> is ongedaan gemaakt.<br><br>Uw afspraak staat weer op de planning. Zie onderstaande details:</p>
+                 <table width="100%" cellpadding="0" cellspacing="0">${rijen}</table>`
+              : `<p style="font-size:13px;color:#6b7280;margin:0 0 16px;">Beste ${naam}, uw afspraak is bijgewerkt met de volgende gegevens:</p>
+                 <table width="100%" cellpadding="0" cellspacing="0">${rijen}</table>`
           }
         </td></tr>
         <tr><td style="background:#f5f6f8;padding:16px 32px;border-top:1px solid #dde1e9;">
@@ -144,7 +151,7 @@ export async function onRequest(context) {
   }
 
   return new Response(
-    JSON.stringify({ success: true, actie: annuleer ? "geannuleerd" : "gewijzigd" }),
+    JSON.stringify({ success: true, actie: annuleer ? "geannuleerd" : herstel ? "hersteld" : "gewijzigd" }),
     { status: 200, headers: CORS }
   );
 }

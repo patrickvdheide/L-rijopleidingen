@@ -40,6 +40,8 @@ export async function onRequest(context) {
   const id    = url.searchParams.get("id");
   const token = url.searchParams.get("token");
 
+  const isHerstel = url.searchParams.get("herstel") === "1";
+
   if (!id || !token) {
     return new Response(
       pagina("Ongeldige link", "De annuleringslink is ongeldig of verlopen.", "#dc2626", "❌"),
@@ -74,7 +76,8 @@ export async function onRequest(context) {
       );
     }
 
-    // Markeer als geannuleerd
+    // Update status
+    const nieuweStatus = isHerstel ? "Bevestigd" : "Geannuleerd";
     const updateRes = await fetch(
       `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2/${record.id}`,
       {
@@ -84,7 +87,7 @@ export async function onRequest(context) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fields: { "Status": "Geannuleerd" }
+          fields: { "Status": nieuweStatus }
         }),
       }
     );
@@ -95,12 +98,19 @@ export async function onRequest(context) {
     const naam  = record.fields?.Naam  || "Klant";
 
     return new Response(
-      pagina(
-        "Afspraak geannuleerd",
-        `Beste ${naam}, uw afspraak van ${datum} is succesvol geannuleerd. U ontvangt geen verdere bevestiging.`,
-        "#2c6bed",
-        "✅"
-      ),
+      isHerstel
+        ? pagina(
+            "Annulering ongedaan gemaakt",
+            `Beste ${naam}, de annulering van uw afspraak van ${datum} is ongedaan gemaakt. Uw afspraak staat weer op de planning.`,
+            "#16a34a",
+            "✅"
+          )
+        : pagina(
+            "Afspraak geannuleerd",
+            `Beste ${naam}, uw afspraak van ${datum} is succesvol geannuleerd. U ontvangt geen verdere bevestiging.`,
+            "#2c6bed",
+            "✅"
+          ),
       { status: 200, headers: CORS }
     );
 

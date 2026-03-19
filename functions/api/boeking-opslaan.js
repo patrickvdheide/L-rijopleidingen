@@ -54,6 +54,8 @@ export async function onRequest(context) {
 
   console.log("Ontvangen datum:", datum, "slots:", slots, "kt:", kt);
   const cancelToken = btoa(id).replace(/=/g,"").slice(0,12);
+  const herstelToken = btoa(id + "_herstel").replace(/=/g,"").slice(0,12);
+  const herstelUrl = `https://l-rijopleidingen.pages.dev/api/annuleer?id=${id}&token=${cancelToken}&herstel=1`;
   const cancelUrl = `https://l-rijopleidingen.pages.dev/api/annuleer?id=${id}&token=${cancelToken}`;
   const slotsLabel = slots?.length > 0
     ? `${slots[0]}${slots.length > 1 ? ` – ${slots[slots.length - 1]}` : ""} (${slots.length}×)`
