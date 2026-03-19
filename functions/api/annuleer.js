@@ -1,3 +1,5 @@
+// annuleer.js — v7
+// annuleer.js — v7.0.0
 // functions/api/annuleer.js
 // Verwerkt annuleringsverzoeken via link in de bevestigingsmail
 

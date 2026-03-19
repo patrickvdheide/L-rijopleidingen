@@ -1,3 +1,5 @@
+// boeking-opslaan.js — v7
+// boeking-opslaan.js — v7.0.0
 // netlify/functions/boeking-opslaan.js
 // Instaleer: npm install node-fetch (of gebruik Node 18+ built-in fetch)
 //

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <link rel="icon" href="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b93f2a24f1bc8f413211af_L-rijopleidingen-webclip.jpg" type="image/jpeg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- v7.0.0 -->
   <title>L-Rijopleidingen - Boekingen</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -56,6 +57,7 @@ const html = htm.bind(React.createElement);
 const { useState, useEffect, useCallback } = React;
 
 const NETLIFY = "";
+const VERSION = "v7";
 const MND = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
 const WD  = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
 const CMS_CACHE_KEY = "lrijo_cms_v1";
@@ -240,7 +242,7 @@ function App() {
         const [r, bz] = await Promise.all([
           cached
             ? Promise.resolve(cached)
-            : fetchRetry(NETLIFY+"/api/cms-data").then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
+            : fetchRetry(NETLIFY+"/api/cms-data?"+VERSION).then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
           getBezet()
         ]);
         if (!cached) setCmsCache(r);
@@ -260,7 +262,7 @@ function App() {
   const boek = async(b) => {
     const nb={...bezet}; b.slots.forEach(t=>{nb[sk(b.datum,t)]=b.id;});
     setBzt(nb); await setBezet(nb);
-    const boekRes = await fetchRetry(NETLIFY+"/api/boeking-opslaan",{
+    const boekRes = await fetchRetry(NETLIFY+"/api/boeking-opslaan?"+VERSION,{
       method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({...b,
         dienstLabels:b.diensten.map(id=>AD.find(d=>d.id===id)?.label||id),
@@ -650,5 +652,6 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
   </script>
+<div style="position:fixed;bottom:8px;right:10px;font-size:10px;color:#aaa;opacity:0.5;pointer-events:none;">v7</div>
 </body>
 </html>

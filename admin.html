@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <link rel="icon" href="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b93f2a24f1bc8f413211af_L-rijopleidingen-webclip.jpg" type="image/jpeg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- v7.0.0 -->
   <title>L-Rijopleidingen - Beheer</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -388,7 +389,7 @@
     }
 
     async function authPost(body) {
-      const res = await fetch("/api/admin-auth", {
+      const res = await fetch("/api/admin-auth?v=7", {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify(body)
       });
@@ -510,7 +511,7 @@
     async function laadBoekingen() {
       document.getElementById("tabel-wrap").innerHTML = '<div class="loading"><div class="spinner"></div>Laden...</div>';
       try {
-        const res = await fetch("/api/admin-boekingen?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
+        const res = await fetch("/api/admin-boekingen?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         alleBoekingen = data.boekingen || [];
@@ -642,7 +643,7 @@
       const btn=document.getElementById("opslaan-btn");
       btn.textContent="Opslaan..."; btn.disabled=true;
       try {
-        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/wijzig-boeking?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
             recordId: document.getElementById("modal-id").value,
@@ -670,7 +671,7 @@
       const b=alleBoekingen[huidigIdx],f=b.fields||{};
       if (!confirm("Boeking van "+f.Naam+" annuleren?\nDe klant ontvangt een annuleringsmail.")) return;
       try {
-        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/wijzig-boeking?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({recordId:b.id,annuleer:true,email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
         });
@@ -684,7 +685,7 @@
       const b=alleBoekingen[huidigIdx],f=b.fields||{};
       if (!confirm("Annulering van "+f.Naam+" ongedaan maken?")) return;
       try {
-        const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/wijzig-boeking?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({recordId:b.id,velden:{Status:""},email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
         });
@@ -698,7 +699,7 @@
       const b=alleBoekingen[huidigIdx],f=b.fields||{};
       if (!confirm("Boeking van "+f.Naam+" DEFINITIEF verwijderen?\nDit kan niet ongedaan worden gemaakt.")) return;
       try {
-        const res=await fetch("/api/verwijder-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/verwijder-boeking?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({recordId:b.id})
         });
@@ -723,7 +724,7 @@
     async function laadGebruikers() {
       document.getElementById("gebruikers-tabel").innerHTML = '<div class="loading"><div class="spinner"></div>Laden...</div>';
       try {
-        const res = await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
+        const res = await fetch("/api/admin-gebruikers?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER));
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         renderGebruikers(data.gebruikers||[]);
@@ -769,7 +770,7 @@
       fout.style.display="none";
       if (!user||!email) { fout.textContent="Vul alle velden in"; fout.style.display="block"; return; }
       try {
-        const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/admin-gebruikers?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({actie:"aanmaken",gebruikersnaam:user,email})
         });
@@ -782,7 +783,7 @@
     async function stuurResetMail(recordId,email,gebruikersnaam) {
       if (!confirm("Reset mail sturen naar "+email+"?")) return;
       try {
-        const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/admin-gebruikers?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({actie:"reset-mail",recordId,email,gebruikersnaam})
         });
@@ -796,7 +797,7 @@
       if (gebruikersnaam===ADMIN_USER) { alert("Je kunt je eigen account niet verwijderen."); return; }
       if (!confirm("Gebruiker '"+gebruikersnaam+"' definitief verwijderen?")) return;
       try {
-        const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
+        const res=await fetch("/api/admin-gebruikers?v=7&key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({actie:"verwijderen",recordId})
         });
@@ -829,5 +830,6 @@
       }
     }
   </script>
+<div style="position:fixed;bottom:8px;right:10px;font-size:10px;color:#aaa;opacity:0.5;pointer-events:none;">v7</div>
 </body>
 </html>

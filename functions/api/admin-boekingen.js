@@ -1,3 +1,5 @@
+// admin-boekingen.js — v7
+// admin-boekingen.js — v7.0.0
 // functions/api/admin-boekingen.js
 // Geeft boekingen terug uit Airtable voor de beheerpagina
 

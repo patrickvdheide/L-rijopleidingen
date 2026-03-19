@@ -1,3 +1,5 @@
+// herstel.js — v7
+// herstel.js — v7.0.0
 // functions/api/herstel.js
 // Maakt een annulering ongedaan via link in de annuleringsbevestiging
 

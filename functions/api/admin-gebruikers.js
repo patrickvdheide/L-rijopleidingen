@@ -1,3 +1,5 @@
+// admin-gebruikers.js — v7
+// admin-gebruikers.js — v7.0.0
 // functions/api/admin-gebruikers.js
 // Beheer van admin gebruikers — aanmaken, verwijderen, reset mail
 

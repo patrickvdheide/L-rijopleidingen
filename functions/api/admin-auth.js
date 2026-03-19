@@ -1,3 +1,5 @@
+// admin-auth.js — v7
+// admin-auth.js — v7.0.0
 // functions/api/admin-auth.js
 // Verwerkt login, wachtwoord vergeten en wachtwoord reset
 
