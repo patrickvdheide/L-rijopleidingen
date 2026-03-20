@@ -10,7 +10,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; }
     .topbar { background: #0586f0; color: white; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(5,134,240,0.25); }
-    .topbar h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
     .container { max-width: 1100px; margin: 24px auto; padding: 0 16px 48px; }
     .card { background: white; border-radius: 8px; border: 1px solid #dde1e9; overflow: hidden; margin-bottom: 16px; }
     .login-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); }
@@ -75,7 +74,7 @@
 <body>
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:16px">
-      <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" style="height:26px;width:auto;display:block;"/>
+      <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg?v=10" alt="L-Rijopleidingen" style="height:26px;width:auto;display:block;"/>
       <nav id="nav-bar" style="display:none;gap:4px;margin-left:4px;">
         <button onclick="toonPagina('boekingen')" id="nav-boekingen" class="nav-btn nav-active">Boekingen</button>
         <button onclick="toonPagina('gebruikers')" id="nav-gebruikers" class="nav-btn">Gebruikers</button>
@@ -476,6 +475,10 @@
       document.getElementById("admin-view").style.display = "block";
       document.getElementById("nav-bar").style.display    = "flex";
       document.getElementById("logout-btn").style.display = "inline-block";
+      // Zet huidige maand als standaard filter
+      const nu = new Date();
+      const huidigeMaand = nu.getFullYear() + "-" + String(nu.getMonth()+1).padStart(2,"0");
+      document.getElementById("maand-filter").value = huidigeMaand;
       toonPagina("boekingen");
       laadBoekingen();
     }
