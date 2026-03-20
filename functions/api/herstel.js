@@ -1,5 +1,3 @@
-// herstel.js — v7
-// herstel.js — v7.0.0
 // functions/api/herstel.js
 // Maakt een annulering ongedaan via link in de annuleringsbevestiging
 
@@ -103,8 +101,8 @@ export async function onRequest(context) {
           <body style="margin:0;padding:32px;background:#f5f6f8;font-family:Arial,sans-serif;">
             <div style="max-width:500px;margin:0 auto;background:white;border-radius:8px;border:1px solid #dde1e9;overflow:hidden;">
               <div style="background:#16a34a;padding:20px 32px;">
-                <p style="margin:0;color:white;font-size:18px;font-weight:700;">✅ Afspraak hersteld</p>
-                <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">L-Rijopleidingen</p>
+                <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" style="height:28px;width:auto;display:block;margin-bottom:6px;"/>
+                <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">✅ Afspraak hersteld</p>
               </div>
               <div style="padding:24px 32px;">
                 <p style="font-size:14px;color:#1a1f2e;line-height:1.6;">Beste ${naam},<br><br>
@@ -112,7 +110,8 @@ export async function onRequest(context) {
                 Uw afspraak staat weer actief. Neem contact op via <a href="mailto:info@l-rijopleidingen.nl">info@l-rijopleidingen.nl</a> bij vragen.</p>
               </div>
               <div style="background:#f5f6f8;padding:12px 32px;border-top:1px solid #dde1e9;">
-                <p style="margin:0;font-size:12px;color:#9ca3af;">L-Rijopleidingen · info@l-rijopleidingen.nl</p>
+                <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc2137ec448353135e0a0a_L-rijopleidingen-logo-rgb.svg" alt="L-Rijopleidingen" style="height:18px;width:auto;display:block;margin-bottom:4px;"/>
+                <p style="margin:0;font-size:12px;color:#9ca3af;">info@l-rijopleidingen.nl</p>
               </div>
             </div>
           </body></html>`

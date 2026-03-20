@@ -394,13 +394,17 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   };
 
   const send = async() => {
-    setBz(true); setFt(""); try {
+    setBz(true); setFt(""); 
+    try {
       const b={id:"BK-"+Date.now(),kt,diensten:ds,opties:os,datum:dat,slots:slt,
         naam,email:mail,tel,bedrijf:kt!=="consument"?bedr:null,kvk:kt==="bedrijf"?kvk:null,
         straat,huisnummer:huisnr,postcode,plaats,
         betaalMethode:bm,aantalOpts,p:p(slt.length),ts:new Date().toISOString()};
       await onBoek(b);
-    } catch(e){ setFt("Fout: "+e.message); setBz(false); }
+    } catch(e){ 
+      setFt("Er ging iets mis: "+e.message+". Probeer het opnieuw of neem contact op via info@l-rijopleidingen.nl"); 
+      setBz(false); 
+    }
   };
 
   const reset = () => {

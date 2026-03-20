@@ -1,5 +1,3 @@
-// cms-data.js — v7
-// cms-data.js — v7.0.0
 // functions/api/cms-data.js
 // Cloudflare Pages Function — haalt Webflow CMS data op
 
