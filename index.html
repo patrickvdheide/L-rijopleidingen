@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <link rel="icon" href="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b93f2a24f1bc8f413211af_L-rijopleidingen-webclip.jpg" type="image/jpeg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- v7.0.0 -->
   <title>L-Rijopleidingen - Boekingen</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,23 +29,14 @@
     .pulse { animation: pulse 1.5s ease-in-out infinite; }
 
     @media (max-width: 600px) {
-      body { padding: 0; background: #fff; }
-      #root { max-width: 100%; }
-      .card { border-radius: 0 !important; box-shadow: none !important; }
+      body { padding: 0; background: #fff; align-items: stretch; }
+      #root { max-width: 100%; height: 100dvh; display: flex; flex-direction: column; }
+      .card { border-radius: 0 !important; box-shadow: none !important; height: 100% !important; display: flex; flex-direction: column; }
       .step-label { display: none; }
-      .body-pad { padding: 14px 12px 80px !important; }
-      .footer-bar { padding: 10px 12px !important; }
-      .topbar { padding: 0 12px !important; }
-      .steps-bar { padding: 0 12px !important; }
-      table { display: block; }
-      thead { display: none; }
-      tbody { display: block; }
-      tr.data-row { display: block; border-bottom: 1px solid #dde1e9; padding: 8px 0; background: white; }
-      tr.data-row:hover { background: #f9fafb; cursor: pointer; }
-      tr.data-row td:first-child { display: inline-block; width: 34px; padding: 8px 0 4px 10px !important; vertical-align: top; }
-      tr.data-row td:nth-child(2) { display: inline-block; width: calc(100% - 54px); padding: 8px 10px 4px 0 !important; vertical-align: top; }
-      tr.data-row td:last-child { display: block; width: 100%; padding: 2px 10px 10px 44px !important; text-align: left !important; }
-      .cal-day { height: 42px !important; font-size: 14px !important; }
+      .body-pad { flex: 1; overflow-y: auto; padding: 16px 16px 16px !important; }
+      .footer-bar { flex-shrink: 0; padding: 12px 16px !important; border-top: 1px solid #dde1e9; background: white; }
+      .topbar { padding: 0 16px !important; flex-shrink: 0; }
+      .steps-bar { flex-shrink: 0; }
     }
   </style>
 </head>
@@ -57,7 +47,6 @@ const html = htm.bind(React.createElement);
 const { useState, useEffect, useCallback } = React;
 
 const NETLIFY = "";
-const VERSION = "v7";
 const MND = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
 const WD  = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
 const CMS_CACHE_KEY = "lrijo_cms_v1";
@@ -104,8 +93,8 @@ function calc(ds,os,kt,n,AD,AO,aantalOpts) {
 }
 
 // ── STORAGE ──
-async function getBezet()  { try{const r=await window.storage.get("mp2");return r?JSON.parse(r.value):{}}catch{return{}} }
-async function setBezet(v) { try{await window.storage.set("mp2",JSON.stringify(v))}catch{} }
+async function getBezet()  { try { const r = localStorage.getItem("lrijo_bezet"); return r ? JSON.parse(r) : {}; } catch { return {}; } }
+async function setBezet(v) { try { localStorage.setItem("lrijo_bezet", JSON.stringify(v)); } catch {} }
 
 function getCmsCache() {
   try {
@@ -242,7 +231,7 @@ function App() {
         const [r, bz] = await Promise.all([
           cached
             ? Promise.resolve(cached)
-            : fetchRetry(NETLIFY+"/api/cms-data?"+VERSION).then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
+            : fetchRetry(NETLIFY+"/api/cms-data").then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
           getBezet()
         ]);
         if (!cached) setCmsCache(r);
@@ -262,7 +251,7 @@ function App() {
   const boek = async(b) => {
     const nb={...bezet}; b.slots.forEach(t=>{nb[sk(b.datum,t)]=b.id;});
     setBzt(nb); await setBezet(nb);
-    const boekRes = await fetchRetry(NETLIFY+"/api/boeking-opslaan?"+VERSION,{
+    const boekRes = await fetchRetry(NETLIFY+"/api/boeking-opslaan",{
       method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({...b,
         dienstLabels:b.diensten.map(id=>AD.find(d=>d.id===id)?.label||id),
@@ -428,20 +417,20 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
   // Bezig — toon simpele spinner in de footer knop, geen apart scherm
 
-  return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden"}}>
-    <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px"}}>
+  return html`<div class="card" style=${{background:C.white,borderRadius:"clamp(0px,2vw,12px)",boxShadow:"0 4px 24px rgba(0,0,0,0.08)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+    <div class="topbar" style=${{background:C.white,borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"48px",flexShrink:0}}>
       <${Logo}/>
       ${slt.length>0&&kt&&ds.length>0 && html`<span style=${{fontSize:"13px",color:C.sub}}>${slt.length}× · <strong style=${{color:C.text}}>€ ${p(slt.length).tot.toFixed(2)}</strong></span>`}
     </div>
 
-    ${wrn && html`<div style=${{background:C.warnbg,borderBottom:"1px solid "+C.warnbor,padding:"8px 24px",fontSize:"12px",color:C.warn}}>${wrn}</div>`}
+    ${wrn && html`<div style=${{background:C.warnbg,borderBottom:"1px solid "+C.warnbor,padding:"8px 24px",fontSize:"12px",color:C.warn,flexShrink:0}}>${wrn}</div>`}
 
     <${Steps} stap=${stap} labels=${stapLabels}/>
 
-    <div class="body-pad" style=${{padding:"20px 20px 80px"}}>
+    <div class="body-pad" style=${{padding:"20px 20px 24px",overflowY:"auto",flex:1}}>
 
       ${logStap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
-        <div style=${{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:"8px"}}>
+        <div style=${{display:"flex",flexDirection:"column",gap:"8px"}}>
           ${[{id:"consument",label:"Cursist",sub:"Particulier · incl. btw"},{id:"zzp",label:"Instructeur",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Rijschoolhouder",sub:"Organisatie · excl. btw"}].map(k=>html`
             <div key=${k.id} onClick=${()=>setKt(k.id)} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white}}>
               <div style=${{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}><${RB} on=${kt===k.id}/><span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span></div>
@@ -562,7 +551,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
           <div>
             ${dag ? html`
               <div style=${{fontSize:"13px",color:C.sub,marginBottom:"10px",fontWeight:600}}>${dag} ${MND[mn]} — kies tijdsloten</div>
-              <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
+              <div style=${{display:"flex",flexDirection:"column",gap:"6px"}}>
                 ${besch.tijdsloten.map(t=>{
                   const gbz=!!bezet[sk(dat,t)], gesel=slt.includes(t), kan=kanS(t);
                   return html`<div key=${t} onClick=${()=>kan&&togS(t)}
@@ -603,7 +592,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
             ${kt==="bedrijf" && html`<${Veld} label="KVK-nummer" val=${kvk} set=${setKv} ph="12345678"/>`}
             <div>
               <label style=${{fontSize:"12px",fontWeight:500,color:C.text,display:"block",marginBottom:"8px"}}>Betaalmethode op locatie <span style=${{color:C.err}}>*</span></label>
-              <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+              <div style=${{display:"flex",flexDirection:"column",gap:"8px"}}>
                 ${[{id:"contant",label:"Contant"},{id:"pin",label:"Pinnen"}].map(m=>html`
                   <div key=${m.id} onClick=${()=>setBm(m.id)} style=${{display:"flex",alignItems:"center",gap:"10px",padding:"11px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(bm===m.id?C.accent:C.border),background:bm===m.id?C.abg:C.white}}>
                     <${RB} on=${bm===m.id}/><span style=${{fontWeight:bm===m.id?600:400,fontSize:"14px",color:C.text}}>${m.label}</span>
@@ -640,11 +629,11 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     </div>
 
-    <div class="footer-bar" style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-      ${stap>1 ? html`<button style=${btnS} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span></span>`}
+    <div class="footer-bar" style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+      ${stap>1 ? html`<button style=${{...btnS,flex:1,marginRight:"8px"}} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span style=${{flex:1}}></span>`}
       ${stap<maxStap
-        ? html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
-        : html`<button style=${{...btnP,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>${bezig ? html`<span style=${{display:"flex",alignItems:"center",gap:"8px"}}><span style=${{width:"14px",height:"14px",border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",display:"inline-block",animation:"spin 1s linear infinite"}}></span>Bezig...</span>` : "Afspraak bevestigen"}</button>`
+        ? html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
+        : html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>${bezig ? html`<span style=${{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}><span style=${{width:"14px",height:"14px",border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",display:"inline-block",animation:"spin 1s linear infinite"}}></span>Bezig...</span>` : "Afspraak bevestigen"}</button>`
       }
     </div>
   </div>`;
@@ -652,6 +641,5 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
   </script>
-<div style="position:fixed;bottom:8px;right:10px;font-size:10px;color:#aaa;opacity:0.5;pointer-events:none;">v7</div>
 </body>
 </html>

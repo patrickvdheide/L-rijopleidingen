@@ -201,6 +201,7 @@
             </select>
             <input type="month" id="maand-filter" onchange="filterBoekingen()" style="min-width:auto;flex:0"/>
             <button class="btn btn-secondary" onclick="resetFilters()" style="white-space:nowrap;padding:8px 12px;font-size:12px">Reset</button>
+            <button class="btn btn-secondary" onclick="exportCsv()" style="white-space:nowrap;padding:8px 12px;font-size:12px;color:#0586f0;border-color:#0586f0;">↓ CSV</button>
           </div>
         </div>
         <div id="tabel-wrap"><div class="loading"><div class="spinner"></div>Laden...</div></div>
@@ -521,16 +522,37 @@
       }
     }
 
+    function btwSplit(totaal, kt) {
+      // consument: prijs incl. 21% btw → excl = totaal/1.21, btw = totaal - excl
+      // zzp/bedrijf: prijs excl. btw → btw = totaal*0.21
+      if (kt === "consument") {
+        const excl = totaal / 1.21;
+        return { excl, btw: totaal - excl };
+      } else {
+        return { excl: totaal, btw: totaal * 0.21 };
+      }
+    }
+
     function toonStats(b) {
       const actief  = b.filter(x=>x.fields?.Status!=="Geannuleerd");
-      const omzet   = actief.reduce((s,x)=>s+Number(x.fields?.Totaal||0),0);
       const vandaag = new Date().toISOString().slice(0,10);
       const vN      = b.filter(x=>x.fields?.Datum===vandaag).length;
       const geann   = b.filter(x=>x.fields?.Status==="Geannuleerd").length;
+
+      let omzetExcl = 0, omzetBtw = 0;
+      actief.forEach(x => {
+        const f = x.fields || {};
+        const totaal = Number(f.Totaal || 0);
+        const split  = btwSplit(totaal, f.Klanttype);
+        omzetExcl += split.excl;
+        omzetBtw  += split.btw;
+      });
+
       document.getElementById("stats").innerHTML = `
         <div class="stat-card"><div class="stat-val">${b.length}</div><div class="stat-lbl">Totaal boekingen</div></div>
         <div class="stat-card"><div class="stat-val">${vN}</div><div class="stat-lbl">Vandaag</div></div>
-        <div class="stat-card"><div class="stat-val">${fmtBedrag(omzet)}</div><div class="stat-lbl">Omzet excl. geannuleerd</div></div>
+        <div class="stat-card"><div class="stat-val">${fmtBedrag(omzetExcl)}</div><div class="stat-lbl">Omzet excl. btw</div></div>
+        <div class="stat-card"><div class="stat-val" style="font-size:18px">${fmtBedrag(omzetBtw)}</div><div class="stat-lbl">BTW totaal (21%)</div></div>
         <div class="stat-card"><div class="stat-val" style="color:#dc2626">${geann}</div><div class="stat-lbl">Geannuleerd</div></div>`;
     }
 
@@ -556,29 +578,60 @@
         document.getElementById("tabel-wrap").innerHTML='<div class="loading">Geen boekingen gevonden</div>';
         return;
       }
-      const rijen = boekingen.map(b=>{
-        const f=b.fields||{}, idx=alleBoekingen.indexOf(b), geann=f.Status==="Geannuleerd";
-        return `<tr style="${geann?"opacity:0.55;":""}">
-          <td><strong>${f.Naam||"-"}</strong><br><span style="color:#6b7280;font-size:12px">${f.Email||""}</span></td>
-          <td>${ktLabel(f.Klanttype)}</td>
-          <td>${formatDatum(f.Datum)}<br><span style="color:#6b7280;font-size:12px">${f.Tijdsloten||""}</span></td>
-          <td>${f.Diensten||"-"}</td>
-          <td style="font-weight:600;color:#0586f0;white-space:nowrap">${fmtBedrag(f.Totaal)}</td>
-          <td>${statusLabel(f)}</td>
-          <td style="text-align:right;padding-right:14px">
-            <button class="pencil-btn" onclick="openBewerk(${idx})" title="Bewerken">
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z"/>
-              </svg>
-            </button>
-          </td>
-        </tr>`;
+
+      const kaarten = boekingen.map(b => {
+        const f   = b.fields || {};
+        const idx = alleBoekingen.indexOf(b);
+        const geann = f.Status === "Geannuleerd";
+        const gewij = f.Status === "Gewijzigd";
+
+        const statusKleur = geann ? "#dc2626" : gewij ? "#c2410c" : "#16a34a";
+        const statusTekst = geann ? "Geannuleerd" : gewij ? "Gewijzigd" : "Actief";
+        const statusBg    = geann ? "#fee2e2" : gewij ? "#fff7ed" : "#f0fdf4";
+
+        const initiaal = (f.Naam || "?")[0].toUpperCase();
+        const avatarKleur = f.Klanttype === "zzp" ? "#16a34a" : f.Klanttype === "bedrijf" ? "#92400e" : "#0586f0";
+        const avatarBg    = f.Klanttype === "zzp" ? "#f0fdf4" : f.Klanttype === "bedrijf" ? "#fef3c7" : "#e6f4fe";
+
+        return `<div onclick="openBewerk(${idx})" style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background 0.1s;${geann ? "opacity:0.55;" : ""}" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+
+          <!-- Initiaal avatar -->
+          <div style="width:40px;height:40px;border-radius:50%;background:${avatarBg};color:${avatarKleur};font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${initiaal}
+          </div>
+
+          <!-- Midden: naam + info -->
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+              <span style="font-weight:600;font-size:14px;color:#1a1f2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.Naam || "—"}</span>
+              ${ktLabel(f.Klanttype)}
+            </div>
+            <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${formatDatum(f.Datum)}${f.Tijdsloten ? " · " + f.Tijdsloten : ""}${f.Diensten ? " · " + f.Diensten : ""}
+            </div>
+          </div>
+
+          <!-- Rechts: bedrag + status -->
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-weight:700;font-size:14px;color:${geann ? "#9ca3af" : "#1a1f2e"};${geann ? "text-decoration:line-through;" : ""}">
+              ${fmtBedrag(f.Totaal)}
+            </div>
+            <div style="margin-top:3px;">
+              <span style="font-size:11px;font-weight:600;color:${statusKleur};background:${statusBg};padding:2px 7px;border-radius:10px;">
+                ${statusTekst}
+              </span>
+            </div>
+          </div>
+
+          <!-- Chevron -->
+          <div style="color:#d1d5db;flex-shrink:0;">
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5-5 5"/></svg>
+          </div>
+
+        </div>`;
       }).join("");
 
-      document.getElementById("tabel-wrap").innerHTML = `
-        <table><thead><tr>
-          <th>Klant</th><th>Type</th><th>Datum</th><th>Dienst</th><th>Bedrag</th><th>Status</th><th></th>
-        </tr></thead><tbody>${rijen}</tbody></table>`;
+      document.getElementById("tabel-wrap").innerHTML = `<div style="max-height:600px;overflow-y:auto;">${kaarten}</div>`;
     }
 
     function filterBoekingen() {
@@ -603,6 +656,62 @@
       ["kt-filter","status-filter"].forEach(id=>document.getElementById(id).value="");
       document.getElementById("filter-info").textContent="";
       renderTabel(alleBoekingen);
+    }
+
+    function exportCsv() {
+      // Gebruik gefilterde boekingen als filter actief is, anders alles
+      const zoek  = document.getElementById("zoek-input").value.toLowerCase();
+      const kt    = document.getElementById("kt-filter").value;
+      const stat  = document.getElementById("status-filter").value;
+      const maand = document.getElementById("maand-filter").value;
+      const bron  = alleBoekingen.filter(b => {
+        const f = b.fields||{};
+        return (!zoek||(f.Naam||"").toLowerCase().includes(zoek)||(f.Email||"").toLowerCase().includes(zoek)||(f.Boekingsnummer||"").toLowerCase().includes(zoek))
+          && (!kt||f.Klanttype===kt)
+          && (!stat||(stat==="actief"&&!f.Status)||f.Status===stat)
+          && (!maand||(f.Datum||"").startsWith(maand));
+      });
+
+      const ktNaam = { consument:"Cursist", zzp:"Instructeur", bedrijf:"Rijschoolhouder" };
+
+      const headers = [
+        "Boekingsnummer","Datum","Tijdsloten","Naam","Email","Telefoon",
+        "Klanttype","Bedrijf","KVK","Dienst","Opties","Betaalmethode",
+        "Totaal (zoals opgegeven)","Excl. BTW","BTW 21%","Status","Aangemaakt op"
+      ];
+
+      const rijen = bron.map(b => {
+        const f = b.fields || {};
+        const totaal = Number(f.Totaal || 0);
+        const split  = btwSplit(totaal, f.Klanttype);
+        return [
+          f.Boekingsnummer||"",
+          f.Datum||"",
+          f.Tijdsloten||"",
+          f.Naam||"",
+          f.Email||"",
+          f.Telefoon||"",
+          ktNaam[f.Klanttype]||f.Klanttype||"",
+          f.Bedrijfsnaam||"",
+          f.KVK||"",
+          f.Diensten||"",
+          f.Opties||"",
+          f.Betaalmethode==="pin"?"Pin":"Contant",
+          totaal.toFixed(2),
+          split.excl.toFixed(2),
+          split.btw.toFixed(2),
+          f.Status||"Actief",
+          f["Aangemaakt op"]||"",
+        ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(",");
+      });
+
+      const csv  = [headers.join(","), ...rijen].join("\r\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href  = URL.createObjectURL(blob);
+      const datum = new Date().toISOString().slice(0,10);
+      link.download = `boekingen-${datum}.csv`;
+      link.click();
     }
 
     function openBewerk(idx) {
@@ -642,7 +751,7 @@
       btn.textContent="Opslaan..."; btn.disabled=true;
       try {
         const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({
             recordId: document.getElementById("modal-id").value,
             email:    document.getElementById("modal-email").value,
@@ -670,7 +779,7 @@
       if (!confirm("Boeking van "+f.Naam+" annuleren?\nDe klant ontvangt een annuleringsmail.")) return;
       try {
         const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({recordId:b.id,annuleer:true,email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
         });
         const d=await res.json();
@@ -684,7 +793,7 @@
       if (!confirm("Annulering van "+f.Naam+" ongedaan maken?")) return;
       try {
         const res=await fetch("/api/wijzig-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({recordId:b.id,velden:{Status:""},email:f.Email,naam:f.Naam,boekingsnummer:f.Boekingsnummer})
         });
         const d=await res.json();
@@ -698,7 +807,7 @@
       if (!confirm("Boeking van "+f.Naam+" DEFINITIEF verwijderen?\nDit kan niet ongedaan worden gemaakt.")) return;
       try {
         const res=await fetch("/api/verwijder-boeking?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({recordId:b.id})
         });
         const d=await res.json();
@@ -769,7 +878,7 @@
       if (!user||!email) { fout.textContent="Vul alle velden in"; fout.style.display="block"; return; }
       try {
         const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({actie:"aanmaken",gebruikersnaam:user,email})
         });
         const d=await res.json();
@@ -782,7 +891,7 @@
       if (!confirm("Reset mail sturen naar "+email+"?")) return;
       try {
         const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({actie:"reset-mail",recordId,email,gebruikersnaam})
         });
         const d=await res.json();
@@ -796,7 +905,7 @@
       if (!confirm("Gebruiker '"+gebruikersnaam+"' definitief verwijderen?")) return;
       try {
         const res=await fetch("/api/admin-gebruikers?key="+encodeURIComponent(ADMIN_TOKEN)+"&user="+encodeURIComponent(ADMIN_USER),{
-          method:"POST",headers:{"Content-Type":"application/json"},
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN,"X-Admin-User":ADMIN_USER},
           body:JSON.stringify({actie:"verwijderen",recordId})
         });
         const d=await res.json();
