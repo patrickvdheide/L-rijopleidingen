@@ -132,11 +132,11 @@ function Spinner({msg}) {
   </div>`;
 }
 
-function Logo() {
-  return html`<div style=${{display:"flex",alignItems:"center",gap:"8px"}}>
-    <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill=${C.accent}/><path d="M6 10.5l2.5 2.5L14 7" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span style=${{fontWeight:700,color:C.text,fontSize:"15px"}}>L-Rijopleidingen</span>
-  </div>`;
+function Logo({wit}) {
+  const src = wit
+    ? "https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg"
+    : "https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc2137ec448353135e0a0a_L-rijopleidingen-logo-rgb.svg";
+  return html`<img src=${src} alt="L-Rijopleidingen" style=${{height:"28px",width:"auto",display:"block"}}/>`;
 }
 
 function Steps({stap,labels}) {
