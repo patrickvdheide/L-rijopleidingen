@@ -1,30 +1,31 @@
 // functions/api/admin-boekingen.js
 
-const ALLOWED_ORIGINS = ["https://boekingen.l-rijopleidingen.nl","https://l-rijopleidingen.pages.dev"];
-function corsHeaders(req) {
-  const origin = req?.headers?.get("Origin") || "";
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return { "Access-Control-Allow-Origin": allowed, "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-User", "Access-Control-Allow-Methods": "GET, OPTIONS", "Content-Type": "application/json", "Vary": "Origin" };
-}
+const CORS = {
+  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Content-Type":                 "application/json",
+};
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const CORS = corsHeaders(request);
-
   if (request.method === "OPTIONS") return new Response("", { status: 200, headers: CORS });
 
   // ── Sessie verificatie ──
-  const _authHeader = request.headers.get("Authorization") || "";
-  const _token = _authHeader.startsWith("Bearer ") ? _authHeader.slice(7).trim() : "";
-  const _user  = (request.headers.get("X-Admin-User") || "").trim();
-  if (!_token || !_user) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
-  const _safeUser = _user.replace(/["\\]/g, "");
+  const _url   = new URL(request.url);
+  const _token = _url.searchParams.get("key");
+  const _user  = _url.searchParams.get("user");
+  if (!_token || !_user) {
+    return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  }
   const _ar = await fetch(
-    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tblxPXaRSgAHiiauP?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _safeUser + '"')}`,
+    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tblxPXaRSgAHiiauP?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _user.replace(/['"\\]/g,"") + '"')}`,
     { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
   ).catch(() => null);
-  if (!_ar?.ok) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
-  const _ad = await _ar.json();
+  if (!_ar?.ok) {
+    return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
+  }
+  const _ad  = await _ar.json();
   const _rec = _ad.records?.[0];
   if (!_rec || !(_rec.fields?.ResetToken || "").startsWith("sessie_" + _token) || new Date(_rec.fields?.ResetVerloopt || 0) < new Date()) {
     return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });

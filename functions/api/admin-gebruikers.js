@@ -19,8 +19,11 @@ function randomToken(len = 32) {
 
 export async function onRequest(context) {
   const { request, env } = context;
+  // CORS already defined above
+
   if (request.method === "OPTIONS") return new Response("", { status: 200, headers: CORS });
 
+  // ── Sessie verificatie ──
   const _url   = new URL(request.url);
   const _token = _url.searchParams.get("key");
   const _user  = _url.searchParams.get("user");
@@ -28,7 +31,7 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
   }
   const _ar = await fetch(
-    `${AT_BASE}/${TABEL}?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _user + '"')}`,
+    `${AT_BASE}/${TABEL}?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _user.replace(/["\\]/g,"") + '"')}`,
     { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
   ).catch(() => null);
   if (!_ar?.ok) {
@@ -39,9 +42,11 @@ export async function onRequest(context) {
   if (!_rec || !(_rec.fields?.ResetToken || "").startsWith("sessie_" + _token) || new Date(_rec.fields?.ResetVerloopt || 0) < new Date()) {
     return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
   }
+  // ── Einde verificatie ──
 
   const atAuth = { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` };
 
+  // GET — lijst gebruikers
   if (request.method === "GET") {
     const res = await fetch(`${AT_BASE}/${TABEL}`, { headers: atAuth });
     if (!res.ok) return new Response(JSON.stringify({ error: "Airtable fout" }), { status: 500, headers: CORS });
@@ -57,6 +62,7 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ gebruikers }), { status: 200, headers: CORS });
   }
 
+  // POST — beheeracties
   let body;
   try { body = await request.json(); } catch {
     return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS });
@@ -79,7 +85,7 @@ export async function onRequest(context) {
     if (!aanmaken.ok) {
       return new Response(JSON.stringify({ error: "Aanmaken mislukt" }), { status: 500, headers: CORS });
     }
-    const setupUrl = `https://boekingen.l-rijopleidingen.nl/admin.html?setup=1&user=${gebruikersnaam}&token=${setupToken}`;
+    const setupUrl = `https://reserveren.l-rijopleidingen.nl/admin.html?setup=1&user=${gebruikersnaam}&token=${setupToken}`;
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
@@ -102,7 +108,7 @@ export async function onRequest(context) {
       headers: { ...atAuth, "Content-Type": "application/json" },
       body: JSON.stringify({ fields: { ResetToken: resetToken, ResetVerloopt: verloopt } })
     });
-    const resetUrl = `https://boekingen.l-rijopleidingen.nl/admin.html?reset=${resetToken}&user=${gebruikersnaam}`;
+    const resetUrl = `https://reserveren.l-rijopleidingen.nl/admin.html?reset=${resetToken}&user=${gebruikersnaam}`;
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
@@ -110,7 +116,7 @@ export async function onRequest(context) {
         from:    (env.RESEND_FROM || "").trim(),
         to:      [email],
         subject: "Wachtwoord reset — L-Rijopleidingen Beheer",
-        html:    `<p>Klik op onderstaande link om je wachtwoord opnieuw in te stellen. De link is 1 uur geldig.</p><a href="${resetUrl}">Wachtwoord opnieuw instellen</a>`
+        html:    `<p>Klik op de link om je wachtwoord opnieuw in te stellen (1 uur geldig):</p><a href="${resetUrl}">${resetUrl}</a>`
       })
     });
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });

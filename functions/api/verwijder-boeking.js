@@ -1,6 +1,6 @@
 // functions/api/verwijder-boeking.js
 
-const ALLOWED_ORIGINS = ["https://boekingen.l-rijopleidingen.nl","https://l-rijopleidingen.pages.dev"];
+const ALLOWED_ORIGINS = ["https://boekingen.l-rijopleidingen.nl","https://reserveren.l-rijopleidingen.nl","https://l-rijopleidingen.pages.dev"];
 function corsHeaders(req) {
   const origin = req?.headers?.get("Origin") || "";
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
