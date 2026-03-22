@@ -33,6 +33,7 @@
       #root { max-width: 100%; height: 100dvh; display: flex; flex-direction: column; }
       .card { border-radius: 0 !important; box-shadow: none !important; height: 100% !important; display: flex; flex-direction: column; }
       .step-label { display: none; }
+      .step-label-active { display: inline !important; font-size: 11px; }
       .body-pad { flex: 1; overflow-y: auto; padding: 16px 16px 16px !important; }
       .footer-bar { flex-shrink: 0; padding: 12px 16px !important; border-top: 1px solid #dde1e9; background: white; }
       .topbar { padding: 0 16px !important; flex-shrink: 0; }
@@ -44,7 +45,7 @@
   <div id="root"></div>
   <script>
 const html = htm.bind(React.createElement);
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect } = React;
 
 const NETLIFY = "";
 const MND = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
@@ -132,14 +133,11 @@ function Spinner({msg}) {
   </div>`;
 }
 
-const LOGO_ZWART = `<svg style="height:28px;width:auto;display:block;" id="Laag_2" data-name="Laag 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2178.71 332.45">  <defs>   <style>    .cls-1 {     fill: #fff;    }    .cls-2 {     fill: #0586f0;    }   </style>  </defs>  <g id="Laag_1-2" data-name="Laag 1">   <g>    <g>     <rect class="cls-2" width="311.32" height="332.45"/>     <path class="cls-1" d="M94.6,66.35h44.36v158.09h77.76v41.66h-122.12V66.35Z"/>    </g>    <g>     <path d="M398.59,127.71h38.24v18.39c7.02-9.68,15.97-18.39,33.88-18.39h12.1v34.36h-16.21c-12.1,0-21.05,2.18-29.77,7.26v89.06h-38.24V127.71Z"/>     <path d="M500.96,81.73h40.17v32.19h-40.17v-32.19ZM501.93,127.71h38.24v130.68h-38.24V127.71Z"/>     <path d="M548.39,275.57l19.12-8.95c2.66-.97,4.36-2.66,4.36-5.57V127.71h38.24v136.97c0,20.57-11.37,27.59-31.46,31.22l-30.25,5.32v-25.65ZM570.65,81.73h40.17v32.19h-40.17v-32.19Z"/>     <path d="M635.51,227.17v-68.25c0-21.3,9.92-31.22,31.22-31.22h49.85c21.3,0,31.22,9.92,31.22,31.22v68.25c0,21.3-9.92,31.22-31.22,31.22h-49.85c-21.3,0-31.22-9.92-31.22-31.22ZM704.96,226.93c3.87,0,5.08-1.45,5.08-5.08v-57.6c0-3.87-1.21-5.08-5.08-5.08h-26.62c-3.87,0-5.08,1.21-5.08,5.08v57.6c0,3.63,1.21,5.08,5.08,5.08h26.62Z"/>     <path d="M773.69,127.71h38.24v17.18c7.5-9.68,16.94-18.39,40.17-18.39,27.1,0,36.54,9.92,36.54,32.43v68.25c0,22.51-9.44,32.43-36.54,32.43-23.23,0-32.67-8.71-40.17-18.63v56.14h-38.24V127.71ZM850.4,221.12v-56.15c0-5.08-1.69-6.29-8.95-6.29-12.34,0-20.33,2.18-29.52,7.26v54.21c9.2,4.84,17.18,7.26,29.52,7.26,7.26,0,8.95-1.45,8.95-6.29Z"/>     <path d="M913.32,81.73h38.24v176.66h-38.24V81.73Z"/>     <path d="M1014.48,202.97v20.81c0,3.63,1.21,5.08,5.08,5.08h24.68c3.63,0,5.08-1.45,5.08-5.08v-8.47h37.99v11.86c0,21.3-9.92,31.22-31.22,31.22h-48.4c-21.3,0-31.22-9.92-31.22-31.22v-68.25c0-21.3,9.92-31.22,31.22-31.22h48.4c21.3,0,31.22,9.92,31.22,31.22v44.04h-72.84ZM1014.48,162.32v17.42h34.85v-17.42c0-3.87-1.45-5.08-5.08-5.08h-24.68c-3.87,0-5.08,1.21-5.08,5.08Z"/>     <path d="M1111.03,81.73h40.17v32.19h-40.17v-32.19ZM1112,127.71h38.24v130.68h-38.24V127.71Z"/>     <path d="M1175.64,227.17v-68.25c0-22.51,9.44-32.43,36.3-32.43,23.47,0,32.67,8.71,40.42,18.39v-63.16h38.24v176.66h-38.24v-17.42c-7.74,9.92-16.94,18.63-40.42,18.63-26.86,0-36.3-9.92-36.3-32.43ZM1252.36,220.16v-54.21c-9.2-5.08-17.18-7.26-29.77-7.26-7.26,0-8.71,1.21-8.71,6.29v56.15c0,4.84,1.45,6.29,8.71,6.29,12.58,0,20.57-2.42,29.77-7.26Z"/>     <path d="M1317.69,81.73h40.17v32.19h-40.17v-32.19ZM1318.66,127.71h38.24v130.68h-38.24V127.71Z"/>     <path d="M1384.97,127.71h38.24v17.18c7.5-9.92,16.94-18.63,39.21-18.63,25.65,0,35.57,9.92,35.57,31.7v100.43h-38.24v-93.41c0-4.11-1.21-5.57-7.5-5.57-12.34,0-19.84,2.42-29.04,7.26v91.72h-38.24V127.71Z"/>     <path d="M1540.09,267.35h54.45c3.63,0,5.08-1.21,5.08-5.08v-27.83c-7.74,9.92-16.94,18.63-40.41,18.63-26.86,0-36.3-9.92-36.54-32.43l.24-61.71c0-22.51,9.44-32.43,36.3-32.43,23.47,0,32.67,8.71,40.41,18.39v-17.18h38.24v138.18c0,21.3-9.92,31.22-31.22,31.22h-66.55v-29.77ZM1599.62,213.62v-47.68c-9.2-5.08-17.18-7.26-29.77-7.26-7.26,0-8.71,1.21-8.71,5.08v52.03c0,3.63,1.45,5.08,8.71,5.08,12.58,0,20.57-2.42,29.77-7.26Z"/>     <path d="M1701.5,202.97v20.81c0,3.63,1.21,5.08,5.08,5.08h24.68c3.63,0,5.08-1.45,5.08-5.08v-8.47h37.99v11.86c0,21.3-9.92,31.22-31.22,31.22h-48.4c-21.3,0-31.22-9.92-31.22-31.22v-68.25c0-21.3,9.92-31.22,31.22-31.22h48.4c21.3,0,31.22,9.92,31.22,31.22v44.04h-72.84ZM1701.5,162.32v17.42h34.85v-17.42c0-3.87-1.45-5.08-5.08-5.08h-24.68c-3.87,0-5.08,1.21-5.08,5.08Z"/>     <path d="M1799.26,127.71h38.24v17.18c7.5-9.92,16.94-18.63,39.21-18.63,25.65,0,35.57,9.92,35.57,31.7v100.43h-38.24v-93.41c0-4.11-1.21-5.57-7.5-5.57-12.34,0-19.84,2.42-29.04,7.26v91.72h-38.24V127.71Z"/>     <path d="M1936.47,219.43h39.21v38.96h-39.21v-38.96Z"/>     <path d="M2001.09,127.71h38.24v17.18c7.5-9.92,16.94-18.63,39.21-18.63,25.65,0,35.57,9.92,35.57,31.7v100.43h-38.24v-93.41c0-4.11-1.21-5.57-7.5-5.57-12.34,0-19.84,2.42-29.04,7.26v91.72h-38.24V127.71Z"/>     <path d="M2140.48,81.73h38.24v176.66h-38.24V81.73Z"/>    </g>   </g>  </g> </svg>`;
-const LOGO_WIT = `<svg style="height:28px;width:auto;display:block;" id="Laag_2" data-name="Laag 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2178.71 332.45">  <defs>   <style>    .cls-1 {     fill: #fff;    }    .cls-2 {     fill: #0586f0;    }   </style>  </defs>  <g id="Laag_1-2" data-name="Laag 1">   <g>    <g>     <rect class="cls-2" width="311.32" height="332.45"/>     <path class="cls-1" d="M94.6,66.35h44.36v158.09h77.76v41.66h-122.12V66.35Z"/>    </g>    <g>     <path class="cls-1" d="M398.59,127.71h38.24v18.39c7.02-9.68,15.97-18.39,33.88-18.39h12.1v34.36h-16.21c-12.1,0-21.05,2.18-29.77,7.26v89.06h-38.24V127.71Z"/>     <path class="cls-1" d="M500.96,81.73h40.17v32.19h-40.17v-32.19ZM501.93,127.71h38.24v130.68h-38.24V127.71Z"/>     <path class="cls-1" d="M548.39,275.57l19.12-8.95c2.66-.97,4.36-2.66,4.36-5.57V127.71h38.24v136.97c0,20.57-11.37,27.59-31.46,31.22l-30.25,5.32v-25.65ZM570.65,81.73h40.17v32.19h-40.17v-32.19Z"/>     <path class="cls-1" d="M635.51,227.17v-68.25c0-21.3,9.92-31.22,31.22-31.22h49.85c21.3,0,31.22,9.92,31.22,31.22v68.25c0,21.3-9.92,31.22-31.22,31.22h-49.85c-21.3,0-31.22-9.92-31.22-31.22ZM704.96,226.93c3.87,0,5.08-1.45,5.08-5.08v-57.6c0-3.87-1.21-5.08-5.08-5.08h-26.62c-3.87,0-5.08,1.21-5.08,5.08v57.6c0,3.63,1.21,5.08,5.08,5.08h26.62Z"/>     <path class="cls-1" d="M773.69,127.71h38.24v17.18c7.5-9.68,16.94-18.39,40.17-18.39,27.1,0,36.54,9.92,36.54,32.43v68.25c0,22.51-9.44,32.43-36.54,32.43-23.23,0-32.67-8.71-40.17-18.63v56.14h-38.24V127.71ZM850.4,221.12v-56.15c0-5.08-1.69-6.29-8.95-6.29-12.34,0-20.33,2.18-29.52,7.26v54.21c9.2,4.84,17.18,7.26,29.52,7.26,7.26,0,8.95-1.45,8.95-6.29Z"/>     <path class="cls-1" d="M913.32,81.73h38.24v176.66h-38.24V81.73Z"/>     <path class="cls-1" d="M1014.48,202.97v20.81c0,3.63,1.21,5.08,5.08,5.08h24.68c3.63,0,5.08-1.45,5.08-5.08v-8.47h37.99v11.86c0,21.3-9.92,31.22-31.22,31.22h-48.4c-21.3,0-31.22-9.92-31.22-31.22v-68.25c0-21.3,9.92-31.22,31.22-31.22h48.4c21.3,0,31.22,9.92,31.22,31.22v44.04h-72.84ZM1014.48,162.32v17.42h34.85v-17.42c0-3.87-1.45-5.08-5.08-5.08h-24.68c-3.87,0-5.08,1.21-5.08,5.08Z"/>     <path class="cls-1" d="M1111.03,81.73h40.17v32.19h-40.17v-32.19ZM1112,127.71h38.24v130.68h-38.24V127.71Z"/>     <path class="cls-1" d="M1175.64,227.17v-68.25c0-22.51,9.44-32.43,36.3-32.43,23.47,0,32.67,8.71,40.42,18.39v-63.16h38.24v176.66h-38.24v-17.42c-7.74,9.92-16.94,18.63-40.42,18.63-26.86,0-36.3-9.92-36.3-32.43ZM1252.36,220.16v-54.21c-9.2-5.08-17.18-7.26-29.77-7.26-7.26,0-8.71,1.21-8.71,6.29v56.15c0,4.84,1.45,6.29,8.71,6.29,12.58,0,20.57-2.42,29.77-7.26Z"/>     <path class="cls-1" d="M1317.69,81.73h40.17v32.19h-40.17v-32.19ZM1318.66,127.71h38.24v130.68h-38.24V127.71Z"/>     <path class="cls-1" d="M1384.97,127.71h38.24v17.18c7.5-9.92,16.94-18.63,39.21-18.63,25.65,0,35.57,9.92,35.57,31.7v100.43h-38.24v-93.41c0-4.11-1.21-5.57-7.5-5.57-12.34,0-19.84,2.42-29.04,7.26v91.72h-38.24V127.71Z"/>     <path class="cls-1" d="M1540.09,267.35h54.45c3.63,0,5.08-1.21,5.08-5.08v-27.83c-7.74,9.92-16.94,18.63-40.41,18.63-26.86,0-36.3-9.92-36.54-32.43l.24-61.71c0-22.51,9.44-32.43,36.3-32.43,23.47,0,32.67,8.71,40.41,18.39v-17.18h38.24v138.18c0,21.3-9.92,31.22-31.22,31.22h-66.55v-29.77ZM1599.62,213.62v-47.68c-9.2-5.08-17.18-7.26-29.77-7.26-7.26,0-8.71,1.21-8.71,5.08v52.03c0,3.63,1.45,5.08,8.71,5.08,12.58,0,20.57-2.42,29.77-7.26Z"/>     <path class="cls-1" d="M1701.5,202.97v20.81c0,3.63,1.21,5.08,5.08,5.08h24.68c3.63,0,5.08-1.45,5.08-5.08v-8.47h37.99v11.86c0,21.3-9.92,31.22-31.22,31.22h-48.4c-21.3,0-31.22-9.92-31.22-31.22v-68.25c0-21.3,9.92-31.22,31.22-31.22h48.4c21.3,0,31.22,9.92,31.22,31.22v44.04h-72.84ZM1701.5,162.32v17.42h34.85v-17.42c0-3.87-1.45-5.08-5.08-5.08h-24.68c-3.87,0-5.08,1.21-5.08,5.08Z"/>     <path class="cls-1" d="M1799.26,127.71h38.24v17.18c7.5-9.92,16.94-18.63,39.21-18.63,25.65,0,35.57,9.92,35.57,31.7v100.43h-38.24v-93.41c0-4.11-1.21-5.57-7.5-5.57-12.34,0-19.84,2.42-29.04,7.26v91.72h-38.24V127.71Z"/>     <path class="cls-1" d="M1936.47,219.43h39.21v38.96h-39.21v-38.96Z"/>     <path class="cls-1" d="M2001.09,127.71h38.24v17.18c7.5-9.92,16.94-18.63,39.21-18.63,25.65,0,35.57,9.92,35.57,31.7v100.43h-38.24v-93.41c0-4.11-1.21-5.57-7.5-5.57-12.34,0-19.84,2.42-29.04,7.26v91.72h-38.24V127.71Z"/>     <path class="cls-1" d="M2140.48,81.73h38.24v176.66h-38.24V81.73Z"/>    </g>   </g>  </g> </svg>`;
-
 function Logo({wit}) {
-  const src = wit ? "data:image/svg+xml;base64,PHN2ZyBzdHlsZT0iaGVpZ2h0OjEwMCU7d2lkdGg6YXV0bztkaXNwbGF5OmJsb2NrOyIgaWQ9IkxhYWdfMiIgZGF0YS1uYW1lPSJMYWFnIDIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDIxNzguNzEgMzMyLjQ1Ij4gPGcgaWQ9IkxhYWdfMS0yIiBkYXRhLW5hbWU9IkxhYWcgMSI+IDxnPiA8Zz4gPHJlY3QgZmlsbD0iIzA1ODZmMCIgd2lkdGg9IjMxMS4zMiIgaGVpZ2h0PSIzMzIuNDUiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTk0LjYsNjYuMzVoNDQuMzZ2MTU4LjA5aDc3Ljc2djQxLjY2aC0xMjIuMTJWNjYuMzVaIi8+IDwvZz4gPGc+IDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0zOTguNTksMTI3LjcxaDM4LjI0djE4LjM5YzcuMDItOS42OCwxNS45Ny0xOC4zOSwzMy44OC0xOC4zOWgxMi4xdjM0LjM2aC0xNi4yMWMtMTIuMSwwLTIxLjA1LDIuMTgtMjkuNzcsNy4yNnY4OS4wNmgtMzguMjRWMTI3LjcxWiIvPiA8cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNNTAwLjk2LDgxLjczaDQwLjE3djMyLjE5aC00MC4xN3YtMzIuMTlaTTUwMS45MywxMjcuNzFoMzguMjR2MTMwLjY4aC0zOC4yNFYxMjcuNzFaIi8+IDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik01NDguMzksMjc1LjU3bDE5LjEyLTguOTVjMi42Ni0uOTcsNC4zNi0yLjY2LDQuMzYtNS41N1YxMjcuNzFoMzguMjR2MTM2Ljk3YzAsMjAuNTctMTEuMzcsMjcuNTktMzEuNDYsMzEuMjJsLTMwLjI1LDUuMzJ2LTI1LjY1Wk01NzAuNjUsODEuNzNoNDAuMTd2MzIuMTloLTQwLjE3di0zMi4xOVoiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTYzNS41MSwyMjcuMTd2LTY4LjI1YzAtMjEuMyw5LjkyLTMxLjIyLDMxLjIyLTMxLjIyaDQ5Ljg1YzIxLjMsMCwzMS4yMiw5LjkyLDMxLjIyLDMxLjIydjY4LjI1YzAsMjEuMy05LjkyLDMxLjIyLTMxLjIyLDMxLjIyaC00OS44NWMtMjEuMywwLTMxLjIyLTkuOTItMzEuMjItMzEuMjJaTTcwNC45NiwyMjYuOTNjMy44NywwLDUuMDgtMS40NSw1LjA4LTUuMDh2LTU3LjZjMC0zLjg3LTEuMjEtNS4wOC01LjA4LTUuMDhoLTI2LjYyYy0zLjg3LDAtNS4wOCwxLjIxLTUuMDgsNS4wOHY1Ny42YzAsMy42MywxLjIxLDUuMDgsNS4wOCw1LjA4aDI2LjYyWiIvPiA8cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNNzczLjY5LDEyNy43MWgzOC4yNHYxNy4xOGM3LjUtOS42OCwxNi45NC0xOC4zOSw0MC4xNy0xOC4zOSwyNy4xLDAsMzYuNTQsOS45MiwzNi41NCwzMi40M3Y2OC4yNWMwLDIyLjUxLTkuNDQsMzIuNDMtMzYuNTQsMzIuNDMtMjMuMjMsMC0zMi42Ny04LjcxLTQwLjE3LTE4LjYzdjU2LjE0aC0zOC4yNFYxMjcuNzFaTTg1MC40LDIyMS4xMnYtNTYuMTVjMC01LjA4LTEuNjktNi4yOS04Ljk1LTYuMjktMTIuMzQsMC0yMC4zMywyLjE4LTI5LjUyLDcuMjZ2NTQuMjFjOS4yLDQuODQsMTcuMTgsNy4yNiwyOS41Miw3LjI2LDcuMjYsMCw4Ljk1LTEuNDUsOC45NS02LjI5WiIvPiA8cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNOTEzLjMyLDgxLjczaDM4LjI0djE3Ni42NmgtMzguMjRWODEuNzNaIi8+IDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0xMDE0LjQ4LDIwMi45N3YyMC44MWMwLDMuNjMsMS4yMSw1LjA4LDUuMDgsNS4wOGgyNC42OGMzLjYzLDAsNS4wOC0xLjQ1LDUuMDgtNS4wOHYtOC40N2gzNy45OXYxMS44NmMwLDIxLjMtOS45MiwzMS4yMi0zMS4yMiwzMS4yMmgtNDguNGMtMjEuMywwLTMxLjIyLTkuOTItMzEuMjItMzEuMjJ2LTY4LjI1YzAtMjEuMyw5LjkyLTMxLjIyLDMxLjIyLTMxLjIyaDQ4LjRjMjEuMywwLDMxLjIyLDkuOTIsMzEuMjIsMzEuMjJ2NDQuMDRoLTcyLjg0Wk0xMDE0LjQ4LDE2Mi4zMnYxNy40MmgzNC44NXYtMTcuNDJjMC0zLjg3LTEuNDUtNS4wOC01LjA4LTUuMDhoLTI0LjY4Yy0zLjg3LDAtNS4wOCwxLjIxLTUuMDgsNS4wOFoiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTExMTEuMDMsODEuNzNoNDAuMTd2MzIuMTloLTQwLjE3di0zMi4xOVpNMTExMiwxMjcuNzFoMzguMjR2MTMwLjY4aC0zOC4yNFYxMjcuNzFaIi8+IDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0xMTc1LjY0LDIyNy4xN3YtNjguMjVjMC0yMi41MSw5LjQ0LTMyLjQzLDM2LjMtMzIuNDMsMjMuNDcsMCwzMi42Nyw4LjcxLDQwLjQyLDE4LjM5di02My4xNmgzOC4yNHYxNzYuNjZoLTM4LjI0di0xNy40MmMtNy43NCw5LjkyLTE2Ljk0LDE4LjYzLTQwLjQyLDE4LjYzLTI2Ljg2LDAtMzYuMy05LjkyLTM2LjMtMzIuNDNaTTEyNTIuMzYsMjIwLjE2di01NC4yMWMtOS4yLTUuMDgtMTcuMTgtNy4yNi0yOS43Ny03LjI2LTcuMjYsMC04LjcxLDEuMjEtOC43MSw2LjI5djU2LjE1YzAsNC44NCwxLjQ1LDYuMjksOC43MSw2LjI5LDEyLjU4LDAsMjAuNTctMi40MiwyOS43Ny03LjI2WiIvPiA8cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNMTMxNy42OSw4MS43M2g0MC4xN3YzMi4xOWgtNDAuMTd2LTMyLjE5Wk0xMzE4LjY2LDEyNy43MWgzOC4yNHYxMzAuNjhoLTM4LjI0VjEyNy43MVoiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTEzODQuOTcsMTI3LjcxaDM4LjI0djE3LjE4YzcuNS05LjkyLDE2Ljk0LTE4LjYzLDM5LjIxLTE4LjYzLDI1LjY1LDAsMzUuNTcsOS45MiwzNS41NywzMS43djEwMC40M2gtMzguMjR2LTkzLjQxYzAtNC4xMS0xLjIxLTUuNTctNy41LTUuNTctMTIuMzQsMC0xOS44NCwyLjQyLTI5LjA0LDcuMjZ2OTEuNzJoLTM4LjI0VjEyNy43MVoiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTE1NDAuMDksMjY3LjM1aDU0LjQ1YzMuNjMsMCw1LjA4LTEuMjEsNS4wOC01LjA4di0yNy44M2MtNy43NCw5LjkyLTE2Ljk0LDE4LjYzLTQwLjQxLDE4LjYzLTI2Ljg2LDAtMzYuMy05LjkyLTM2LjU0LTMyLjQzbC4yNC02MS43MWMwLTIyLjUxLDkuNDQtMzIuNDMsMzYuMy0zMi40MywyMy40NywwLDMyLjY3LDguNzEsNDAuNDEsMTguMzl2LTE3LjE4aDM4LjI0djEzOC4xOGMwLDIxLjMtOS45MiwzMS4yMi0zMS4yMiwzMS4yMmgtNjYuNTV2LTI5Ljc3Wk0xNTk5LjYyLDIxMy42MnYtNDcuNjhjLTkuMi01LjA4LTE3LjE4LTcuMjYtMjkuNzctNy4yNi03LjI2LDAtOC43MSwxLjIxLTguNzEsNS4wOHY1Mi4wM2MwLDMuNjMsMS40NSw1LjA4LDguNzEsNS4wOCwxMi41OCwwLDIwLjU3LTIuNDIsMjkuNzctNy4yNloiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTE3MDEuNSwyMDIuOTd2MjAuODFjMCwzLjYzLDEuMjEsNS4wOCw1LjA4LDUuMDhoMjQuNjhjMy42MywwLDUuMDgtMS40NSw1LjA4LTUuMDh2LTguNDdoMzcuOTl2MTEuODZjMCwyMS4zLTkuOTIsMzEuMjItMzEuMjIsMzEuMjJoLTQ4LjRjLTIxLjMsMC0zMS4yMi05LjkyLTMxLjIyLTMxLjIydi02OC4yNWMwLTIxLjMsOS45Mi0zMS4yMiwzMS4yMi0zMS4yMmg0OC40YzIxLjMsMCwzMS4yMiw5LjkyLDMxLjIyLDMxLjIydjQ0LjA0aC03Mi44NFpNMTcwMS41LDE2Mi4zMnYxNy40MmgzNC44NXYtMTcuNDJjMC0zLjg3LTEuNDUtNS4wOC01LjA4LTUuMDhoLTI0LjY4Yy0zLjg3LDAtNS4wOCwxLjIxLTUuMDgsNS4wOFoiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTE3OTkuMjYsMTI3LjcxaDM4LjI0djE3LjE4YzcuNS05LjkyLDE2Ljk0LTE4LjYzLDM5LjIxLTE4LjYzLDI1LjY1LDAsMzUuNTcsOS45MiwzNS41NywzMS43djEwMC40M2gtMzguMjR2LTkzLjQxYzAtNC4xMS0xLjIxLTUuNTctNy41LTUuNTctMTIuMzQsMC0xOS44NCwyLjQyLTI5LjA0LDcuMjZ2OTEuNzJoLTM4LjI0VjEyNy43MVoiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTE5MzYuNDcsMjE5LjQzaDM5LjIxdjM4Ljk2aC0zOS4yMXYtMzguOTZaIi8+IDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0yMDAxLjA5LDEyNy43MWgzOC4yNHYxNy4xOGM3LjUtOS45MiwxNi45NC0xOC42MywzOS4yMS0xOC42MywyNS42NSwwLDM1LjU3LDkuOTIsMzUuNTcsMzEuN3YxMDAuNDNoLTM4LjI0di05My40MWMwLTQuMTEtMS4yMS01LjU3LTcuNS01LjU3LTEyLjM0LDAtMTkuODQsMi40Mi0yOS4wNCw3LjI2djkxLjcyaC0zOC4yNFYxMjcuNzFaIi8+IDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0yMTQwLjQ4LDgxLjczaDM4LjI0djE3Ni42NmgtMzguMjRWODEuNzNaIi8+IDwvZz4gPC9nPiA8L2c+IDwvc3ZnPg==" : "data:image/svg+xml;base64,PHN2ZyBzdHlsZT0iaGVpZ2h0OjEwMCU7d2lkdGg6YXV0bztkaXNwbGF5OmJsb2NrOyIgaWQ9IkxhYWdfMiIgZGF0YS1uYW1lPSJMYWFnIDIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDIxNzguNzEgMzMyLjQ1Ij4gPGcgaWQ9IkxhYWdfMS0yIiBkYXRhLW5hbWU9IkxhYWcgMSI+IDxnPiA8Zz4gPHJlY3QgZmlsbD0iIzA1ODZmMCIgd2lkdGg9IjMxMS4zMiIgaGVpZ2h0PSIzMzIuNDUiLz4gPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTk0LjYsNjYuMzVoNDQuMzZ2MTU4LjA5aDc3Ljc2djQxLjY2aC0xMjIuMTJWNjYuMzVaIi8+IDwvZz4gPGc+IDxwYXRoIGZpbGw9IiMxYTFmMmUiIGQ9Ik0zOTguNTksMTI3LjcxaDM4LjI0djE4LjM5YzcuMDItOS42OCwxNS45Ny0xOC4zOSwzMy44OC0xOC4zOWgxMi4xdjM0LjM2aC0xNi4yMWMtMTIuMSwwLTIxLjA1LDIuMTgtMjkuNzcsNy4yNnY4OS4wNmgtMzguMjRWMTI3LjcxWiIvPiA8cGF0aCBmaWxsPSIjMWExZjJlIiBkPSJNNTAwLjk2LDgxLjczaDQwLjE3djMyLjE5aC00MC4xN3YtMzIuMTlaTTUwMS45MywxMjcuNzFoMzguMjR2MTMwLjY4aC0zOC4yNFYxMjcuNzFaIi8+IDxwYXRoIGZpbGw9IiMxYTFmMmUiIGQ9Ik01NDguMzksMjc1LjU3bDE5LjEyLTguOTVjMi42Ni0uOTcsNC4zNi0yLjY2LDQuMzYtNS41N1YxMjcuNzFoMzguMjR2MTM2Ljk3YzAsMjAuNTctMTEuMzcsMjcuNTktMzEuNDYsMzEuMjJsLTMwLjI1LDUuMzJ2LTI1LjY1Wk01NzAuNjUsODEuNzNoNDAuMTd2MzIuMTloLTQwLjE3di0zMi4xOVoiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTYzNS41MSwyMjcuMTd2LTY4LjI1YzAtMjEuMyw5LjkyLTMxLjIyLDMxLjIyLTMxLjIyaDQ5Ljg1YzIxLjMsMCwzMS4yMiw5LjkyLDMxLjIyLDMxLjIydjY4LjI1YzAsMjEuMy05LjkyLDMxLjIyLTMxLjIyLDMxLjIyaC00OS44NWMtMjEuMywwLTMxLjIyLTkuOTItMzEuMjItMzEuMjJaTTcwNC45NiwyMjYuOTNjMy44NywwLDUuMDgtMS40NSw1LjA4LTUuMDh2LTU3LjZjMC0zLjg3LTEuMjEtNS4wOC01LjA4LTUuMDhoLTI2LjYyYy0zLjg3LDAtNS4wOCwxLjIxLTUuMDgsNS4wOHY1Ny42YzAsMy42MywxLjIxLDUuMDgsNS4wOCw1LjA4aDI2LjYyWiIvPiA8cGF0aCBmaWxsPSIjMWExZjJlIiBkPSJNNzczLjY5LDEyNy43MWgzOC4yNHYxNy4xOGM3LjUtOS42OCwxNi45NC0xOC4zOSw0MC4xNy0xOC4zOSwyNy4xLDAsMzYuNTQsOS45MiwzNi41NCwzMi40M3Y2OC4yNWMwLDIyLjUxLTkuNDQsMzIuNDMtMzYuNTQsMzIuNDMtMjMuMjMsMC0zMi42Ny04LjcxLTQwLjE3LTE4LjYzdjU2LjE0aC0zOC4yNFYxMjcuNzFaTTg1MC40LDIyMS4xMnYtNTYuMTVjMC01LjA4LTEuNjktNi4yOS04Ljk1LTYuMjktMTIuMzQsMC0yMC4zMywyLjE4LTI5LjUyLDcuMjZ2NTQuMjFjOS4yLDQuODQsMTcuMTgsNy4yNiwyOS41Miw3LjI2LDcuMjYsMCw4Ljk1LTEuNDUsOC45NS02LjI5WiIvPiA8cGF0aCBmaWxsPSIjMWExZjJlIiBkPSJNOTEzLjMyLDgxLjczaDM4LjI0djE3Ni42NmgtMzguMjRWODEuNzNaIi8+IDxwYXRoIGZpbGw9IiMxYTFmMmUiIGQ9Ik0xMDE0LjQ4LDIwMi45N3YyMC44MWMwLDMuNjMsMS4yMSw1LjA4LDUuMDgsNS4wOGgyNC42OGMzLjYzLDAsNS4wOC0xLjQ1LDUuMDgtNS4wOHYtOC40N2gzNy45OXYxMS44NmMwLDIxLjMtOS45MiwzMS4yMi0zMS4yMiwzMS4yMmgtNDguNGMtMjEuMywwLTMxLjIyLTkuOTItMzEuMjItMzEuMjJ2LTY4LjI1YzAtMjEuMyw5LjkyLTMxLjIyLDMxLjIyLTMxLjIyaDQ4LjRjMjEuMywwLDMxLjIyLDkuOTIsMzEuMjIsMzEuMjJ2NDQuMDRoLTcyLjg0Wk0xMDE0LjQ4LDE2Mi4zMnYxNy40MmgzNC44NXYtMTcuNDJjMC0zLjg3LTEuNDUtNS4wOC01LjA4LTUuMDhoLTI0LjY4Yy0zLjg3LDAtNS4wOCwxLjIxLTUuMDgsNS4wOFoiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTExMTEuMDMsODEuNzNoNDAuMTd2MzIuMTloLTQwLjE3di0zMi4xOVpNMTExMiwxMjcuNzFoMzguMjR2MTMwLjY4aC0zOC4yNFYxMjcuNzFaIi8+IDxwYXRoIGZpbGw9IiMxYTFmMmUiIGQ9Ik0xMTc1LjY0LDIyNy4xN3YtNjguMjVjMC0yMi41MSw5LjQ0LTMyLjQzLDM2LjMtMzIuNDMsMjMuNDcsMCwzMi42Nyw4LjcxLDQwLjQyLDE4LjM5di02My4xNmgzOC4yNHYxNzYuNjZoLTM4LjI0di0xNy40MmMtNy43NCw5LjkyLTE2Ljk0LDE4LjYzLTQwLjQyLDE4LjYzLTI2Ljg2LDAtMzYuMy05LjkyLTM2LjMtMzIuNDNaTTEyNTIuMzYsMjIwLjE2di01NC4yMWMtOS4yLTUuMDgtMTcuMTgtNy4yNi0yOS43Ny03LjI2LTcuMjYsMC04LjcxLDEuMjEtOC43MSw2LjI5djU2LjE1YzAsNC44NCwxLjQ1LDYuMjksOC43MSw2LjI5LDEyLjU4LDAsMjAuNTctMi40MiwyOS43Ny03LjI2WiIvPiA8cGF0aCBmaWxsPSIjMWExZjJlIiBkPSJNMTMxNy42OSw4MS43M2g0MC4xN3YzMi4xOWgtNDAuMTd2LTMyLjE5Wk0xMzE4LjY2LDEyNy43MWgzOC4yNHYxMzAuNjhoLTM4LjI0VjEyNy43MVoiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTEzODQuOTcsMTI3LjcxaDM4LjI0djE3LjE4YzcuNS05LjkyLDE2Ljk0LTE4LjYzLDM5LjIxLTE4LjYzLDI1LjY1LDAsMzUuNTcsOS45MiwzNS41NywzMS43djEwMC40M2gtMzguMjR2LTkzLjQxYzAtNC4xMS0xLjIxLTUuNTctNy41LTUuNTctMTIuMzQsMC0xOS44NCwyLjQyLTI5LjA0LDcuMjZ2OTEuNzJoLTM4LjI0VjEyNy43MVoiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTE1NDAuMDksMjY3LjM1aDU0LjQ1YzMuNjMsMCw1LjA4LTEuMjEsNS4wOC01LjA4di0yNy44M2MtNy43NCw5LjkyLTE2Ljk0LDE4LjYzLTQwLjQxLDE4LjYzLTI2Ljg2LDAtMzYuMy05LjkyLTM2LjU0LTMyLjQzbC4yNC02MS43MWMwLTIyLjUxLDkuNDQtMzIuNDMsMzYuMy0zMi40MywyMy40NywwLDMyLjY3LDguNzEsNDAuNDEsMTguMzl2LTE3LjE4aDM4LjI0djEzOC4xOGMwLDIxLjMtOS45MiwzMS4yMi0zMS4yMiwzMS4yMmgtNjYuNTV2LTI5Ljc3Wk0xNTk5LjYyLDIxMy42MnYtNDcuNjhjLTkuMi01LjA4LTE3LjE4LTcuMjYtMjkuNzctNy4yNi03LjI2LDAtOC43MSwxLjIxLTguNzEsNS4wOHY1Mi4wM2MwLDMuNjMsMS40NSw1LjA4LDguNzEsNS4wOCwxMi41OCwwLDIwLjU3LTIuNDIsMjkuNzctNy4yNloiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTE3MDEuNSwyMDIuOTd2MjAuODFjMCwzLjYzLDEuMjEsNS4wOCw1LjA4LDUuMDhoMjQuNjhjMy42MywwLDUuMDgtMS40NSw1LjA4LTUuMDh2LTguNDdoMzcuOTl2MTEuODZjMCwyMS4zLTkuOTIsMzEuMjItMzEuMjIsMzEuMjJoLTQ4LjRjLTIxLjMsMC0zMS4yMi05LjkyLTMxLjIyLTMxLjIydi02OC4yNWMwLTIxLjMsOS45Mi0zMS4yMiwzMS4yMi0zMS4yMmg0OC40YzIxLjMsMCwzMS4yMiw5LjkyLDMxLjIyLDMxLjIydjQ0LjA0aC03Mi44NFpNMTcwMS41LDE2Mi4zMnYxNy40MmgzNC44NXYtMTcuNDJjMC0zLjg3LTEuNDUtNS4wOC01LjA4LTUuMDhoLTI0LjY4Yy0zLjg3LDAtNS4wOCwxLjIxLTUuMDgsNS4wOFoiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTE3OTkuMjYsMTI3LjcxaDM4LjI0djE3LjE4YzcuNS05LjkyLDE2Ljk0LTE4LjYzLDM5LjIxLTE4LjYzLDI1LjY1LDAsMzUuNTcsOS45MiwzNS41NywzMS43djEwMC40M2gtMzguMjR2LTkzLjQxYzAtNC4xMS0xLjIxLTUuNTctNy41LTUuNTctMTIuMzQsMC0xOS44NCwyLjQyLTI5LjA0LDcuMjZ2OTEuNzJoLTM4LjI0VjEyNy43MVoiLz4gPHBhdGggZmlsbD0iIzFhMWYyZSIgZD0iTTE5MzYuNDcsMjE5LjQzaDM5LjIxdjM4Ljk2aC0zOS4yMXYtMzguOTZaIi8+IDxwYXRoIGZpbGw9IiMxYTFmMmUiIGQ9Ik0yMDAxLjA5LDEyNy43MWgzOC4yNHYxNy4xOGM3LjUtOS45MiwxNi45NC0xOC42MywzOS4yMS0xOC42MywyNS42NSwwLDM1LjU3LDkuOTIsMzUuNTcsMzEuN3YxMDAuNDNoLTM4LjI0di05My40MWMwLTQuMTEtMS4yMS01LjU3LTcuNS01LjU3LTEyLjM0LDAtMTkuODQsMi40Mi0yOS4wNCw3LjI2djkxLjcyaC0zOC4yNFYxMjcuNzFaIi8+IDxwYXRoIGZpbGw9IiMxYTFmMmUiIGQ9Ik0yMTQwLjQ4LDgxLjczaDM4LjI0djE3Ni42NmgtMzguMjRWODEuNzNaIi8+IDwvZz4gPC9nPiA8L2c+IDwvc3ZnPg==";
+  const src = wit
+    ? "https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg"
+    : "https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc2137ec448353135e0a0a_L-rijopleidingen-logo-rgb.svg";
   return html`<img src=${src} alt="L-Rijopleidingen" style=${{height:"28px",width:"auto",display:"block"}}/>`;
-}}></span>`;
-  return html`<span dangerouslySetInnerHTML=${{__html: LOGO_ZWART}}></span>`;
 }
 
 function Steps({stap,labels}) {
@@ -149,7 +147,7 @@ function Steps({stap,labels}) {
         const n=i+1, act=stap===n, ged=stap>n;
         return html`<div key=${n} style=${{display:"flex",alignItems:"center",gap:"6px",padding:"10px 10px 10px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
           <div style=${{width:"22px",height:"22px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:700,flexShrink:0,background:ged||act?C.accent:"transparent",border:"1.5px solid "+(ged||act?C.accent:C.border),color:ged||act?"#fff":C.faint}}>${ged?"✓":n}</div>
-          <span class="step-label" style=${{fontSize:"12px",fontWeight:act?600:400,color:act?C.text:C.sub,whiteSpace:"nowrap"}}>${l}</span>
+          <span class=${act ? "step-label step-label-active" : "step-label"} style=${{fontSize:"12px",fontWeight:act?600:400,color:act?C.text:C.sub,whiteSpace:"nowrap"}}>${l}</span>
           ${n<labels.length ? html`<div style=${{width:"12px",height:"1px",background:C.border,marginLeft:"4px",flexShrink:0}}></div>` : null}
         </div>`;
       })}
@@ -177,10 +175,10 @@ function RB({on}) {
   </div>`;
 }
 
-function Veld({label,req,val,set,ph,type}) {
+function Veld({label,req,val,set,ph,type,ac}) {
   return html`<div style=${{display:"flex",flexDirection:"column",gap:"5px"}}>
     <label style=${{fontSize:"12px",fontWeight:500,color:C.text}}>${label}${req&&html`<span style=${{color:C.err}}> *</span>`}</label>
-    <input style=${{background:C.white,border:"1px solid "+C.border,borderRadius:"5px",padding:"8px 11px",color:C.text,fontSize:"14px",outline:"none",width:"100%"}} type=${type||"text"} placeholder=${ph} value=${val} onInput=${e=>set(e.target.value)}/>
+    <input style=${{background:C.white,border:"1px solid "+C.border,borderRadius:"5px",padding:"8px 11px",color:C.text,fontSize:"14px",outline:"none",width:"100%",transition:"border-color 0.15s"}} type=${type||"text"} placeholder=${ph} value=${val} autocomplete=${ac||"off"} onInput=${e=>set(e.target.value)} onFocus=${e=>e.target.style.borderColor=C.accent} onBlur=${e=>e.target.style.borderColor=C.border}/>
   </div>`;
 }
 
@@ -188,24 +186,6 @@ function PR({label,val,dim}) {
   return html`<div style=${{display:"flex",justifyContent:"space-between",fontSize:"13px",padding:"3px 0",color:dim?C.sub:C.text}}><span>${label}</span><span>${val}</span></div>`;
 }
 
-// ── PROGRESS STEPS ──
-function SendProgress({stap}) {
-  const stappen = ["Boeking opslaan","Bevestiging versturen","Gereed"];
-  return html`<div style=${{display:"flex",flexDirection:"column",gap:"10px",padding:"16px 0"}}>
-    ${stappen.map((s,i)=>html`<div key=${i} style=${{display:"flex",alignItems:"center",gap:"10px"}}>
-      <div style=${{width:"20px",height:"20px",borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-        background: stap>i+1?C.ok:stap===i+1?C.accent:"transparent",
-        border:"1.5px solid "+(stap>i+1?C.ok:stap===i+1?C.accent:C.border)}}>
-        ${stap>i+1
-          ? html`<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-          : stap===i+1
-            ? html`<div class="spin" style=${{width:"10px",height:"10px",border:"1.5px solid rgba(255,255,255,0.4)",borderTop:"1.5px solid white",borderRadius:"50%"}}></div>`
-            : null}
-      </div>
-      <span style=${{fontSize:"13px",color:stap>i?C.text:C.faint,fontWeight:stap===i+1?600:400}}>${s}</span>
-    </div>`)}
-  </div>`;
-}
 
 // ── APP ROOT ──
 function App() {
@@ -311,8 +291,12 @@ function Bevestiging({res,AD,AO,onNieuw}) {
           <span style=${{fontWeight:700,fontSize:"18px",color:C.accent}}>€ ${(res.p?.tot||res.p?.totaal||0).toFixed(2)}</span>
         </div>
       </div>
-      <div style=${{display:"flex",gap:"8px",flexWrap:"wrap"}}>
-        <button style=${{background:C.white,color:C.text,border:"1px solid "+C.border,padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:500,cursor:"pointer"}} onClick=${onNieuw}>+ Nieuwe afspraak</button>
+      <div style=${{display:"flex",gap:"8px",flexWrap:"wrap",marginTop:"8px"}}>
+        <a href=${"/api/ical?id="+res.id} style=${{display:"inline-flex",alignItems:"center",gap:"6px",background:C.accent,color:"#fff",textDecoration:"none",padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:600}}>
+          <svg width="16" height="16" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><rect x="1" y="2" width="14" height="13" rx="2"/><path d="M1 6h14M5 1v2M11 1v2"/></svg>
+          Toevoegen aan agenda
+        </a>
+        <button style=${{background:C.white,color:C.text,border:"1px solid "+C.border,padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:500,cursor:"pointer"}} onClick=${onNieuw}>+ Nieuwe afspraak</button>
       </div>
     </div>
   </div>`;
@@ -385,15 +369,25 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
       ||besch.geblokkeerdeData.includes(did(jr,mn,d));
   };
 
-  // Logische stap nummers (altijd 1-5)
-  const logStap = stap;
-
   const ok = () => {
-    if(logStap===1)return!!kt;
-    if(logStap===2)return ds.length>0;
-    if(logStap===4)return!!dag&&slt.length>0;
-    if(logStap===5)return naam&&mail&&tel&&straat&&huisnr&&postcode&&plaats&&bm;
+    if(stap===1)return!!kt;
+    if(stap===2)return ds.length>0;
+    if(stap===4)return!!dag&&slt.length>0;
+    if(stap===5)return naam&&mail&&tel&&straat&&huisnr&&postcode&&plaats&&bm;
     return true;
+  };
+  const hint = () => {
+    if(stap===1&&!kt) return "Kies uw klanttype om verder te gaan";
+    if(stap===2&&ds.length===0) return "Selecteer een locatie om verder te gaan";
+    if(stap===4&&!dag) return "Kies eerst een datum";
+    if(stap===4&&dag&&slt.length===0) return "Kies minimaal één tijdslot";
+    if(stap===5){
+      const mis=[];
+      if(!naam)mis.push("naam");if(!mail)mis.push("e-mail");if(!tel)mis.push("telefoon");
+      if(!straat||!huisnr||!postcode||!plaats)mis.push("adres");if(!bm)mis.push("betaalmethode");
+      if(mis.length)return "Vul nog in: "+mis.join(", ");
+    }
+    return null;
   };
 
   const send = async() => {
@@ -416,7 +410,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
     setOs([]);setAantalOpts({});setDag(null);setSlt([]);
     setNm("");setMl("");setTl("");setBd("");setKv("");
     setSt2("");setHnr("");setPc("");setPl("");setBm(null);
-    setSendStap(0);setFt("");
+    setFt("");
   };
 
   const btnP = {background:C.accent,color:"#fff",border:"none",padding:"9px 20px",borderRadius:"5px",fontSize:"14px",fontWeight:600,cursor:"pointer"};
@@ -436,17 +430,17 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     <div class="body-pad" style=${{padding:"20px 20px 24px",overflowY:"auto",flex:1}}>
 
-      ${logStap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
+      ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
         <div style=${{display:"flex",flexDirection:"column",gap:"8px"}}>
           ${[{id:"consument",label:"Cursist",sub:"Particulier · incl. btw"},{id:"zzp",label:"Instructeur",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Rijschoolhouder",sub:"Organisatie · excl. btw"}].map(k=>html`
-            <div key=${k.id} onClick=${()=>setKt(k.id)} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white}}>
+            <div key=${k.id} onClick=${()=>{ setKt(k.id); setTimeout(()=>setSt(2), 250); }} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white,transition:"all 0.15s"}}>
               <div style=${{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}><${RB} on=${kt===k.id}/><span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span></div>
               <span style=${{fontSize:"12px",color:C.sub,paddingLeft:"22px"}}>${k.sub}</span>
             </div>`)}
         </div>
       </>`}
 
-      ${logStap===2 && html`<${Blok} titel="Selecteer locatie" sub="Prijs per tijdslot.">
+      ${stap===2 && html`<${Blok} titel="Selecteer locatie" sub="Prijs per tijdslot.">
         <table style=${{width:"100%",borderCollapse:"collapse",background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden"}}>
           <thead><tr>
             <th style=${{width:"32px",padding:"9px 14px",background:C.bg,borderBottom:"1px solid "+C.border}}></th>
@@ -477,7 +471,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </div>`}
       </>`}
 
-      ${logStap===3 && html`<${Blok} titel="Extra opties" sub="Opties gelden per tijdslot.">
+      ${stap===3 && html`<${Blok} titel="Extra opties" sub="Opties gelden per tijdslot.">
         <div style=${{background:C.white,border:"1px solid "+C.border,borderRadius:"6px",overflow:"hidden"}}>
             ${visAO.map((o,i)=>{
               const a=os.includes(o.id), vp=o.verplichtConsument&&kt==="consument";
@@ -533,17 +527,13 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </div>
       </>`}
 
-      ${logStap===4 && html`<${Blok} titel="Kies datum en tijdsloten" sub="Meerdere aaneengesloten uren op dezelfde dag.">
+      ${stap===4 && html`<${Blok} titel="Kies datum en tijdsloten" sub="Meerdere aaneengesloten uren op dezelfde dag.">
         <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px"}}>
           <div>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-              <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"32px",height:"32px",borderRadius:"4px",cursor:"pointer",fontSize:"18px"}}>
-                <span onClick=${()=>{if(mn===0){setMn(11);setJr(y=>y-1);}else setMn(m=>m-1);}}>‹</span>
-              </button>
+              <button onClick=${()=>{if(mn===0){setMn(11);setJr(y=>y-1);}else setMn(m=>m-1);}} style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"36px",height:"36px",borderRadius:"6px",cursor:"pointer",fontSize:"20px",display:"flex",alignItems:"center",justifyContent:"center"}} aria-label="Vorige maand">‹</button>
               <span style=${{fontWeight:600,fontSize:"15px",color:C.text}}>${MND[mn]} ${jr}</span>
-              <button style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"32px",height:"32px",borderRadius:"4px",cursor:"pointer",fontSize:"18px"}}>
-                <span onClick=${()=>{if(mn===11){setMn(0);setJr(y=>y+1);}else setMn(m=>m+1);}}>›</span>
-              </button>
+              <button onClick=${()=>{if(mn===11){setMn(0);setJr(y=>y+1);}else setMn(m=>m+1);}} style=${{background:"transparent",border:"1px solid "+C.border,color:C.text,width:"36px",height:"36px",borderRadius:"6px",cursor:"pointer",fontSize:"20px",display:"flex",alignItems:"center",justifyContent:"center"}} aria-label="Volgende maand">›</button>
             </div>
             <div style=${{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:"4px"}}>
               ${WD.map(w=>html`<div key=${w} style=${{textAlign:"center",fontSize:"12px",color:C.faint,padding:"6px 0",fontWeight:500}}>${w}</div>`)}
@@ -583,24 +573,27 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
                 </div>
                 <button onClick=${()=>setSlt([])} style=${{background:"transparent",border:"none",color:C.faint,cursor:"pointer",fontSize:"12px",padding:"4px 8px"}}>Wissen</button>
               </div>`}
-            ` : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"120px",background:C.bg,borderRadius:"8px"}}><p style=${{color:C.faint,fontSize:"13px"}}>Selecteer eerst een datum</p></div>`}
+            ` : html`<div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"120px",background:C.bg,borderRadius:"8px",gap:"8px"}}>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke=${C.faint} stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <p style=${{color:C.faint,fontSize:"13px",textAlign:"center"}}>Kies een datum<br/>in de kalender hierboven</p>
+            </div>`}
           </div>
         </div>
       </>`}
 
-      ${logStap===5 && html`<${Blok} titel="Uw gegevens" sub="Vul uw contactgegevens in.">
+      ${stap===5 && html`<${Blok} titel="Uw gegevens" sub="Vul uw contactgegevens in.">
         <div style=${{display:"grid",gridTemplateColumns:"1fr",gap:"16px"}}>
           <div style=${{display:"flex",flexDirection:"column",gap:"12px"}}>
-            <${Veld} label="Volledige naam" req=${true} val=${naam} set=${setNm} ph="Jan de Vries"/>
-            <${Veld} label="E-mailadres" req=${true} val=${mail} set=${setMl} ph="jan@voorbeeld.nl"/>
-            <${Veld} label="Telefoonnummer" req=${true} val=${tel} set=${setTl} ph="+31 6 12345678"/>
+            <${Veld} label="Volledige naam" req=${true} val=${naam} set=${setNm} ph="Jan de Vries" ac="name"/>
+            <${Veld} label="E-mailadres" req=${true} val=${mail} set=${setMl} ph="jan@voorbeeld.nl" type="email" ac="email"/>
+            <${Veld} label="Telefoonnummer" req=${true} val=${tel} set=${setTl} ph="+31 6 12345678" type="tel" ac="tel"/>
             <div style=${{display:"grid",gridTemplateColumns:"1fr 72px",gap:"8px"}}>
-              <${Veld} label="Straat" req=${true} val=${straat} set=${setSt2} ph="Hoofdstraat"/>
+              <${Veld} label="Straat" req=${true} val=${straat} set=${setSt2} ph="Hoofdstraat" ac="address-line1"/>
               <${Veld} label="Nr." req=${true} val=${huisnr} set=${setHnr} ph="12"/>
             </div>
             <div style=${{display:"grid",gridTemplateColumns:"120px 1fr",gap:"8px"}}>
-              <${Veld} label="Postcode" req=${true} val=${postcode} set=${setPc} ph="1234 AB"/>
-              <${Veld} label="Plaats" req=${true} val=${plaats} set=${setPl} ph="Amsterdam"/>
+              <${Veld} label="Postcode" req=${true} val=${postcode} set=${setPc} ph="1234 AB" ac="postal-code"/>
+              <${Veld} label="Plaats" req=${true} val=${plaats} set=${setPl} ph="Amsterdam" ac="address-level2"/>
             </div>
             ${kt!=="consument" && html`<${Veld} label="Bedrijfsnaam" val=${bedr} set=${setBd} ph="Bedrijf B.V."/>`}
             ${kt==="bedrijf" && html`<${Veld} label="KVK-nummer" val=${kvk} set=${setKv} ph="12345678"/>`}
@@ -643,10 +636,14 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     </div>
 
+    ${!ok() && hint() && html`<div style=${{padding:"8px 20px",background:"#fffbeb",borderTop:"1px solid #fcd34d",fontSize:"12px",color:"#92400e",flexShrink:0,display:"flex",alignItems:"center",gap:"6px"}}>
+      <svg width="14" height="14" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="7"/><path d="M8 5v3M8 11h.01"/></svg>
+      ${hint()}
+    </div>`}
     <div class="footer-bar" style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
       ${stap>1 ? html`<button style=${{...btnS,flex:1,marginRight:"8px"}} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span style=${{flex:1}}></span>`}
       ${stap<maxStap
-        ? html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):null}>Volgende →</button>`
+        ? html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):undefined}>Volgende →</button>`
         : html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>${bezig ? html`<span style=${{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}><span style=${{width:"14px",height:"14px",border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",display:"inline-block",animation:"spin 1s linear infinite"}}></span>Bezig...</span>` : "Afspraak bevestigen"}</button>`
       }
     </div>

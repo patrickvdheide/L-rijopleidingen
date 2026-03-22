@@ -113,7 +113,7 @@ export async function onRequest(context) {
 
     // Setup link per mail sturen
     const setupToken = randomToken();
-    const setupUrl   = `https://boekingen.l-rijopleidingen.nl/admin.html?setup=${setupToken}&user=${gebruikersnaam}`;
+    const setupUrl   = `https://reserveren.l-rijopleidingen.nl/admin.html?setup=${setupToken}&user=${gebruikersnaam}`;
 
     // Sla setup token op
     const newRecord = await maakRes.json();
@@ -179,7 +179,7 @@ export async function onRequest(context) {
       body: JSON.stringify({ fields: { ResetToken: resetToken, ResetVerloopt: verloopt } })
     });
 
-    const resetUrl = `https://boekingen.l-rijopleidingen.nl/admin.html?reset=${resetToken}&user=${gebruikersnaam}`;
+    const resetUrl = `https://reserveren.l-rijopleidingen.nl/admin.html?reset=${resetToken}&user=${gebruikersnaam}`;
 
     await fetch("https://api.resend.com/emails", {
       method: "POST",

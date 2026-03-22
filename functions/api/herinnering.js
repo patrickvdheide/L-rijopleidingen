@@ -52,7 +52,7 @@ export async function onRequest(context) {
     const f = rec.fields;
     if (!f.Email) continue;
 
-    const icalUrl = `https://boekingen.l-rijopleidingen.nl/api/ical?id=${f.Boekingsnummer}`;
+    const icalUrl = `https://reserveren.l-rijopleidingen.nl/api/ical?id=${f.Boekingsnummer}`;
 
     const html = `<!DOCTYPE html>
 <html lang="nl">
@@ -103,7 +103,7 @@ export async function onRequest(context) {
         method: "POST",
         headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from:    (env.RESEND_FROM || "").trim(),
+          from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
           to:      [f.Email],
           subject: `Herinnering: afspraak morgen ${formatDatum(f.Datum)} — ${f.Boekingsnummer}`,
           html,

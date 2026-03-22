@@ -145,7 +145,7 @@ export async function onRequest(context) {
         method: "POST",
         headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from:    (env.RESEND_FROM || "").trim(),
+          from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
           to:      [email],
           subject: "Wachtwoord reset — L-Rijopleidingen Beheer",
           html:    `<p>Klik op de link om je wachtwoord opnieuw in te stellen (1 uur geldig):</p><a href="${resetUrl}">${resetUrl}</a>`,

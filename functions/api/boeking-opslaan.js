@@ -182,7 +182,7 @@ export async function onRequest(context) {
         "Content-Type":  "application/json",
       },
       body: JSON.stringify({
-        from:    (env.RESEND_FROM || "").trim(),
+        from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
         to:      [email],
         subject: `Afspraak bevestigd — ${formatDatum(datum)} · ${slotsLabel} (${id})`,
         html:    klantHtml,
@@ -243,7 +243,7 @@ export async function onRequest(context) {
 </body></html>`;
 
   try {
-    const adminEmail = (env.RESEND_FROM || "").trim();
+    const adminEmail = "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">";
     const adminRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {

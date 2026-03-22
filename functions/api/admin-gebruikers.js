@@ -90,7 +90,7 @@ export async function onRequest(context) {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from:    (env.RESEND_FROM || "").trim(),
+        from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
         to:      [email],
         subject: "Welkom bij L-Rijopleidingen Beheer",
         html:    `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f5f6f8;padding:32px;"><div style="max-width:480px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #dde1e9;overflow:hidden;"><div style="background:#0586f0;padding:20px 32px;"><img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" style="height:28px;width:auto;display:block;"/></div><div style="padding:28px 32px;"><h2 style="color:#1a1f2e;margin:0 0 12px">Account aangemaakt</h2><p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 20px">Gebruikersnaam: <strong>${gebruikersnaam}</strong><br>Klik op de knop om een wachtwoord in te stellen. De link is 7 dagen geldig.</p><a href="${setupUrl}" style="display:inline-block;background:#0586f0;color:white;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:14px;font-weight:600;">Wachtwoord instellen</a></div></div></body></html>`
@@ -113,7 +113,7 @@ export async function onRequest(context) {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from:    (env.RESEND_FROM || "").trim(),
+        from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
         to:      [email],
         subject: "Wachtwoord reset — L-Rijopleidingen Beheer",
         html:    `<p>Klik op de link om je wachtwoord opnieuw in te stellen (1 uur geldig):</p><a href="${resetUrl}">${resetUrl}</a>`
