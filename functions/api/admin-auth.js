@@ -87,7 +87,8 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS });
   }
 
-  const { actie, gebruikersnaam, wachtwoord, email, token: resetToken, nieuwWachtwoord } = body;
+  const { actie, gebruikersnaam, wachtwoord, email, resetToken, token, nieuwWachtwoord } = body;
+  const _resetToken = resetToken || token; // compatibel met beide veldnamen
 
   // ── LOGIN ──
   if (actie === "login") {
@@ -158,7 +159,7 @@ export async function onRequest(context) {
   // ── WACHTWOORD RESET ──
   if (actie === "reset") {
     const admin = await getAdmin(gebruikersnaam, atToken);
-    if (!admin || admin.fields.ResetToken !== resetToken || (admin.fields.ResetToken||"").startsWith("sessie_")) {
+    if (!admin || admin.fields.ResetToken !== _resetToken || (admin.fields.ResetToken||"").startsWith("sessie_")) {
       return new Response(JSON.stringify({ error: "Ongeldige of verlopen resetlink" }), { status: 401, headers: CORS });
     }
     if (new Date(admin.fields.ResetVerloopt) < new Date()) {
