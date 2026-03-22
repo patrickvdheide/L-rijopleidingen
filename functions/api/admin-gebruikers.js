@@ -1,8 +1,6 @@
 // functions/api/admin-gebruikers.js
 
-const BASE    = "appchbjgwoZQiQjfv";
-const AT_BASE = `https://api.airtable.com/v0/${BASE}`;
-const TABEL   = "tblxPXaRSgAHiiauP";
+import { getAlleAdmins, maakAdmin, verwijderAdmin, updateAdmin, getAdmin } from "./_db.js";
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -17,117 +15,90 @@ function randomToken(len = 32) {
   return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function verifieerSessie(db, url) {
+  const token = url.searchParams.get("key");
+  const user  = url.searchParams.get("user");
+  if (!token || !user) return null;
+  const admin = await getAdmin(db, user);
+  if (!admin || !(admin.reset_token || "").startsWith("sessie_" + token) || new Date(admin.reset_verloopt) < new Date()) return null;
+  return admin;
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
-  // CORS already defined above
+  const db  = env.DB;
+  const url = new URL(request.url);
 
   if (request.method === "OPTIONS") return new Response("", { status: 200, headers: CORS });
 
-  // ── Sessie verificatie ──
-  const _url   = new URL(request.url);
-  const _token = _url.searchParams.get("key");
-  const _user  = _url.searchParams.get("user");
-  if (!_token || !_user) {
-    return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
-  }
-  const _ar = await fetch(
-    `${AT_BASE}/${TABEL}?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _user.replace(/["\\]/g,"") + '"')}`,
-    { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
-  ).catch(() => null);
-  if (!_ar?.ok) {
-    return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
-  }
-  const _ad  = await _ar.json();
-  const _rec = _ad.records?.[0];
-  if (!_rec || !(_rec.fields?.ResetToken || "").startsWith("sessie_" + _token) || new Date(_rec.fields?.ResetVerloopt || 0) < new Date()) {
-    return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
-  }
-  // ── Einde verificatie ──
+  const admin = await verifieerSessie(db, url);
+  if (!admin) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
 
-  const atAuth = { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` };
-
-  // GET — lijst gebruikers
+  // GET: lijst admins
   if (request.method === "GET") {
-    const res = await fetch(`${AT_BASE}/${TABEL}`, { headers: atAuth });
-    if (!res.ok) return new Response(JSON.stringify({ error: "Airtable fout" }), { status: 500, headers: CORS });
-    const data = await res.json();
-    const gebruikers = (data.records || []).map(r => ({
-      id: r.id,
+    const rijen = await getAlleAdmins(db);
+    const gebruikers = rijen.map(r => ({
+      id: String(r.id),
       fields: {
-        Gebruikersnaam: r.fields.Gebruikersnaam,
-        Email:          r.fields.Email,
-        WachtwoordHash: r.fields.WachtwoordHash ? "***" : "",
-      }
+        Gebruikersnaam: r.gebruikersnaam,
+        Email:          r.email,
+        WachtwoordHash: r.wachtwoord_hash ? "***" : "",
+      },
     }));
     return new Response(JSON.stringify({ gebruikers }), { status: 200, headers: CORS });
   }
 
-  // POST — beheeracties
+  // POST: aanmaken, verwijderen, reset-mail
   let body;
-  try { body = await request.json(); } catch {
-    return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS });
-  }
+  try { body = await request.json(); }
+  catch { return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS }); }
 
-  const { actie } = body;
+  const { actie, gebruikersnaam, email, recordId } = body;
 
   if (actie === "aanmaken") {
-    const { gebruikersnaam, email } = body;
-    if (!gebruikersnaam || !email) {
-      return new Response(JSON.stringify({ error: "Vul alle velden in" }), { status: 400, headers: CORS });
+    if (!gebruikersnaam || !email) return new Response(JSON.stringify({ error: "Gebruikersnaam en e-mail zijn verplicht" }), { status: 400, headers: CORS });
+    try {
+      await maakAdmin(db, gebruikersnaam, email);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: "Gebruiker bestaat al of ander probleem: " + err.message }), { status: 409, headers: CORS });
     }
     const setupToken = randomToken(32);
     const verloopt   = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const aanmaken = await fetch(`${AT_BASE}/${TABEL}`, {
-      method: "POST",
-      headers: { ...atAuth, "Content-Type": "application/json" },
-      body: JSON.stringify({ fields: { Gebruikersnaam: gebruikersnaam, Email: email, ResetToken: setupToken, ResetVerloopt: verloopt } })
-    });
-    if (!aanmaken.ok) {
-      return new Response(JSON.stringify({ error: "Aanmaken mislukt" }), { status: 500, headers: CORS });
-    }
+    await updateAdmin(db, gebruikersnaam, { ResetToken: setupToken, ResetVerloopt: verloopt });
     const setupUrl = `https://reserveren.l-rijopleidingen.nl/admin.html?setup=1&user=${gebruikersnaam}&token=${setupToken}`;
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
-        to:      [email],
-        subject: "Welkom bij L-Rijopleidingen Beheer",
-        html:    `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f5f6f8;padding:32px;"><div style="max-width:480px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #dde1e9;overflow:hidden;"><div style="background:#0586f0;padding:20px 32px;"><img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" style="height:28px;width:auto;display:block;"/></div><div style="padding:28px 32px;"><h2 style="color:#1a1f2e;margin:0 0 12px">Account aangemaakt</h2><p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 20px">Gebruikersnaam: <strong>${gebruikersnaam}</strong><br>Klik op de knop om een wachtwoord in te stellen. De link is 7 dagen geldig.</p><a href="${setupUrl}" style="display:inline-block;background:#0586f0;color:white;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:14px;font-weight:600;">Wachtwoord instellen</a></div></div></body></html>`
-      })
-    });
+        from: "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
+        to: [email],
+        subject: "Welkom bij L-Rijopleidingen Beheer — Stel je wachtwoord in",
+        html: `<p>Welkom ${gebruikersnaam}! Klik op de link om je wachtwoord in te stellen (7 dagen geldig):</p><a href="${setupUrl}">${setupUrl}</a>`,
+      }),
+    }).catch(() => {});
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
   }
 
   if (actie === "reset-mail") {
-    const { recordId, email, gebruikersnaam } = body;
     const resetToken = randomToken(32);
     const verloopt   = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    await fetch(`${AT_BASE}/${TABEL}/${recordId}`, {
-      method: "PATCH",
-      headers: { ...atAuth, "Content-Type": "application/json" },
-      body: JSON.stringify({ fields: { ResetToken: resetToken, ResetVerloopt: verloopt } })
-    });
+    await updateAdmin(db, gebruikersnaam, { ResetToken: resetToken, ResetVerloopt: verloopt });
     const resetUrl = `https://reserveren.l-rijopleidingen.nl/admin.html?reset=${resetToken}&user=${gebruikersnaam}`;
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from:    "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
-        to:      [email],
+        from: "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">",
+        to: [email],
         subject: "Wachtwoord reset — L-Rijopleidingen Beheer",
-        html:    `<p>Klik op de link om je wachtwoord opnieuw in te stellen (1 uur geldig):</p><a href="${resetUrl}">${resetUrl}</a>`
-      })
-    });
+        html: `<p>Klik op de link om je wachtwoord opnieuw in te stellen (1 uur geldig):</p><a href="${resetUrl}">${resetUrl}</a>`,
+      }),
+    }).catch(() => {});
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
   }
 
   if (actie === "verwijderen") {
-    const { recordId } = body;
-    const res = await fetch(`${AT_BASE}/${TABEL}/${recordId}`, { method: "DELETE", headers: atAuth });
-    if (!res.ok) {
-      return new Response(JSON.stringify({ error: "Verwijderen mislukt" }), { status: 500, headers: CORS });
-    }
+    await verwijderAdmin(db, recordId);
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
   }
 

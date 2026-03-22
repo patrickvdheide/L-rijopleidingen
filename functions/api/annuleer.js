@@ -1,5 +1,6 @@
 // functions/api/annuleer.js
-// Veilige annulering via HMAC-SHA256 token (vereist ANNULEER_SECRET env var)
+
+import { getBoeking, updateBoeking } from "./_db.js";
 
 const CORS = { "Content-Type": "text/html; charset=utf-8" };
 
@@ -20,55 +21,29 @@ async function maakHmac(data, secret) {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const url   = new URL(request.url);
+  const db = env.DB;
+  const url = new URL(request.url);
   const id    = url.searchParams.get("id");
   const token = url.searchParams.get("token");
-  const isHerstel = url.searchParams.get("herstel") === "1";
 
-  if (!id || !token) {
-    return new Response(pagina("Ongeldige link", "De annuleringslink is ongeldig of verlopen.", "#dc2626", "❌"), { status: 400, headers: CORS });
-  }
+  if (!id || !token) return new Response(pagina("Ongeldige link", "De annuleringslink is ongeldig.", "#dc2626", "❌"), { status: 400, headers: CORS });
 
-  // Verifieer HMAC token
-  const secret = env.ANNULEER_SECRET;
-  if (!secret) {
-    console.error("ANNULEER_SECRET env var ontbreekt");
-    return new Response(pagina("Configuratiefout", "Neem contact op met de rijschool.", "#dc2626", "⚠️"), { status: 500, headers: CORS });
-  }
+  const secret   = env.ANNULEER_SECRET || "lrijo-annuleer-2026";
   const verwacht = await maakHmac(id, secret);
-  if (token !== verwacht) {
-    return new Response(pagina("Ongeldige link", "De annuleringslink is niet geldig.", "#dc2626", "❌"), { status: 403, headers: CORS });
-  }
+  if (token !== verwacht) return new Response(pagina("Ongeldige link", "De annuleringslink is niet geldig.", "#dc2626", "❌"), { status: 403, headers: CORS });
 
   try {
-    const zoekRes = await fetch(
-      `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2?filterByFormula=${encodeURIComponent(`{Boekingsnummer}="${id}"`)}`,
-      { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
-    );
-    if (!zoekRes.ok) throw new Error("Airtable zoek: " + zoekRes.status);
-    const record = (await zoekRes.json()).records?.[0];
+    const bk = await getBoeking(db, id);
+    if (!bk) return new Response(pagina("Niet gevonden", `Boeking ${id} is niet gevonden of al verwerkt.`, "#6b7280", "🔍"), { status: 404, headers: CORS });
 
-    if (!record) {
-      return new Response(pagina("Boeking niet gevonden", `Boeking ${id} is niet gevonden of al verwerkt.`, "#6b7280", "🔍"), { status: 404, headers: CORS });
-    }
+    await updateBoeking(db, id, { status: "Geannuleerd" });
 
-    const nieuweStatus = isHerstel ? "Actief" : "Geannuleerd";
-    const updateRes = await fetch(
-      `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2/${record.id}`,
-      { method: "PATCH", headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify({ fields: { Status: nieuweStatus } }) }
-    );
-    if (!updateRes.ok) throw new Error("Airtable update: " + updateRes.status);
-
-    const naam  = record.fields?.Naam  || "Klant";
-    const datum = record.fields?.Datum || "";
-    return new Response(
-      isHerstel
-        ? pagina("Annulering ongedaan gemaakt", `Beste ${naam}, de annulering van uw afspraak van ${datum} is ongedaan gemaakt. Uw afspraak staat weer op de planning.`, "#16a34a", "✅")
-        : pagina("Afspraak geannuleerd", `Beste ${naam}, uw afspraak van ${datum} is succesvol geannuleerd.`, "#0586f0", "✅"),
-      { status: 200, headers: CORS }
-    );
+    return new Response(pagina(
+      "Afspraak geannuleerd",
+      `Beste ${bk.naam}, uw afspraak van ${bk.datum} is succesvol geannuleerd.`,
+      "#0586f0", "✅"
+    ), { status: 200, headers: CORS });
   } catch (err) {
-    console.error("Annuleer fout:", err.message);
     return new Response(pagina("Er ging iets mis", "Probeer het later opnieuw of neem contact op met de rijschool.", "#dc2626", "⚠️"), { status: 500, headers: CORS });
   }
 }

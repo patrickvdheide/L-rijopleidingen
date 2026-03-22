@@ -1,0 +1,8 @@
+name = "l-rijopleidingen"
+pages_build_output_dir = "."
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "l-rijopleidingen"
+database_id = "14bbcaed-3312-46ee-af7f-359a7d82e1a0"

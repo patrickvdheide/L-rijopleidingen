@@ -1,5 +1,7 @@
 // functions/api/verwijder-boeking.js
 
+import { verwijderBoeking, getAdmin } from "./_db.js";
+
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
   "Access-Control-Allow-Headers": "Content-Type",
@@ -9,46 +11,33 @@ const CORS = {
 
 export async function onRequest(context) {
   const { request, env } = context;
+  const db = env.DB;
 
   if (request.method === "OPTIONS") return new Response("", { status: 200, headers: CORS });
 
-  // ── Sessie verificatie ──
-  const _qurl    = new URL(request.url);
-  const _token   = _qurl.searchParams.get("key") || "";
-  const _user    = _qurl.searchParams.get("user") || "";
+  const url    = new URL(request.url);
+  const _token = url.searchParams.get("key");
+  const _user  = url.searchParams.get("user");
   if (!_token || !_user) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
-  const _safeUser = _user.replace(/["\\]/g, "");
-  const _ar = await fetch(
-    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tblxPXaRSgAHiiauP?filterByFormula=${encodeURIComponent('{Gebruikersnaam}="' + _safeUser + '"')}`,
-    { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
-  ).catch(() => null);
-  if (!_ar?.ok) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
-  const _ad = await _ar.json();
-  const _rec = _ad.records?.[0];
-  if (!_rec || !(_rec.fields?.ResetToken || "").startsWith("sessie_" + _token) || new Date(_rec.fields?.ResetVerloopt || 0) < new Date()) {
+
+  const admin = await getAdmin(db, _user);
+  if (!admin || !(admin.reset_token || "").startsWith("sessie_" + _token) || new Date(admin.reset_verloopt) < new Date()) {
     return new Response(JSON.stringify({ error: "Sessie verlopen, log opnieuw in" }), { status: 401, headers: CORS });
   }
-  // ── Einde verificatie ──
 
   let body;
-  try { body = await request.json(); } catch {
-    return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS });
-  }
+  try { body = await request.json(); }
+  catch { return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS }); }
 
-  const { recordId } = body;
-  if (!recordId) return new Response(JSON.stringify({ error: "recordId ontbreekt" }), { status: 400, headers: CORS });
+  // recordId kan een D1 row id zijn, maar we verwijderen altijd op boekingsnummer
+  const { recordId, boekingsnummer } = body;
+  const nr = boekingsnummer || await (async () => {
+    const rij = await env.DB.prepare("SELECT boekingsnummer FROM boekingen WHERE id = ? LIMIT 1").bind(recordId).first();
+    return rij?.boekingsnummer;
+  })();
 
-  try {
-    const res = await fetch(
-      `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2/${recordId}`,
-      { method: "DELETE", headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
-    );
-    if (!res.ok) {
-      const err = await res.text();
-      return new Response(JSON.stringify({ error: "Airtable: " + err }), { status: 500, headers: CORS });
-    }
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS });
-  }
+  if (!nr) return new Response(JSON.stringify({ error: "Boeking niet gevonden" }), { status: 404, headers: CORS });
+
+  await verwijderBoeking(db, nr);
+  return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
 }
