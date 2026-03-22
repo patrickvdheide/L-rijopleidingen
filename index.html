@@ -12,6 +12,8 @@
   <script src="https://unpkg.com/htm@3/dist/htm.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :focus-visible { outline: 2px solid #0586f0; outline-offset: 2px; border-radius: 3px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
     html, body { height: 100%; }
     body {
       background: #eef0f5;
@@ -42,7 +44,8 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <a href="#main-content" style="position:absolute;left:-9999px;top:4px;z-index:9999;padding:8px 16px;background:#0586f0;color:white;border-radius:4px;font-size:14px;text-decoration:none;" onfocus="this.style.left='4px'" onblur="this.style.left='-9999px'">Ga naar inhoud</a>
+  <div id="root" id="main-content"></div>
   <script>
 const html = htm.bind(React.createElement);
 const { useState, useEffect } = React;
@@ -141,11 +144,11 @@ function Logo({wit}) {
 }
 
 function Steps({stap,labels}) {
-  return html`<div class="steps-bar" style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px"}}>
+  return html`<div class="steps-bar" role="list" aria-label="Stappen" style=${{background:"#f8f9fb",borderBottom:"1px solid "+C.border,padding:"0 20px"}}>
     <div style=${{display:"flex"}}>
       ${labels.map((l,i) => {
         const n=i+1, act=stap===n, ged=stap>n;
-        return html`<div key=${n} style=${{display:"flex",alignItems:"center",gap:"6px",padding:"10px 10px 10px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
+        return html`<div key=${n} role="listitem" aria-current=${act?"step":undefined} style=${{display:"flex",alignItems:"center",gap:"6px",padding:"10px 10px 10px 0",borderBottom:"2px solid "+(act?C.accent:"transparent"),marginBottom:"-1px"}}>
           <div style=${{width:"22px",height:"22px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:700,flexShrink:0,background:ged||act?C.accent:"transparent",border:"1.5px solid "+(ged||act?C.accent:C.border),color:ged||act?"#fff":C.faint}}>${ged?"✓":n}</div>
           <span class=${act ? "step-label step-label-active" : "step-label"} style=${{fontSize:"12px",fontWeight:act?600:400,color:act?C.text:C.sub,whiteSpace:"nowrap"}}>${l}</span>
           ${n<labels.length ? html`<div style=${{width:"12px",height:"1px",background:C.border,marginLeft:"4px",flexShrink:0}}></div>` : null}
@@ -292,6 +295,9 @@ function Bevestiging({res,AD,AO,onNieuw}) {
         </div>
       </div>
       <div style=${{display:"flex",gap:"8px",flexWrap:"wrap",marginTop:"8px"}}>
+        <a href="https://l-rijopleidingen.nl" style=${{display:"inline-flex",alignItems:"center",gap:"6px",background:C.white,color:C.text,textDecoration:"none",padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:500,border:"1px solid "+C.border}}>
+          ← Terug naar website
+        </a>
         <a href=${"/api/ical?id="+res.id} style=${{display:"inline-flex",alignItems:"center",gap:"6px",background:C.accent,color:"#fff",textDecoration:"none",padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:600}}>
           <svg width="16" height="16" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><rect x="1" y="2" width="14" height="13" rx="2"/><path d="M1 6h14M5 1v2M11 1v2"/></svg>
           Toevoegen aan agenda
@@ -326,6 +332,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const [bm,setBm]     = useState(null);
   const [bezig,setBz]  = useState(false);
   const [fout,setFt]   = useState("");
+  const [geprobeerd,setGep] = useState(false);
 
   const stapLabels = ["Klant","Locatie","Opties","Datum","Gegevens"];
   const maxStap = stapLabels.length;
@@ -373,7 +380,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
     if(stap===1)return!!kt;
     if(stap===2)return ds.length>0;
     if(stap===4)return!!dag&&slt.length>0;
-    if(stap===5)return naam&&mail&&tel&&straat&&huisnr&&postcode&&plaats&&bm;
+    if(stap===5)return naam&&mail&&/^[^@]+@[^@]+\.[^@]+$/.test(mail)&&tel&&straat&&huisnr&&postcode&&plaats&&bm;
     return true;
   };
   const hint = () => {
@@ -383,7 +390,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
     if(stap===4&&dag&&slt.length===0) return "Kies minimaal één tijdslot";
     if(stap===5){
       const mis=[];
-      if(!naam)mis.push("naam");if(!mail)mis.push("e-mail");if(!tel)mis.push("telefoon");
+      if(!naam)mis.push("naam");if(!mail)mis.push("e-mail");else if(!/^[^@]+@[^@]+\.[^@]+$/.test(mail))mis.push("geldig e-mailadres");if(!tel)mis.push("telefoon");
       if(!straat||!huisnr||!postcode||!plaats)mis.push("adres");if(!bm)mis.push("betaalmethode");
       if(mis.length)return "Vul nog in: "+mis.join(", ");
     }
@@ -485,13 +492,13 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
                       <span style=${{fontWeight:a?600:400,color:C.text,fontSize:"14px"}}>${o.label}</span>
                       ${vp && html`<span style=${{fontSize:"11px",color:C.accent,background:C.abg,border:"1px solid "+C.abor,borderRadius:"3px",padding:"1px 6px",fontWeight:600}}>Verplicht</span>`}
                     </div>
-                    <div style=${{fontSize:"12px",color:C.sub,marginTop:"2px"}}>${o.info}</div>
+                    <div style=${{fontSize:"12px",color:C.sub,marginTop:"2px"}} title=${o.info}>${o.info}</div>
                   </div>
                   <span style=${{fontWeight:600,color:a?C.accent:C.sub,fontSize:"14px",flexShrink:0}}>
                     ${o.prijs>0 ? "€ "+(a?(o.prijs*(aantalOpts[o.id]||1)):o.prijs) : html`<span style=${{color:C.ok}}>Gratis</span>`}
                   </span>
                 </div>
-                ${a && o.prijs>0 && html`
+                ${a && o.prijs>0 && !vp && html`
                   <div style=${{padding:"10px 14px 14px 42px",background:C.abg,display:"flex",alignItems:"center",gap:"10px"}}>
                     <span style=${{fontSize:"13px",color:C.sub}}>Aantal:</span>
                     <div style=${{display:"flex",alignItems:"center",gap:"0",border:"1px solid "+C.abor,borderRadius:"6px",overflow:"hidden"}}>
@@ -636,15 +643,15 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
     </div>
 
-    ${!ok() && hint() && html`<div style=${{padding:"8px 20px",background:"#fffbeb",borderTop:"1px solid #fcd34d",fontSize:"12px",color:"#92400e",flexShrink:0,display:"flex",alignItems:"center",gap:"6px"}}>
+    ${geprobeerd && !ok() && hint() && html`<div role="alert" aria-live="polite" style=${{padding:"8px 20px",background:"#fffbeb",borderTop:"1px solid #fcd34d",fontSize:"12px",color:"#92400e",flexShrink:0,display:"flex",alignItems:"center",gap:"6px"}}>
       <svg width="14" height="14" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="7"/><path d="M8 5v3M8 11h.01"/></svg>
       ${hint()}
     </div>`}
     <div class="footer-bar" style=${{background:C.white,borderTop:"1px solid "+C.border,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-      ${stap>1 ? html`<button style=${{...btnS,flex:1,marginRight:"8px"}} onClick=${()=>setSt(x=>x-1)}>← Vorige</button>` : html`<span style=${{flex:1}}></span>`}
+      ${stap>1 ? html`<button style=${{...btnS,flex:1,marginRight:"8px"}} onClick=${()=>{ setSt(x=>x-1); setGep(false); }}>← Vorige</button>` : html`<span style=${{flex:1}}></span>`}
       ${stap<maxStap
-        ? html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?()=>setSt(x=>x+1):undefined}>Volgende →</button>`
-        : html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${ok()?send:null}>${bezig ? html`<span style=${{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}><span style=${{width:"14px",height:"14px",border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",display:"inline-block",animation:"spin 1s linear infinite"}}></span>Bezig...</span>` : "Afspraak bevestigen"}</button>`
+        ? html`<button style=${{...btnP,flex:1}} onClick=${()=>{ if(ok()){ setGep(false); setSt(x=>x+1); } else setGep(true); }}>Volgende →</button>`
+        : html`<button style=${{...btnP,flex:1,opacity:ok()?1:.4,cursor:ok()?"pointer":"default"}} onClick=${()=>{ if(ok()) send(); else setGep(true); }}>${bezig ? html`<span style=${{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}><span style=${{width:"14px",height:"14px",border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",display:"inline-block",animation:"spin 1s linear infinite"}}></span>Bezig...</span>` : "Afspraak bevestigen"}</button>`
       }
     </div>
   </div>`;

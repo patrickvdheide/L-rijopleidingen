@@ -7,6 +7,8 @@
   <link rel="icon" href="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b93f2a24f1bc8f413211af_L-rijopleidingen-webclip.jpg" type="image/jpeg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>L-Rijopleidingen - Beheer</title>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -60,6 +62,8 @@
     .modal-section { background: #f8f9fb; border-radius: 6px; padding: 14px; border: 1px solid #e5e7eb; }
     .modal-section-title { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
     .modal-footer { padding: 14px 20px; border-top: 1px solid #dde1e9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    :focus-visible { outline: 2px solid #0586f0; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; } }
     @media (max-width: 480px) { .modal-footer, .modal-footer-danger { flex-wrap: wrap; } .modal-footer .btn, .modal-footer-danger .btn { flex: 1; min-width: 120px; } }
     .modal-footer-danger { padding: 12px 20px; border-top: 1px solid #fee2e2; background: #fff5f5; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -107,6 +111,7 @@
   </style>
 </head>
 <body>
+  <a href="#admin-content" style="position:absolute;left:-9999px;top:4px;z-index:9999;padding:8px 16px;background:#0586f0;color:white;border-radius:4px;font-size:14px;text-decoration:none;" onfocus="this.style.left='4px'" onblur="this.style.left='-9999px'">Ga naar inhoud</a>
   <div class="topbar" id="main-topbar" style="display:none;">
     <div style="display:flex;align-items:center;gap:12px;min-width:0;">
       <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" class="topbar-logo"/>
@@ -252,7 +257,7 @@
 
 
   <!-- BEWERK MODAL -->
-  <div id="bewerk-modal" class="modal-overlay">
+  <div id="bewerk-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-titel">
     <div class="modal-box">
       <div class="modal-header">
         <div>
@@ -312,7 +317,7 @@
   </div>
 
   <!-- NIEUWE GEBRUIKER MODAL -->
-  <div id="nieuwe-gebruiker-modal" class="modal-overlay">
+  <div id="nieuwe-gebruiker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Nieuwe gebruiker aanmaken">
     <div class="modal-box" style="max-width:400px">
       <div class="modal-header">
         <h2 style="font-size:15px;font-weight:700;color:#1a1f2e">Nieuwe gebruiker</h2>
@@ -356,12 +361,15 @@
         sessionStorage.removeItem(SESS_KEY);
         sessionStorage.removeItem(USER_KEY);
         ADMIN_TOKEN = ""; ADMIN_USER = "";
-        document.getElementById("admin-view").style.display  = "none";
-        document.getElementById("nav-bar").style.display     = "none";
-        document.getElementById("logout-btn").style.display  = "none";
-        document.getElementById("login-view").style.display  = "flex";
-        document.getElementById("login-err").textContent     = "Sessie verlopen. Log opnieuw in.";
-        document.getElementById("login-err").style.display   = "block";
+        document.getElementById("admin-view").style.display   = "none";
+        document.getElementById("main-topbar").style.display  = "none";
+        document.getElementById("nav-bar").style.display      = "none";
+        document.getElementById("logout-btn").style.display   = "none";
+        const naamLbl = document.getElementById("admin-naam-lbl");
+        if (naamLbl) naamLbl.style.display = "none";
+        document.getElementById("login-view").style.display   = "flex";
+        document.getElementById("login-err").textContent      = "Sessie verlopen. Log opnieuw in.";
+        document.getElementById("login-err").style.display    = "block";
         throw new Error("Sessie verlopen");
       }
       return res;
@@ -488,11 +496,15 @@
       sessionStorage.removeItem(SESS_KEY);
       sessionStorage.removeItem(USER_KEY);
       ADMIN_TOKEN = ""; ADMIN_USER = "";
-      document.getElementById("admin-view").style.display  = "none";
-      document.getElementById("main-topbar").style.display = "none";
-      document.getElementById("login-view").style.display  = "flex";
-      document.getElementById("logout-btn").style.display  = "none";
-      document.getElementById("logout-btn").textContent    = "Uitloggen";
+      document.getElementById("admin-view").style.display   = "none";
+      document.getElementById("main-topbar").style.display  = "none";
+      document.getElementById("nav-bar").style.display      = "none";
+      document.getElementById("login-view").style.display   = "flex";
+      document.getElementById("logout-btn").style.display   = "none";
+      const naamLbl = document.getElementById("admin-naam-lbl");
+      if (naamLbl) naamLbl.style.display = "none";
+      // Focus terug op login veld
+      setTimeout(()=>{ const el = document.getElementById("login-user"); if(el) el.focus(); }, 50);
     }
 
     function toonAdmin() {
@@ -764,6 +776,7 @@
       document.getElementById("annuleer-btn").style.display = geann?"none":"inline-block";
       document.getElementById("herstel-btn").style.display  = geann?"inline-block":"none";
       document.getElementById("bewerk-modal").style.display = "flex";
+      setTimeout(()=>{ const first = document.querySelector("#bewerk-modal input, #bewerk-modal select, #bewerk-modal button"); if(first) first.focus(); }, 50);
     }
 
     function sluitModal() {

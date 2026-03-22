@@ -13,9 +13,9 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response("", { status: 200, headers: CORS });
 
   // ── Sessie verificatie ──
-  const _authHeader = request.headers.get("Authorization") || "";
-  const _token = _authHeader.startsWith("Bearer ") ? _authHeader.slice(7).trim() : "";
-  const _user  = (request.headers.get("X-Admin-User") || "").trim();
+  const _qurl    = new URL(request.url);
+  const _token   = _qurl.searchParams.get("key") || "";
+  const _user    = _qurl.searchParams.get("user") || "";
   if (!_token || !_user) return new Response(JSON.stringify({ error: "Niet geautoriseerd" }), { status: 401, headers: CORS });
   const _safeUser = _user.replace(/["\\]/g, "");
   const _ar = await fetch(
