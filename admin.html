@@ -279,11 +279,22 @@
           <div class="modal-section-title">Afspraakgegevens</div>
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="form-grid">
-              <div class="form-group"><label>Datum</label><input id="modal-datum" placeholder="2026-03-18"/></div>
-              <div class="form-group"><label>Tijdsloten</label><input id="modal-tijdsloten" placeholder="10:00 – 11:00 (1x)"/></div>
+              <div class="form-group"><label>Datum</label><input type="date" id="modal-datum"/></div>
+              <div class="form-group"><label>Tijdsloten</label><select id="modal-tijdsloten"></select></div>
             </div>
-            <div class="form-group"><label>Locatie / Dienst</label><input id="modal-diensten" placeholder="Locatie"/></div>
-            <div class="form-group"><label>Opties</label><input id="modal-opties" placeholder="Met instructeur"/></div>
+            <div class="form-group"><label>Locatie / Dienst</label><select id="modal-diensten"><option value="Locatie">Locatie</option></select></div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Opties</label>
+              <div id="modal-opties-wrap" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;text-transform:none;letter-spacing:0;color:#1a1f2e;">
+                  <input type="checkbox" id="optie-instructeur" value="Met instructeur" style="width:auto;margin:0;accent-color:#0586f0;"/> Met instructeur
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;text-transform:none;letter-spacing:0;color:#1a1f2e;">
+                  <input type="checkbox" id="optie-motor" value="Motor op locatie" style="width:auto;margin:0;accent-color:#0586f0;"/> Motor op locatie
+                </label>
+              </div>
+              <input type="hidden" id="modal-opties"/>
+            </div>
           </div>
         </div>
 
@@ -591,6 +602,40 @@
       sel.value = huidig && gesorteerd.includes(huidig) ? huidig : gesorteerd[0] || "";
     }
 
+    const TIJDSLOTEN = ["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
+
+    function syncOptiesHidden() {
+      const vals = [];
+      if (document.getElementById("optie-instructeur").checked) vals.push("Met instructeur");
+      if (document.getElementById("optie-motor").checked)       vals.push("Motor op locatie");
+      document.getElementById("modal-opties").value = vals.join(", ");
+    }
+
+    function genereerSlotOpties() {
+      const sel = document.getElementById("modal-tijdsloten");
+      if (!sel) return;
+      const opties = [];
+      for (let i = 0; i < TIJDSLOTEN.length; i++) {
+        // Alleen aaneengesloten slots (geen gat 11→13 overschrijden)
+        for (let j = i; j < TIJDSLOTEN.length; j++) {
+          // Controleer of reeks aaneengesloten is (geen gat)
+          let aaneengesloten = true;
+          for (let k = i; k < j; k++) {
+            const [h1] = TIJDSLOTEN[k].split(":").map(Number);
+            const [h2] = TIJDSLOTEN[k+1].split(":").map(Number);
+            if (h2 - h1 !== 1) { aaneengesloten = false; break; }
+          }
+          if (!aaneengesloten) break;
+          const n = j - i + 1;
+          const label = n === 1
+            ? `${TIJDSLOTEN[i]} (1×)`
+            : `${TIJDSLOTEN[i]} – ${TIJDSLOTEN[j]} (${n}×)`;
+          opties.push(`<option value="${label}">${label}</option>`);
+        }
+      }
+      sel.innerHTML = opties.join("");
+    }
+
     function btwSplit(totaal, kt) {
       // consument: prijs incl. 21% btw → excl = totaal/1.21, btw = totaal - excl
       // zzp/bedrijf: prijs excl. btw → btw = totaal*0.21
@@ -802,6 +847,20 @@
       document.getElementById("opslaan-btn").style.display  = geann?"none":"inline-block";
       document.getElementById("annuleer-btn").style.display = geann?"none":"inline-block";
       document.getElementById("herstel-btn").style.display  = geann?"inline-block":"none";
+      // Vul tijdsloten select en stel huidige waarde in
+      genereerSlotOpties();
+      document.getElementById("modal-tijdsloten").value = f.Tijdsloten||"";
+      // Vul diensten select met unieke waarden uit boekingen
+      const dsEl = document.getElementById("modal-diensten");
+      const dsWaarden = [...new Set(alleBoekingen.map(b=>b.fields?.Diensten).filter(Boolean))];
+      if (!dsWaarden.includes("Locatie")) dsWaarden.unshift("Locatie");
+      dsEl.innerHTML = dsWaarden.map(d=>`<option value="${d}">${d}</option>`).join("");
+      dsEl.value = f.Diensten||"Locatie";
+      // Zet opties checkboxes
+      const huidigeOpties = (f.Opties||"").split(",").map(s=>s.trim());
+      document.getElementById("optie-instructeur").checked = huidigeOpties.includes("Met instructeur");
+      document.getElementById("optie-motor").checked       = huidigeOpties.includes("Motor op locatie");
+      syncOptiesHidden();
       document.getElementById("bewerk-modal").style.display = "flex";
       setTimeout(()=>{ const first = document.querySelector("#bewerk-modal input, #bewerk-modal select, #bewerk-modal button"); if(first) first.focus(); }, 50);
     }
@@ -991,6 +1050,8 @@
     document.getElementById("bewerk-modal").addEventListener("click",function(e){
       if(e.target===this) sluitModal();
     });
+    document.getElementById("optie-instructeur").addEventListener("change", syncOptiesHidden);
+    document.getElementById("optie-motor").addEventListener("change", syncOptiesHidden);
 
     // Escape sluit modals
     document.addEventListener("keydown", function(e) {

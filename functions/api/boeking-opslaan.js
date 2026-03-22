@@ -12,6 +12,32 @@ const AT_BASE   = "https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33
 const RESEND    = "https://api.resend.com/emails";
 const MAANDEN   = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
 
+// Genereer boekingsnummer: YYYYMMDD-01, -02, etc.
+async function genereerBoekingsnummer(datum, atToken) {
+  // datum = "YYYY-MM-DD" → prefix = "20260323"
+  const prefix = datum.replace(/-/g, "");
+
+  // Haal alle boekingen van vandaag op (filter op Boekingsnummer begint met prefix)
+  const formula = encodeURIComponent(`STARTS_WITH({Boekingsnummer}, "${prefix}")`);
+  try {
+    const res = await fetch(
+      `${AT_BASE}?filterByFormula=${formula}&fields%5B%5D=Boekingsnummer&sort%5B0%5D%5Bfield%5D=Boekingsnummer&sort%5B0%5D%5Bdirection%5D=desc&pageSize=1`,
+      { headers: { Authorization: `Bearer ${atToken}` } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const laatste = data.records?.[0]?.fields?.Boekingsnummer || "";
+      // Extraheer het volgnummer: "20260323-03" → 3
+      const match = laatste.match(/^\d{8}(\d+)$/);
+      const volgend = match ? parseInt(match[1]) + 1 : 1;
+      return `${prefix}${String(volgend).padStart(2, "0")}`;
+    }
+  } catch { /* val door naar fallback */ }
+
+  // Fallback: datum + random 2 cijfers als Airtable niet bereikbaar is
+  return `${prefix}${String(Math.floor(Math.random() * 90) + 10)}`;
+}
+
 function formatDatum(str) {
   if (!str) return "—";
   const [j, m, d] = str.split("-");
@@ -43,13 +69,32 @@ export async function onRequest(context) {
   try { boeking = await request.json(); }
   catch { return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS }); }
 
-  const { id, kt, naam, email, tel, bedrijf, kvk, straat, huisnummer, postcode, plaats,
+  const { kt, naam, email, tel, bedrijf, kvk, straat, huisnummer, postcode, plaats,
           diensten, dienstLabels, opties, optieLabels, datum, slots, betaalMethode, p: prijs } = boeking;
+
+  // Genereer volgnummer server-side (negeert het id van de client)
+  const id = await genereerBoekingsnummer(datum || new Date().toISOString().slice(0,10), env.AIRTABLE_TOKEN);
 
   const annuleerSecret = env.ANNULEER_SECRET || "lrijo-annuleer-2026";
   const cancelToken    = await maakHmac(id, annuleerSecret);
   const cancelUrl      = `${BASE_URL}/api/annuleer?id=${id}&token=${cancelToken}`;
-  const icalUrl        = `${BASE_URL}/api/ical?id=${id}`;
+  const icalParams  = new URLSearchParams({
+    datum,
+    start:   slots?.[0] || "09:00",
+    eind:    (() => {
+      const last = slots?.[slots.length-1] || "10:00";
+      const [h,m] = last.split(":").map(Number);
+      return String((h+1)%24).padStart(2,"0")+":"+String(m).padStart(2,"0");
+    })(),
+    id,
+    naam:    naam    || "",
+    email:   email   || "",
+    dienst:  (dienstLabels || diensten || []).join(", "),
+    opties:  (optieLabels  || opties   || []).join(", "),
+    betaling: betaalMethode || "",
+    totaal:  String(Number((prijs?.totaal || prijs?.tot || 0).toFixed(2))),
+  });
+  const icalUrl = `${BASE_URL}/api/ical?${icalParams.toString()}`;
 
   const slotsLabel  = slots?.length > 0 ? `${slots[0]}${slots.length > 1 ? ` – ${slots[slots.length - 1]}` : ""} (${slots.length}×)` : "—";
   const dienstenStr = (dienstLabels || diensten || []).join(", ");

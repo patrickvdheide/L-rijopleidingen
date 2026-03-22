@@ -248,9 +248,11 @@ function App() {
       const errData = await boekRes.json().catch(()=>({error:"Onbekende fout"}));
       throw new Error(errData.error || "Opslaan mislukt: "+boekRes.status);
     }
-    // Sla op in URL hash voor refresh-persistentie én sla op in state
-    window.location.hash = "boeking=" + encodeURIComponent(JSON.stringify(b));
-    setInitRes(b);
+    // Gebruik het server-gegenereerde boekingsnummer
+    const boekData = await boekRes.json().catch(()=>({}));
+    const bMet = {...b, id: boekData.id || b.id};
+    window.location.hash = "boeking=" + encodeURIComponent(JSON.stringify(bMet));
+    setInitRes(bMet);
   };
 
   if (!klaar) return html`<${Spinner} msg="Beschikbaarheid ophalen..."/>`;
@@ -299,7 +301,28 @@ function Bevestiging({res,AD,AO,onNieuw}) {
         <a href="https://l-rijopleidingen.nl" style=${{display:"inline-flex",alignItems:"center",gap:"6px",background:C.white,color:C.text,textDecoration:"none",padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:500,border:"1px solid "+C.border}}>
           ← Terug naar website
         </a>
-        <a href=${"/api/ical?id="+res.id} style=${{display:"inline-flex",alignItems:"center",gap:"6px",background:C.accent,color:"#fff",textDecoration:"none",padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:600}}>
+        <a href=${(()=>{
+          const sl = res.slots||[];
+          const start = sl[0]||"09:00";
+          // Eindtijd = laatste slot + 1 uur
+          const [lh,lm] = (sl[sl.length-1]||"10:00").split(":").map(Number);
+          const eind = String((lh+1)%24).padStart(2,"0")+":"+String(lm).padStart(2,"0");
+          const dienst = res.diensten?.map(id=>AD.find(d=>d.id===id)?.label||id).join(", ")||"Afspraak";
+          const opties = res.opties?.map(id=>AO.find(o=>o.id===id)?.label||id).join(", ")||"";
+          const p = new URLSearchParams({
+            datum:   res.datum||"",
+            start,
+            eind,
+            id:      res.id||"",
+            naam:    res.naam||"",
+            email:   res.email||"",
+            dienst,
+            opties,
+            betaling: res.betaalMethode||"",
+            totaal:  String((res.p?.tot||0).toFixed(2)),
+          });
+          return "/api/ical?"+p.toString();
+        })()} style=${{display:"inline-flex",alignItems:"center",gap:"6px",background:C.accent,color:"#fff",textDecoration:"none",padding:"10px 20px",borderRadius:"6px",fontSize:"14px",fontWeight:600}}>
           <svg width="16" height="16" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><rect x="1" y="2" width="14" height="13" rx="2"/><path d="M1 6h14M5 1v2M11 1v2"/></svg>
           Toevoegen aan agenda
         </a>

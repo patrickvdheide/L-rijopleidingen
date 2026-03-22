@@ -1,40 +1,28 @@
 // functions/api/ical.js
-// Geeft een .ics kalenderbestand terug voor een boeking
+// Genereert .ics bestand puur op basis van URL-parameters — geen Airtable nodig
 
 export async function onRequest(context) {
-  const { request, env } = context;
+  const { request } = context;
   const url = new URL(request.url);
-  const id  = url.searchParams.get("id"); // boekingsnummer
+  const p   = url.searchParams;
 
-  if (!id) {
-    return new Response("id ontbreekt", { status: 400 });
+  // Verplichte parameters
+  const datum      = p.get("datum");     // YYYY-MM-DD
+  const startTijd  = p.get("start");     // HH:MM
+  const eindTijd   = p.get("eind");      // HH:MM
+  const id         = p.get("id")  || "";
+  const naam       = p.get("naam") || "Klant";
+  const email      = p.get("email")|| "";
+  const dienst     = p.get("dienst")|| "Afspraak";
+  const opties     = p.get("opties")|| "";
+  const betaling   = p.get("betaling") === "pin" ? "Pin op locatie" : "Contant op locatie";
+  const totaal     = p.get("totaal")   || "0";
+
+  if (!datum || !startTijd || !eindTijd) {
+    return new Response("Ontbrekende parameters: datum, start, eind zijn verplicht", { status: 400 });
   }
 
-  // Haal boeking op uit Airtable
-  const res = await fetch(
-    `https://api.airtable.com/v0/appchbjgwoZQiQjfv/tbldfoJwamosk33o2?filterByFormula=${encodeURIComponent('{Boekingsnummer}="' + id + '"')}`,
-    { headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}` } }
-  ).catch(() => null);
-
-  if (!res?.ok) return new Response("Niet gevonden", { status: 404 });
-
-  const data = await res.json();
-  const rec  = data.records?.[0];
-  if (!rec) return new Response("Niet gevonden", { status: 404 });
-
-  const f = rec.fields;
-
-  // Datum + tijdsloten parsen
-  // Datum formaat: YYYY-MM-DD
-  // Tijdsloten formaat: "10:00 – 11:00 (2×)" of "10:00 – 12:00 (2×)"
-  const datumStr = f.Datum || "";
-  const [jaar, maand, dag] = (datumStr).split("-").map(n => parseInt(n));
-
-  // Parseer starttijd uit tijdsloten
-  const tijdMatch = (f.Tijdsloten || "").match(/(\d{2}:\d{2})\s*[–-]\s*(\d{2}:\d{2})/);
-  const startTijd = tijdMatch ? tijdMatch[1] : "09:00";
-  const eindTijd  = tijdMatch ? tijdMatch[2] : "10:00";
-
+  const [jaar, maand, dag] = datum.split("-").map(n => parseInt(n));
   const [sh, sm] = startTijd.split(":").map(Number);
   const [eh, em] = eindTijd.split(":").map(Number);
 
@@ -42,43 +30,47 @@ export async function onRequest(context) {
 
   const dtStart = `${jaar}${pad(maand)}${pad(dag)}T${pad(sh)}${pad(sm)}00`;
   const dtEnd   = `${jaar}${pad(maand)}${pad(dag)}T${pad(eh)}${pad(em)}00`;
-  const now     = new Date().toISOString().replace(/[-:]/g,"").slice(0,15);
+  const now     = new Date().toISOString().replace(/[-:.Z]/g,"").slice(0,15);
 
-  const samenvatting = `L-Rijopleidingen — ${f.Diensten || "Afspraak"} (${id})`;
+  const samenvatting = `L-Rijopleidingen — ${dienst}${id ? ` (${id})` : ""}`;
   const beschrijving = [
-    `Boekingsnummer: ${id}`,
-    `Dienst: ${f.Diensten || "—"}`,
-    f.Opties ? `Opties: ${f.Opties}` : null,
-    `Betaling: ${f.Betaalmethode === "pin" ? "Pin op locatie" : "Contant op locatie"}`,
-    `Bedrag: € ${Number(f.Totaal || 0).toFixed(2)}`,
+    id         ? `Boekingsnummer: ${id}`            : null,
+    `Dienst: ${dienst}`,
+    opties     ? `Opties: ${opties}`                 : null,
+    `Betaling: ${betaling}`,
+    `Bedrag: € ${Number(totaal).toFixed(2)}`,
     `Vragen? info@l-rijopleidingen.nl`,
   ].filter(Boolean).join("\\n");
+
+  const locatie = "L-Rijopleidingen oefenlocatie";
 
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//L-Rijopleidingen//Boekingssysteem//NL",
     "CALSCALE:GREGORIAN",
-    "METHOD:REQUEST",
+    "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${id}@l-rijopleidingen.nl`,
+    `UID:${id || now}@l-rijopleidingen.nl`,
     `DTSTAMP:${now}Z`,
     `DTSTART;TZID=Europe/Amsterdam:${dtStart}`,
     `DTEND;TZID=Europe/Amsterdam:${dtEnd}`,
     `SUMMARY:${samenvatting}`,
     `DESCRIPTION:${beschrijving}`,
-    "ORGANIZER;CN=L-Rijopleidingen:mailto:info@l-rijopleidingen.nl",
-    `ATTENDEE;CN=${f.Naam || "Klant"}:mailto:${f.Email || ""}`,
+    `LOCATION:${locatie}`,
+    `ORGANIZER;CN=L-Rijopleidingen:mailto:info@l-rijopleidingen.nl`,
+    email ? `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;CN=${naam}:mailto:${email}` : null,
     "STATUS:CONFIRMED",
+    "TRANSP:OPAQUE",
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n");
+  ].filter(Boolean).join("\r\n");
 
   return new Response(ics, {
     status: 200,
     headers: {
       "Content-Type":        "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="afspraak-${id}.ics"`,
+      "Content-Disposition": `attachment; filename="afspraak-${id || datum}.ics"`,
       "Cache-Control":       "no-store",
     },
   });
