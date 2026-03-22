@@ -16,7 +16,7 @@
     .topbar { background: #0586f0; color: white; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(5,134,240,0.25); }
     .container { max-width: 1100px; margin: 24px auto; padding: 0 16px 48px; }
     .card { background: white; border-radius: 8px; border: 1px solid #dde1e9; overflow: hidden; margin-bottom: 16px; }
-    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 52px); }
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
     .login-box { background: white; border-radius: 8px; border: 1px solid #dde1e9; padding: 32px; width: 320px; }
     input, select { width: 100%; border: 1px solid #dde1e9; border-radius: 5px; padding: 8px 11px; font-size: 14px; margin-top: 0; outline: none; font-family: inherit; color: #1a1f2e; background: white; }
     input:focus, select:focus { border-color: #0586f0; }
@@ -429,18 +429,24 @@
       err.style.display = "none";
       if (!user || !pwd) { err.textContent="Vul alle velden in"; err.style.display="block"; return; }
       setBtnState(btn, true, "Inloggen");
-      const {ok, data} = await authPost({actie:"login", gebruikersnaam:user, wachtwoord:pwd});
-      if (ok) {
-        ADMIN_TOKEN = data.token;
-        ADMIN_USER  = data.gebruiker;
-        sessionStorage.setItem(SESS_KEY, data.token);
-        sessionStorage.setItem(USER_KEY, data.gebruiker);
-        toonAdmin();
-      } else {
-        err.textContent = data.error || "Inloggen mislukt";
+      try {
+        const {ok, data} = await authPost({actie:"login", gebruikersnaam:user, wachtwoord:pwd});
+        if (ok) {
+          ADMIN_TOKEN = data.token;
+          ADMIN_USER  = data.gebruiker;
+          sessionStorage.setItem(SESS_KEY, data.token);
+          sessionStorage.setItem(USER_KEY, data.gebruiker);
+          toonAdmin();
+        } else {
+          err.textContent = data.error || "Inloggen mislukt";
+          err.style.display = "block";
+          setBtnState(btn, false, "Inloggen");
+        }
+      } catch(e) {
+        err.textContent = "Kan geen verbinding maken. Probeer opnieuw.";
         err.style.display = "block";
+        setBtnState(btn, false, "Inloggen");
       }
-      setBtnState(btn, false, "Inloggen");
     }
 
     // ── WACHTWOORD VERGETEN ──
@@ -584,6 +590,8 @@
         }).join("");
       sel.value = huidig && gesorteerd.includes(huidig) ? huidig : gesorteerd[0] || "";
     }
+
+    function btwSplit(totaal, kt) {
       // consument: prijs incl. 21% btw → excl = totaal/1.21, btw = totaal - excl
       // zzp/bedrijf: prijs excl. btw → btw = totaal*0.21
       if (kt === "consument") {
@@ -1008,8 +1016,8 @@
         // Verifieer sessie nog geldig
         authPost({actie:"verifieer", token:_tok, gebruikersnaam:_user}).then(({data})=>{
           if (data.geldig) toonAdmin();
-          else { sessionStorage.clear(); }
-        });
+          else { sessionStorage.clear(); ADMIN_TOKEN = ""; ADMIN_USER = ""; }
+        }).catch(()=>{ sessionStorage.clear(); ADMIN_TOKEN = ""; ADMIN_USER = ""; });
       }
     }
   </script>
