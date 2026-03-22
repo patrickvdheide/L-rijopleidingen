@@ -248,8 +248,9 @@ function App() {
       const errData = await boekRes.json().catch(()=>({error:"Onbekende fout"}));
       throw new Error(errData.error || "Opslaan mislukt: "+boekRes.status);
     }
-    // Sla bevestiging op in URL hash voor refresh-persistentie
+    // Sla op in URL hash voor refresh-persistentie én sla op in state
     window.location.hash = "boeking=" + encodeURIComponent(JSON.stringify(b));
+    setInitRes(b);
   };
 
   if (!klaar) return html`<${Spinner} msg="Beschikbaarheid ophalen..."/>`;
@@ -405,6 +406,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         straat,huisnummer:huisnr,postcode,plaats,
         betaalMethode:bm,aantalOpts,p:p(slt.length),ts:new Date().toISOString()};
       await onBoek(b);
+      setBz(false);
     } catch(e){ 
       setFt("Er ging iets mis: "+e.message+". Probeer het opnieuw of neem contact op via info@l-rijopleidingen.nl"); 
       setBz(false); 
