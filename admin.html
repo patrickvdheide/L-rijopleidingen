@@ -13,7 +13,10 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #eef0f5; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; }
-    .topbar { background: #0586f0; color: white; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(5,134,240,0.25); }
+    .topbar { background: #ffffff; color: #1a1f2e; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 0 #dde1e9; border-bottom: 1px solid #dde1e9; }
+    .topbar .nav-btn { color: #6b7280; }
+    .topbar .nav-btn:hover { background: #f5f6f8; color: #1a1f2e; }
+    .topbar .nav-btn.active, .topbar .nav-btn.nav-active { background: #e6f4fe; color: #0586f0; font-weight: 700; }
     .container { max-width: 1100px; margin: 24px auto; padding: 0 16px 48px; }
     .card { background: white; border-radius: 8px; border: 1px solid #dde1e9; overflow: hidden; margin-bottom: 16px; }
     .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -75,16 +78,17 @@
     .nav-btn.active, .nav-btn.nav-active { background:rgba(255,255,255,0.2);color:white;font-weight:700; }
     /* Hamburger menu */
     .hamburger { display:none;flex-direction:column;justify-content:center;gap:5px;background:transparent;border:none;cursor:pointer;padding:6px;border-radius:5px;flex-shrink:0; }
-    .hamburger span { display:block;width:20px;height:2px;background:white;border-radius:2px;transition:all 0.2s; }
+    .hamburger span { display:block;width:20px;height:2px;background:#1a1f2e;border-radius:2px;transition:all 0.2s; }
     .hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
     .hamburger.open span:nth-child(2) { opacity:0; }
     .hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
-    .mobile-menu { display:none;position:fixed;top:52px;left:0;right:0;background:#0586f0;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.2);flex-direction:column;padding:8px 0; }
+    .mobile-menu { display:none;position:fixed;top:56px;left:0;right:0;background:#ffffff;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.12);border-top:1px solid #dde1e9;flex-direction:column;padding:8px 0; }
     .mobile-menu.open { display:flex; }
-    .mobile-menu button { background:transparent;border:none;color:white;padding:14px 20px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1); }
+    .mobile-menu button { background:transparent;border:none;color:#1a1f2e;padding:14px 20px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;text-align:left;border-bottom:1px solid #f3f4f6; }
     .mobile-menu button:last-child { border-bottom:none; }
+    .mobile-menu button.active { background:#e6f4fe;color:#0586f0;font-weight:700; }
     .mobile-menu button.active { background:rgba(255,255,255,0.15);font-weight:700; }
-    .mobile-menu .menu-logout { color:rgba(255,255,255,0.7);font-size:14px; }
+    .mobile-menu .menu-logout { color:#dc2626;font-size:14px; }
     @media (max-width: 520px) {
       .hamburger { display:flex; }
       #nav-bar { display:none !important; }
@@ -96,7 +100,7 @@
     /* Topbar: compact houden op alle schermen */
     .topbar-logo { height: 22px; width: auto; display: block; flex-shrink: 0; }
     .topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    #admin-naam-lbl { font-size: 12px; color: rgba(255,255,255,0.65); white-space: nowrap; }
+    #admin-naam-lbl { font-size: 12px; color: #6b7280; white-space: nowrap; }
 
     /* Stats: altijd 2 kolommen op mobiel, meer op groter */
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -132,7 +136,7 @@
   <a href="#admin-content" style="position:absolute;left:-9999px;top:4px;z-index:9999;padding:8px 16px;background:#0586f0;color:white;border-radius:4px;font-size:14px;text-decoration:none;" onfocus="this.style.left='4px'" onblur="this.style.left='-9999px'">Ga naar inhoud</a>
   <div class="topbar" id="main-topbar" style="display:none;">
     <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-      <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" class="topbar-logo"/>
+      <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc2137ec448353135e0a0a_L-rijopleidingen-logo-rgb.svg" alt="L-Rijopleidingen" class="topbar-logo"/>
       <nav id="nav-bar" style="display:none;gap:2px;">
         <button onclick="toonPagina('boekingen')" id="nav-boekingen" class="nav-btn nav-active">Boekingen</button>
         <button onclick="toonPagina('gebruikers')" id="nav-gebruikers" class="nav-btn">Gebruikers</button>
@@ -140,7 +144,7 @@
     </div>
     <div class="topbar-right">
       <span id="admin-naam-lbl" style="display:none;"></span>
-      <span id="logout-btn" style="font-size:13px;cursor:pointer;color:rgba(255,255,255,0.8);display:none;background:rgba(255,255,255,0.15);padding:5px 12px;border-radius:5px;white-space:nowrap;" onclick="uitloggen()">Uitloggen</span>
+      <span id="logout-btn" style="font-size:13px;cursor:pointer;color:#dc2626;display:none;background:#fff5f5;border:1px solid #fee2e2;padding:5px 12px;border-radius:5px;white-space:nowrap;" onclick="uitloggen()">Uitloggen</span>
       <!-- Hamburger knop (alleen mobiel) -->
       <button class="hamburger" id="hamburger-btn" onclick="toggleMenu()" aria-label="Menu openen" style="display:none;">
         <span></span><span></span><span></span>
@@ -1013,24 +1017,29 @@
         document.getElementById("gebruikers-tabel").innerHTML = '<div class="loading">Geen gebruikers gevonden</div>';
         return;
       }
-      const rijen = gebruikers.map(g => {
+      const kaarten = gebruikers.map(g => {
         const f=g.fields||{}, heeftWw=!!f.WachtwoordHash;
-        return `<tr>
-          <td><strong>${f.Gebruikersnaam||"-"}</strong></td>
-          <td>${f.Email||"-"}</td>
-          <td>${heeftWw?'<span class="badge b-nieuw">Actief</span>':'<span class="badge b-geann">Geen wachtwoord</span>'}</td>
-          <td style="text-align:right;padding-right:14px">
-            <button onclick="stuurResetMail('${g.id}','${f.Email||""}','${f.Gebruikersnaam||""}')" class="btn btn-secondary" style="font-size:12px;padding:5px 10px;margin-right:4px">Reset mail</button>
-            <button onclick="verwijderGebruiker('${g.id}','${f.Gebruikersnaam||""}')" class="btn btn-danger" style="font-size:12px;padding:5px 10px">Verwijderen</button>
-          </td>
-        </tr>`;
+        const statusBadge = heeftWw
+          ? '<span class="badge b-nieuw">Actief</span>'
+          : '<span class="badge b-geann">Geen wachtwoord</span>';
+        const initiaal = (f.Gebruikersnaam||"?")[0].toUpperCase();
+        return `<div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #f3f4f6;">
+          <div style="width:40px;height:40px;border-radius:50%;background:#e6f4fe;color:#0586f0;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initiaal}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;color:#1a1f2e;margin-bottom:2px;">${f.Gebruikersnaam||"−"}</div>
+            <div style="font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.Email||"−"}</div>
+            <div style="margin-top:4px;">${statusBadge}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <button onclick="stuurResetMail('${g.id}','${f.Email||""}','${f.Gebruikersnaam||""}')" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;white-space:nowrap;">Reset mail</button>
+            <button onclick="verwijderGebruiker('${g.id}','${f.Gebruikersnaam||""}')" class="btn btn-danger" style="font-size:12px;padding:6px 12px;">Verwijderen</button>
+          </div>
+        </div>`;
       }).join("");
-      document.getElementById("gebruikers-tabel").innerHTML = `
-        <table><thead><tr><th>Gebruikersnaam</th><th>E-mail</th><th>Status</th><th></th></tr></thead>
-        <tbody>${rijen}</tbody></table>`;
+      document.getElementById("gebruikers-tabel").innerHTML = kaarten;
     }
 
-    function toonNieuweGebruiker() {
+        function toonNieuweGebruiker() {
       document.getElementById("nu-user").value="";
       document.getElementById("nu-email").value="";
       document.getElementById("nu-fout").style.display="none";

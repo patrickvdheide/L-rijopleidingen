@@ -53,18 +53,22 @@ const { useState, useEffect } = React;
 const NETLIFY = "";
 const MND = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
 const WD  = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
-const CMS_CACHE_KEY = "lrijo_cms_v1";
-const CMS_CACHE_TTL = 5 * 60 * 1000; // 5 minuten
+// CMS caching verwijderd — altijd live data van Webflow
 
 const FB = {
   diensten: [
     { id:"locatie", label:"Locatie", duur:"90 min", info:"Gebruik van CBR-gecertificeerde oefenlocatie", prijzen:{ consument:100, zzp:100, bedrijf:100 } },
   ],
   opties: [
-    { id:"instructeur", label:"Met instructeur", prijs:90, info:"Je oefent met een instructeur op de locatie", verplichtConsument:true, zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
-    { id:"motor",       label:"Motor op locatie", prijs:100, info:"Gebruik van motor op locatie aanwezig",     verplichtConsument:false, zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
+    { id:"instructeur", label:"Met instructeur", prijs:90,  info:"Je oefent met een instructeur op de locatie", verplichtConsument:true,  zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
+    { id:"motor",       label:"Motor op locatie", prijs:100, info:"Gebruik van motor op locatie aanwezig",      verplichtConsument:false, zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
   ],
-  beschikbaar: { tijdsloten:["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"], weekdagen:[1,2,3,4,5], geblokkeerdeData:[] }
+  beschikbaar: { tijdsloten:["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"], weekdagen:[1,2,3,4,5], geblokkeerdeData:[] },
+  klanttypes: [
+    { id:"consument", label:"Cursist",         sub:"Particulier · incl. btw",  icoon:"🎓", kleur:"#0586f0", btw:"incl",  volgorde:1, bedrijfsvelden:false, kvkveld:false },
+    { id:"zzp",       label:"Instructeur",     sub:"Zelfstandige · excl. btw", icoon:"🏍️", kleur:"#16a34a", btw:"excl",  volgorde:2, bedrijfsvelden:true,  kvkveld:false },
+    { id:"bedrijf",   label:"Rijschoolhouder", sub:"Organisatie · excl. btw",  icoon:"🏢", kleur:"#92400e", btw:"excl",  volgorde:3, bedrijfsvelden:true,  kvkveld:true  },
+  ],
 };
 
 const C = {
@@ -87,12 +91,14 @@ function tRange(t) {
   return t+" – "+String(eh).padStart(2,"0")+":"+String(m).padStart(2,"0");
 }
 
-function calc(ds,os,kt,n,AD,AO,aantalOpts) {
+function calc(ds,os,kt,n,AD,AO,aantalOpts,AK) {
   if (!kt||!n) return {sub:0,btw:0,tot:0};
-  const ao = aantalOpts || {};
-  const ps = ds.reduce((s,id)=>s+(AD.find(d=>d.id===id)?.prijzen?.[kt]||0),0)
-           + os.reduce((s,id)=>{ const o=AO.find(o=>o.id===id); return s+((o?.prijs||0)*(ao[id]||1)); },0);
-  const sub=ps*n, btw=kt==="consument"?sub*0.21:0;
+  const ao  = aantalOpts || {};
+  const ktInfo = (AK||[]).find(k=>k.id===kt) || { btw: kt==="consument"?"incl":"excl" };
+  const ps  = ds.reduce((s,id)=>s+(AD.find(d=>d.id===id)?.prijzen?.[kt]||0),0)
+            + os.reduce((s,id)=>{ const o=AO.find(o=>o.id===id); return s+((o?.prijs||0)*(ao[id]||1)); },0);
+  const sub = ps*n;
+  const btw = ktInfo.btw==="incl" ? sub*0.21 : 0;
   return {sub,btw,tot:sub+btw};
 }
 
@@ -107,18 +113,7 @@ async function getBezet() {
   } catch { return {}; }
 }
 
-function getCmsCache() {
-  try {
-    const raw = localStorage.getItem(CMS_CACHE_KEY);
-    if (!raw) return null;
-    const {ts, data} = JSON.parse(raw);
-    if (Date.now()-ts > CMS_CACHE_TTL) return null;
-    return data;
-  } catch { return null; }
-}
-function setCmsCache(data) {
-  try { localStorage.setItem(CMS_CACHE_KEY, JSON.stringify({ts:Date.now(),data})); } catch {}
-}
+// CMS cache functies verwijderd
 
 // ── FETCH MET RETRY ──
 async function fetchRetry(url, opts={}, retries=2) {
@@ -201,6 +196,7 @@ function PR({label,val,dim}) {
 function App() {
   const [AD,setAD]       = useState([]);
   const [AO,setAO]       = useState([]);
+  const [AK,setAK]       = useState(FB.klanttypes); // Klanttypes uit CMS
   const [besch,setBesch] = useState(null);
   const [bezet,setBzt]   = useState({});
   const [klaar,setKlaar] = useState(false);
@@ -219,21 +215,18 @@ function App() {
 
     (async()=>{
       try {
-        // Probeer cache eerst
-        const cached = getCmsCache();
+        // Altijd live CMS data ophalen — geen cache
         const [r, bz] = await Promise.all([
-          cached
-            ? Promise.resolve(cached)
-            : fetchRetry(NETLIFY+"/api/cms-data").then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
+          fetchRetry(NETLIFY+"/api/cms-data").then(x=>{if(!x.ok)throw new Error(x.status);return x.json();}),
           getBezet()
         ]);
-        if (!cached) setCmsCache(r);
         setAD(r.diensten||FB.diensten);
         setAO(r.opties||FB.opties);
         setBesch(r.beschikbaar||FB.beschikbaar);
+        setAK(r.klanttypes||FB.klanttypes);
         setBzt(bz);
       } catch(e) {
-        setAD(FB.diensten); setAO(FB.opties); setBesch(FB.beschikbaar);
+        setAD(FB.diensten); setAO(FB.opties); setBesch(FB.beschikbaar); setAK(FB.klanttypes);
         setBzt(await getBezet());
         setWrn("CMS niet bereikbaar. Standaardgegevens getoond.");
       }
@@ -263,17 +256,23 @@ function App() {
     setInitRes(bMet);
   };
 
-  // Vernieuw bezette slots elke 2 minuten op de achtergrond
+  // Vernieuw bezette slots elke 2 minuten + CMS data elke 5 minuten
   useEffect(()=>{
-    const interval = setInterval(()=>{
+    const i1 = setInterval(()=>{
       getBezet().then(bz => setBzt(bz)).catch(()=>{});
     }, 2 * 60 * 1000);
-    return () => clearInterval(interval);
+    const i2 = setInterval(()=>{
+      fetchRetry(NETLIFY+"/api/cms-data")
+        .then(x=>x.ok?x.json():null)
+        .then(r=>{ if(r){ setAD(r.diensten||AD); setAO(r.opties||AO); setBesch(r.beschikbaar||besch); setAK(r.klanttypes||AK); }})
+        .catch(()=>{});
+    }, 5 * 60 * 1000);
+    return () => { clearInterval(i1); clearInterval(i2); };
   }, []);
 
   if (!klaar) return html`<${Spinner} msg="Beschikbaarheid ophalen..."/>`;
   if (initRes) return html`<${Bevestiging} res=${initRes} AD=${AD} AO=${AO} onNieuw=${()=>{ window.location.hash=""; setInitRes(null); }}/>`;
-  return html`<${Wizard} bezet=${bezet} AD=${AD} AO=${AO} besch=${besch} wrn=${wrn} onBoek=${boek}/>`;
+  return html`<${Wizard} bezet=${bezet} AD=${AD} AO=${AO} AK=${AK} besch=${besch} wrn=${wrn} onBoek=${boek}/>`;
 }
 
 // ── BEVESTIGING ──
@@ -349,7 +348,8 @@ function Bevestiging({res,AD,AO,onNieuw}) {
 }
 
 // ── WIZARD ──
-function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
+function Wizard({bezet,AD,AO,AK,besch,wrn,onBoek}) {
+  const klanttypes = AK && AK.length ? AK : FB.klanttypes;
   const today = new Date();
   const [stap,setSt]   = useState(1);
   const [kt,setKt]     = useState(null);
@@ -378,7 +378,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
   const maxStap = stapLabels.length;
 
   const dat = dag ? did(jr,mn,dag) : null;
-  const p   = (n) => calc(ds,os,kt,n,AD,AO,aantalOpts);
+  const p   = (n) => calc(ds,os,kt,n,AD,AO,aantalOpts,klanttypes);
   const visAO = AO.filter(o => {
     if (kt==="consument") return o.zichtbaarConsument!==false;
     if (kt==="zzp")       return o.zichtbaarZzp!==false;
@@ -480,10 +480,15 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
 
       ${stap===1 && html`<${Blok} titel="Wie maakt de afspraak?" sub="Kies uw klanttype — dit bepaalt het tarief.">
         <div style=${{display:"flex",flexDirection:"column",gap:"8px"}}>
-          ${[{id:"consument",label:"Cursist",sub:"Particulier · incl. btw"},{id:"zzp",label:"Instructeur",sub:"Zelfstandige · excl. btw"},{id:"bedrijf",label:"Rijschoolhouder",sub:"Organisatie · excl. btw"}].map(k=>html`
-            <div key=${k.id} onClick=${()=>{ setKt(k.id); setTimeout(()=>setSt(2), 250); }} style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white,transition:"all 0.15s"}}>
-              <div style=${{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}><${RB} on=${kt===k.id}/><span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span></div>
-              <span style=${{fontSize:"12px",color:C.sub,paddingLeft:"22px"}}>${k.sub}</span>
+          ${klanttypes.map(k=>html`
+            <div key=${k.id} onClick=${()=>{ setKt(k.id); setTimeout(()=>setSt(2), 250); }}
+              style=${{padding:"12px 14px",borderRadius:"6px",cursor:"pointer",border:"1.5px solid "+(kt===k.id?C.accent:C.border),background:kt===k.id?C.abg:C.white,transition:"all 0.15s"}}>
+              <div style=${{display:"flex",alignItems:"center",gap:"10px",marginBottom:"4px"}}>
+                <${RB} on=${kt===k.id}/>
+                ${k.icoon && html`<span style=${{fontSize:"18px",lineHeight:1}}>${k.icoon}</span>`}
+                <span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span>
+              </div>
+              <span style=${{fontSize:"12px",color:C.sub,paddingLeft:"26px"}}>${k.sub}</span>
             </div>`)}
         </div>
       </>`}
@@ -515,7 +520,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
         </table>
         ${ds.length>0 && html`<div style=${{display:"flex",justifyContent:"space-between",padding:"10px 14px",background:C.bg,border:"1px solid "+C.border,borderTop:"none",borderRadius:"0 0 5px 5px"}}>
           <span style=${{color:C.sub,fontSize:"13px"}}>${ds.length} geselecteerd</span>
-          <span style=${{fontSize:"13px",color:C.sub}}>Per slot: <strong>€ ${calc(ds,[],kt,1,AD,AO,{}).sub}</strong></span>
+          <span style=${{fontSize:"13px",color:C.sub}}>Per slot: <strong>€ ${calc(ds,[],kt,1,AD,AO,{},klanttypes).sub}</strong></span>
         </div>`}
       </>`}
 
@@ -561,14 +566,14 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
           ${os.filter(id=>visAO.find(x=>x.id===id)?.prijs>0).map(id=>{const o=visAO.find(x=>x.id===id);const n=aantalOpts[id]||1;const lbl=n>1?o?.label+" ("+n+"x)":o?.label;const val=n>1?"+ € "+(o.prijs*n)+" ("+n+"x € "+o.prijs+")":"+ € "+o.prijs;return html`<${PR} key=${id} label=${lbl} val=${val} dim=${true}/>`;} )}
           <div style=${{borderTop:"1px solid "+C.border,marginTop:"8px",paddingTop:"8px",display:"flex",flexDirection:"column",gap:"4px"}}>
             <div style=${{display:"flex",justifyContent:"space-between",fontSize:"13px",fontWeight:600}}>
-              <span>Per tijdslot</span><span style=${{color:C.accent}}>€ ${calc(ds,os,kt,1,AD,AO,aantalOpts).sub.toFixed(2)}</span>
+              <span>Per tijdslot</span><span style=${{color:C.accent}}>€ ${calc(ds,os,kt,1,AD,AO,aantalOpts,klanttypes).sub.toFixed(2)}</span>
             </div>
-            ${kt==="consument" && calc(ds,os,kt,1,AD,AO,aantalOpts).btw>0 && html`
+            ${(klanttypes.find(k=>k.id===kt)?.btw==="incl") && calc(ds,os,kt,1,AD,AO,aantalOpts,klanttypes).btw>0 && html`
               <div style=${{display:"flex",justifyContent:"space-between",fontSize:"12px",color:C.sub}}>
-                <span>Waarvan BTW 21%</span><span>€ ${calc(ds,os,kt,1,AD,AO,aantalOpts).btw.toFixed(2)}</span>
+                <span>Waarvan BTW 21%</span><span>€ ${calc(ds,os,kt,1,AD,AO,aantalOpts,klanttypes).btw.toFixed(2)}</span>
               </div>
             `}
-            ${kt!=="consument" && html`
+            ${(klanttypes.find(k=>k.id===kt)?.btw!=="incl") && html`
               <div style=${{fontSize:"12px",color:C.sub}}>Excl. BTW · facturabel</div>
             `}
           </div>
@@ -643,8 +648,8 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
               <${Veld} label="Postcode" req=${true} val=${postcode} set=${setPc} ph="1234 AB" ac="postal-code"/>
               <${Veld} label="Plaats" req=${true} val=${plaats} set=${setPl} ph="Amsterdam" ac="address-level2"/>
             </div>
-            ${kt!=="consument" && html`<${Veld} label="Bedrijfsnaam" val=${bedr} set=${setBd} ph="Bedrijf B.V."/>`}
-            ${kt==="bedrijf" && html`<${Veld} label="KVK-nummer" val=${kvk} set=${setKv} ph="12345678"/>`}
+            ${(klanttypes.find(k=>k.id===kt)?.bedrijfsvelden ?? kt!=="consument") && html`<${Veld} label="Bedrijfsnaam" val=${bedr} set=${setBd} ph="Bedrijf B.V."/>`}
+            ${(klanttypes.find(k=>k.id===kt)?.kvkveld ?? kt==="bedrijf") && html`<${Veld} label="KVK-nummer" val=${kvk} set=${setKv} ph="12345678"/>`}
             <div>
               <label style=${{fontSize:"12px",fontWeight:500,color:C.text,display:"block",marginBottom:"8px"}}>Betaalmethode op locatie <span style=${{color:C.err}}>*</span></label>
               <div style=${{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -675,7 +680,7 @@ function Wizard({bezet,AD,AO,besch,wrn,onBoek}) {
                 <span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>Totaal</span>
                 <span style=${{fontWeight:700,fontSize:"20px",color:C.accent}}>€ ${p(slt.length).tot.toFixed(2)}</span>
               </div>
-              ${kt==="consument" && html`<p style=${{fontSize:"11px",color:C.faint,marginTop:"4px",textAlign:"right"}}>Incl. 21% btw</p>`}
+              ${(klanttypes.find(k=>k.id===kt)?.btw==="incl") && html`<p style=${{fontSize:"11px",color:C.faint,marginTop:"4px",textAlign:"right"}}>Incl. 21% btw</p>`}
             </div>
           </div>
         </div>
