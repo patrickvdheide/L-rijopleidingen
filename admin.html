@@ -73,6 +73,24 @@
     .nav-btn { background:transparent;border:none;color:rgba(255,255,255,0.7);padding:6px 16px;border-radius:5px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all 0.15s; }
     .nav-btn:hover { background:rgba(255,255,255,0.15);color:white; }
     .nav-btn.active, .nav-btn.nav-active { background:rgba(255,255,255,0.2);color:white;font-weight:700; }
+    /* Hamburger menu */
+    .hamburger { display:none;flex-direction:column;justify-content:center;gap:5px;background:transparent;border:none;cursor:pointer;padding:6px;border-radius:5px;flex-shrink:0; }
+    .hamburger span { display:block;width:20px;height:2px;background:white;border-radius:2px;transition:all 0.2s; }
+    .hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity:0; }
+    .hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+    .mobile-menu { display:none;position:fixed;top:52px;left:0;right:0;background:#0586f0;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.2);flex-direction:column;padding:8px 0; }
+    .mobile-menu.open { display:flex; }
+    .mobile-menu button { background:transparent;border:none;color:white;padding:14px 20px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1); }
+    .mobile-menu button:last-child { border-bottom:none; }
+    .mobile-menu button.active { background:rgba(255,255,255,0.15);font-weight:700; }
+    .mobile-menu .menu-logout { color:rgba(255,255,255,0.7);font-size:14px; }
+    @media (max-width: 520px) {
+      .hamburger { display:flex; }
+      #nav-bar { display:none !important; }
+      #admin-naam-lbl { display:none !important; }
+      #logout-btn { display:none !important; }
+    }
     /* ── RESPONSIVE ── */
 
     /* Topbar: compact houden op alle schermen */
@@ -123,6 +141,18 @@
     <div class="topbar-right">
       <span id="admin-naam-lbl" style="display:none;"></span>
       <span id="logout-btn" style="font-size:13px;cursor:pointer;color:rgba(255,255,255,0.8);display:none;background:rgba(255,255,255,0.15);padding:5px 12px;border-radius:5px;white-space:nowrap;" onclick="uitloggen()">Uitloggen</span>
+      <!-- Hamburger knop (alleen mobiel) -->
+      <button class="hamburger" id="hamburger-btn" onclick="toggleMenu()" aria-label="Menu openen" style="display:none;">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobiel uitklapmenu -->
+  <div class="mobile-menu" id="mobile-menu">
+    <button id="mob-boekingen" onclick="toonPagina('boekingen');sluitMenu()" class="active">Boekingen</button>
+    <button id="mob-gebruikers" onclick="toonPagina('gebruikers');sluitMenu()">Gebruikers</button>
+    <div style="border-top:1px solid rgba(255,255,255,0.2);padding:8px 0 0;">
+      <button class="menu-logout" onclick="uitloggen();sluitMenu()">Uitloggen</button>
     </div>
   </div>
 
@@ -515,11 +545,14 @@
       sessionStorage.removeItem(SESS_KEY);
       sessionStorage.removeItem(USER_KEY);
       ADMIN_TOKEN = ""; ADMIN_USER = "";
+      sluitMenu();
       document.getElementById("admin-view").style.display   = "none";
       document.getElementById("main-topbar").style.display  = "none";
       document.getElementById("nav-bar").style.display      = "none";
       document.getElementById("login-view").style.display   = "flex";
       document.getElementById("logout-btn").style.display   = "none";
+      const hbtn = document.getElementById("hamburger-btn");
+      if (hbtn) hbtn.style.display = "none";
       const naamLbl = document.getElementById("admin-naam-lbl");
       if (naamLbl) naamLbl.style.display = "none";
       // Focus terug op login veld
@@ -534,6 +567,9 @@
       document.getElementById("logout-btn").style.display  = "inline-block";
       const naamLbl = document.getElementById("admin-naam-lbl");
       if (naamLbl) { naamLbl.textContent = ADMIN_USER; naamLbl.style.display = "inline"; }
+      // Hamburger zichtbaar op mobiel
+      const hbtn = document.getElementById("hamburger-btn");
+      if (hbtn) hbtn.style.display = "";
       toonPagina("boekingen");
       laadBoekingen();
     }
@@ -952,6 +988,9 @@
         if (el) el.style.display = p===naam?"block":"none";
         const btn = document.getElementById("nav-"+p);
         if (btn) btn.className = "nav-btn"+(p===naam?" active":"");
+        // Sync mobile menu
+        const mob = document.getElementById("mob-"+p);
+        if (mob) mob.className = p===naam?"active":"";
       });
       if (naam==="gebruikers") laadGebruikers();
     }
@@ -1054,8 +1093,30 @@
     document.getElementById("optie-motor").addEventListener("change", syncOptiesHidden);
 
     // Escape sluit modals
+    // Hamburger menu functies
+    function toggleMenu() {
+      const btn  = document.getElementById("hamburger-btn");
+      const menu = document.getElementById("mobile-menu");
+      btn.classList.toggle("open");
+      menu.classList.toggle("open");
+    }
+    function sluitMenu() {
+      document.getElementById("hamburger-btn").classList.remove("open");
+      document.getElementById("mobile-menu").classList.remove("open");
+    }
+    // Sluit menu bij klik buiten
+    document.addEventListener("click", function(e) {
+      const btn  = document.getElementById("hamburger-btn");
+      const menu = document.getElementById("mobile-menu");
+      if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+        btn.classList.remove("open");
+        menu.classList.remove("open");
+      }
+    });
+
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
+        sluitMenu();
         if (document.getElementById("bewerk-modal").style.display === "flex") sluitModal();
         if (document.getElementById("nieuwe-gebruiker-modal").style.display === "flex") sluitNieuweGebruiker();
       }
