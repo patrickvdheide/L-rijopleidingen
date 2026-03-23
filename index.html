@@ -94,12 +94,16 @@ function tRange(t) {
 function calc(ds,os,kt,n,AD,AO,aantalOpts,AK) {
   if (!kt||!n) return {sub:0,btw:0,tot:0};
   const ao  = aantalOpts || {};
+  // Prijs uit Webflow is altijd excl. BTW (basisprijs)
+  // btw="incl" → klant betaalt prijs + 21% bovenop
+  // btw="excl" → klant betaalt alleen de basisprijs
   const ktInfo = (AK||[]).find(k=>k.id===kt) || { btw: kt==="consument"?"incl":"excl" };
   const ps  = ds.reduce((s,id)=>s+(AD.find(d=>d.id===id)?.prijzen?.[kt]||0),0)
             + os.reduce((s,id)=>{ const o=AO.find(o=>o.id===id); return s+((o?.prijs||0)*(ao[id]||1)); },0);
-  const sub = ps*n;
-  const btw = ktInfo.btw==="incl" ? sub*0.21 : 0;
-  return {sub,btw,tot:sub+btw};
+  const excl = ps*n;                           // altijd excl. BTW
+  const btw  = ktInfo.btw==="incl" ? excl*0.21 : 0;  // BTW alleen voor cursisten
+  const tot  = excl + btw;                     // cursist: prijs+btw, rest: alleen prijs
+  return {sub:excl, btw, tot};
 }
 
 // ── STORAGE ──
@@ -488,10 +492,16 @@ function Wizard({bezet,AD,AO,AK,besch,wrn,onBoek}) {
                   <${RB} on=${kt===k.id}/>
                   <span style=${{fontWeight:600,fontSize:"14px",color:C.text}}>${k.label}</span>
                 </div>
-                ${AD.length>0 && html`<span style=${{fontSize:"13px",fontWeight:600,color:kt===k.id?C.accent:C.sub,flexShrink:0}}>
-                  v.a. € ${AD.reduce((min,d)=>Math.min(min,d.prijzen?.[k.id]||Infinity),Infinity)===Infinity?"—":AD.reduce((min,d)=>Math.min(min,d.prijzen?.[k.id]||Infinity),Infinity)}
-                  ${k.btw==="incl"?html`<span style=${{fontSize:"11px",fontWeight:400,color:C.faint}}> incl. btw</span>`:html`<span style=${{fontSize:"11px",fontWeight:400,color:C.faint}}> excl. btw</span>`}
-                </span>`}
+                ${AD.length>0 && (()=>{
+                  const basis = AD.reduce((min,d)=>Math.min(min,d.prijzen?.[k.id]||Infinity),Infinity);
+                  if (basis===Infinity||basis===0) return null;
+                  const toon = k.btw==="incl" ? basis*1.21 : basis;
+                  const label = k.btw==="incl" ? " incl. btw" : " excl. btw";
+                  return html`<span style=${{fontSize:"13px",fontWeight:600,color:kt===k.id?C.accent:C.sub,flexShrink:0}}>
+                    v.a. € ${toon.toFixed(2)}
+                    <span style=${{fontSize:"11px",fontWeight:400,color:C.faint}}>${label}</span>
+                  </span>`;
+                })()}
               </div>
               <span style=${{fontSize:"12px",color:C.sub,paddingLeft:"22px"}}>${k.sub}</span>
             </div>`)}
@@ -518,7 +528,13 @@ function Wizard({bezet,AD,AO,AK,besch,wrn,onBoek}) {
                   <div style=${{fontSize:"12px",color:C.sub}}>${d.info}</div>
                 </td>
                 <td style=${{padding:"12px 14px",verticalAlign:"middle",color:C.sub,fontSize:"13px",whiteSpace:"nowrap"}}>${d.duur}</td>
-                ${kt && html`<td style=${{padding:"12px 14px",verticalAlign:"middle",textAlign:"right",fontWeight:600,color:a?C.accent:C.text,fontSize:"14px",whiteSpace:"nowrap"}}>€ ${d.prijzen[kt]}</td>`}
+                ${kt && html`<td style=${{padding:"12px 14px",verticalAlign:"middle",textAlign:"right",fontWeight:600,color:a?C.accent:C.text,fontSize:"14px",whiteSpace:"nowrap"}}>
+                  € ${(()=>{
+                    const basis = d.prijzen[kt]||0;
+                    const ktInfo = klanttypes.find(k=>k.id===kt)||{btw:"excl"};
+                    return ktInfo.btw==="incl" ? (basis*1.21).toFixed(2) : basis.toFixed(2);
+                  })()}
+                </td>`}
               </tr>`;
             })}
           </tbody>
@@ -567,7 +583,13 @@ function Wizard({bezet,AD,AO,AK,besch,wrn,onBoek}) {
         </div>
         <div style=${{background:C.bg,border:"1px solid "+C.border,borderRadius:"6px",padding:"14px",marginTop:"16px"}}>
           <div style=${{fontSize:"12px",fontWeight:600,color:C.sub,marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Prijs per tijdslot</div>
-          ${ds.map(id=>{const d=AD.find(x=>x.id===id);return html`<${PR} key=${id} label=${d?.label} val=${"€ "+(d?.prijzen[kt]||0)}/>`;} )}
+          ${ds.map(id=>{
+            const d=AD.find(x=>x.id===id);
+            const basis=d?.prijzen[kt]||0;
+            const ktI=klanttypes.find(k=>k.id===kt)||{btw:"excl"};
+            const toon=ktI.btw==="incl"?(basis*1.21).toFixed(2):basis.toFixed(2);
+            return html`<${PR} key=${id} label=${d?.label} val=${"€ "+toon}/>`;
+          })}
           ${os.filter(id=>visAO.find(x=>x.id===id)?.prijs>0).map(id=>{const o=visAO.find(x=>x.id===id);const n=aantalOpts[id]||1;const lbl=n>1?o?.label+" ("+n+"x)":o?.label;const val=n>1?"+ € "+(o.prijs*n)+" ("+n+"x € "+o.prijs+")":"+ € "+o.prijs;return html`<${PR} key=${id} label=${lbl} val=${val} dim=${true}/>`;} )}
           <div style=${{borderTop:"1px solid "+C.border,marginTop:"8px",paddingTop:"8px",display:"flex",flexDirection:"column",gap:"4px"}}>
             <div style=${{display:"flex",justifyContent:"space-between",fontSize:"13px",fontWeight:600}}>
