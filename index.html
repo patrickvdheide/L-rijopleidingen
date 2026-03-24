@@ -167,6 +167,7 @@ function Steps({stap,labels}) {
 function Blok({titel,sub,children}) {
   return html`<div>
     <h2 style=${{fontSize:"18px",fontWeight:700,color:C.text,margin:"0 0 3px"}}>${titel}</h2>
+    ${sub && html`<p style=${{fontSize:"13px",color:C.sub,margin:"0 0 18px"}}>${sub}</p>`}
     ${children}
   </div>`;
 }
