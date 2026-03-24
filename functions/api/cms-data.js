@@ -94,6 +94,17 @@ function parseKlanttypes(items) {
       const f = item.fieldData || {};
       return {
         id:       vind(f, "slug","id","klanttype-id","identifier") || item.id,
+        // prijsSleutel: interne key voor d.prijzen[] lookup
+        // Auto-mapping op basis van bekende namen — geen Webflow aanpassing nodig
+        get prijsSleutel() {
+          const n = (vind(f,"naam","name","label") || "").toLowerCase();
+          const s = (vind(f,"slug","id") || "").toLowerCase();
+          const t = n + " " + s;
+          if (/cursist|consument|particulier/.test(t)) return "consument";
+          if (/instructeur|zzp|zelfstand/.test(t))     return "zzp";
+          if (/rijschool|bedrijf|organisat/.test(t))   return "bedrijf";
+          return "consument"; // fallback
+        },
         label:    vind(f, "name","naam","label","titel") || "Klant",
         sub:      vind(f, "subtitel","sub","omschrijving","description","toelichting") || "",
         icoon:    vind(f, "icoon","icon","emoji","symbool") || "",
