@@ -75,7 +75,7 @@ function parseOpties(items) {
 function parseBeschikbaar(items) {
   const fd = items[0]?.fieldData || {};
   const tijdStr = vind(fd,"tijdsloten","time-slots","tijden","slots","uren")
-    ?? "08:00,09:00,10:00,11:00,13:00,14:00,15:00,16:00,17:00";
+    ?? "08:00,10:00,13:00,15:00";
   const dagStr = vind(fd,"weekdagen","werkdagen","beschikbare-dagen","days","dagen") ?? "1,2,3,4,5";
   const blokStr = vind(fd,"geblokkeerde-data","blocked-dates","uitzonderingen","geblokkeerd") ?? "";
   return {
