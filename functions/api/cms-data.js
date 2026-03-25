@@ -62,7 +62,7 @@ function parseOpties(items) {
     return {
       id:    item.id,
       label: vind(f, "name","naam","label","titel") || "Optie",
-      prijs: vindPrijs(f, "prijs","price","bedrag","kosten"),
+      prijs: vindPrijs(f, "prijs","price","bedrag","kosten","prijs-per-slot"),
       info:  vind(f, "info","omschrijving","description","beschrijving") || "",
       verplichtConsument: !!(vind(f,
         "verplicht-consument","verplicht-particulier","verplicht-cursist","verplicht")),
