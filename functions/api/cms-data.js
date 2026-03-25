@@ -126,7 +126,7 @@ const FALLBACK_KLANTTYPES = [
 const FALLBACK = {
   diensten:    [{ id:"locatie", label:"Locatie", duur:"90 min", info:"CBR-gecertificeerde oefenlocatie", prijzen:{ consument:100, zzp:100, bedrijf:100 } }],
   opties:      [
-    { id:"instructeur", label:"Met instructeur", prijs:90,  info:"Je oefent met een instructeur", verplichtConsument:true,  zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
+    { id:"instructeur", label:"Met instructeur", prijs:100,  info:"Je oefent met een instructeur", verplichtConsument:true,  zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
     { id:"motor",       label:"Motor op locatie", prijs:100, info:"Gebruik van motor op locatie",  verplichtConsument:false, zichtbaarConsument:true, zichtbaarZzp:true, zichtbaarBedrijf:true },
   ],
   beschikbaar: { tijdsloten:["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"], weekdagen:[1,2,3,4,5], geblokkeerdeData:[] },
