@@ -71,34 +71,32 @@ function parseOpties(items) {
     .map(item => {
       const f = item.fieldData || {};
 
-      // Skip opties die niet actief zijn (indien veld bestaat)
+      // Skip opties die uitgeschakeld zijn
       if (f.actief === false) return null;
+
+      const label =
+        vind(f, "name", "naam", "label", "titel") || "Optie";
+
+      // Specifieke logica voor motorhuur
+      const isMotor =
+        /motor/i.test(label) ||
+        /lesmotor/i.test(label);
 
       return {
         id: item.id,
 
-        label: vind(
-          f,
-          "name",
-          "naam",
-          "label",
-          "titel"
-        ) || "Optie",
+        label,
 
-        // ondersteunt o.a.:
-        // prijs-per-slot
-        // prijs
-        // meerprijs
-        // price
         prijs: vindPrijsSlim(f),
 
-        info: vind(
-          f,
-          "info",
-          "omschrijving",
-          "description",
-          "beschrijving"
-        ) || "",
+        info:
+          vind(
+            f,
+            "info",
+            "omschrijving",
+            "description",
+            "beschrijving"
+          ) || "",
 
         zichtbaarBedrijf:
           vind(
@@ -107,6 +105,10 @@ function parseOpties(items) {
             "zichtbaar-rijschool",
             "show-business"
           ) ?? true,
+
+        // 👇 nieuw
+        minAantal: isMotor ? 1 : 0,
+        maxAantal: isMotor ? 6 : 1,
 
         _velden: Object.keys(f)
       };
