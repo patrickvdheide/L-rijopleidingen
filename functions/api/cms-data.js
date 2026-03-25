@@ -54,22 +54,64 @@ function parseDiensten(items) {
   });
 }
 
+function vindPrijsSlim(f) {
+  for (const key in f) {
+    if (/prijs|price|bedrag|kosten/i.test(key)) {
+      const val = Number(f[key]);
+      if (!isNaN(val)) return val;
+    }
+  }
+  return 0;
+}
+
 function parseOpties(items) {
-  return items.map(item => {
-    const f = item.fieldData || {};
-    return {
-      id:    item.id,
-      label: vind(f, "name","naam","label","titel") || "Optie",
-      prijs: vindPrijs(f, "prijs","price","bedrag","kosten"),
-      info:  vind(f, "info","omschrijving","description","beschrijving") || "",
-      verplichtConsument: !!(vind(f,
-        "verplicht-consument","verplicht-particulier","verplicht-cursist","verplicht")),
-      zichtbaarConsument:  vind(f,"zichtbaar-consument","zichtbaar-particulier","show-consumer")  ?? true,
-      zichtbaarZzp:        vind(f,"zichtbaar-zzp","zichtbaar-instructeur","show-zzp")             ?? true,
-      zichtbaarBedrijf:    vind(f,"zichtbaar-bedrijf","zichtbaar-rijschool","show-business")      ?? true,
-      _velden: Object.keys(f),
-    };
-  });
+  if (!items || !items.length) return [];
+
+  return items
+    .map(item => {
+      const f = item.fieldData || {};
+
+      // Skip opties die niet actief zijn (indien veld bestaat)
+      if (f.actief === false) return null;
+
+      return {
+        id: item.id,
+
+        label: vind(
+          f,
+          "name",
+          "naam",
+          "label",
+          "titel"
+        ) || "Optie",
+
+        // ondersteunt o.a.:
+        // prijs-per-slot
+        // prijs
+        // meerprijs
+        // price
+        prijs: vindPrijsSlim(f),
+
+        info: vind(
+          f,
+          "info",
+          "omschrijving",
+          "description",
+          "beschrijving"
+        ) || "",
+
+        zichtbaarBedrijf:
+          vind(
+            f,
+            "zichtbaar-bedrijf",
+            "zichtbaar-rijschool",
+            "show-business"
+          ) ?? true,
+
+        _velden: Object.keys(f)
+      };
+    })
+    .filter(Boolean);
 }
 
 function parseBeschikbaar(items) {
