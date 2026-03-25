@@ -5,9 +5,7 @@
 const COLLECTIE_DIENSTEN    = "69b9579da76894f8931b3249";
 const COLLECTIE_OPTIES      = "69b9584ef5b02a7a23bfc5c9";
 const COLLECTIE_BESCHIKBAAR = "69b9591065d6e29f3cffa8a5";
-// ⚠️ Vervang dit ID na het aanmaken van de Klanttypes collectie in Webflow
-// ⚠️ Vervang dit na het aanmaken van de Klanttypes collectie in Webflow
-const COLLECTIE_KLANTTYPES  = "";  // bijv. "69bxxxxxxxxxxxxxxxxxxxxxx"
+const COLLECTIE_KLANTTYPES  = "69c12855d0a90ac9efcf1dab"; 
 
 async function haalOp(collectieId, token) {
   const res = await fetch(
