@@ -38,12 +38,23 @@ export async function onRequest(context) {
   } = boeking;
 
   const id          = await volgendBoekingsnummer(db, datum || new Date().toISOString().slice(0, 10));
-  const dienstenStr = (dienstLabels || diensten || []).join(", ");
+  const dienstenStr = (optieLabels || opties || []).join(", "); // Geen aparte diensten meer
   const optiesStr   = (optieLabels  || opties   || []).join(", ");
   const totaal      = Number(Number(totaalIn || 0).toFixed(2));
   const aantalC     = aantalCursisten || (cursisten ? cursisten.length : 1);
   const slotsLabel  = tijdblok?.label || tijdblok || "—";
   const vanaf       = "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">";
+
+  // ── Zorg dat alle kolommen bestaan (auto-migratie voor bestaande databases) ──
+  try {
+    await db.batch([
+      db.prepare("ALTER TABLE boekingen ADD COLUMN opleidingsnummer TEXT"),
+      db.prepare("ALTER TABLE boekingen ADD COLUMN cursisten_json TEXT"),
+      db.prepare("ALTER TABLE boekingen ADD COLUMN aantal_cursisten INTEGER NOT NULL DEFAULT 1"),
+    ]);
+  } catch {
+    // Kolommen bestaan al — geen actie nodig
+  }
 
   // Sla op in D1
   try {
@@ -54,12 +65,23 @@ export async function onRequest(context) {
          opleidingsnummer, cursisten_json, aantal_cursisten, status, aangemaakt)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).bind(
-      id, naam || "", email || "", tel || null, "bedrijf",
-      datum || "", slotsLabel, dienstenStr || "", optiesStr || null,
-      betaalMethode === "pin" ? "pin" : "contant", totaal,
-      bedrijf || null, opleidingsnummer || null,
-      cursisten ? JSON.stringify(cursisten) : null,
-      aantalC, "Actief", new Date().toISOString(),
+      id,
+      naam              || "",
+      email             || "",
+      tel               || null,
+      "bedrijf",
+      datum             || "",
+      slotsLabel,
+      "",               // dienst locatie verwijderd
+      optiesStr         || null,
+      betaalMethode === "pin" ? "pin" : "contant",
+      totaal,
+      bedrijf           || null,
+      opleidingsnummer  || null,
+      cursisten         ? JSON.stringify(cursisten) : null,
+      aantalC,
+      "Actief",
+      new Date().toISOString(),
     ).run();
   } catch (err) {
     return new Response(JSON.stringify({ error: "Opslaan mislukt: " + err.message }), { status: 500, headers: CORS });

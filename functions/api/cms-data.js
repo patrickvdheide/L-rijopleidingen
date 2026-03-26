@@ -2,7 +2,7 @@
 // Haalt diensten, opties en beschikbaarheid live op uit Webflow CMS
 // GEEN caching — altijd actuele data
 
-const COLLECTIE_DIENSTEN    = "69b9579da76894f8931b3249";
+// COLLECTIE_DIENSTEN verwijderd — dienst locatie niet meer van toepassing
 const COLLECTIE_OPTIES      = "69b9584ef5b02a7a23bfc5c9";
 const COLLECTIE_BESCHIKBAAR = "69b9591065d6e29f3cffa8a5";
 const COLLECTIE_KLANTTYPES  = "69c12855d0a90ac9efcf1dab";
@@ -73,19 +73,22 @@ function parseOpties(items) {
   if (!items || !items.length) return [];
   return items.map(item => {
     const f = item.fieldData || {};
+    // Alleen weggooien als actief EXPLICIET false is
     if (f.actief === false) return null;
     const label = vind(f, "name","naam","label","titel") || "Optie";
-    const isMotor = /motor|lesmotor/i.test(label);
+    // isMotor en isLesmotor bepalen max-aantal (wordt client-side overschreven met nC)
+    const isMotor = /motor|lesmotor|motorkleding/i.test(label);
     return {
-      id:    item.id,
+      id:       item.id,
       label,
-      prijs: vindPrijsSlim(f),
-      info:  vind(f,"info","omschrijving","description","beschrijving") || "",
-      zichtbaarBedrijf: vind(f,"zichtbaar-bedrijf","zichtbaar-rijschool","show-business") ?? true,
-      minAantal: isMotor ? 1 : 0,
-      maxAantal: isMotor ? 6 : 1,
+      prijs:    vindPrijsSlim(f),
+      info:     vind(f,"omschrijving","info","description","beschrijving") || "",
+      isMotor,  // client gebruikt dit om maxAantal = nC te zetten
+      minAantal: 0,
+      maxAantal: 6, // wordt client-side overschreven met aantalCursisten
     };
   }).filter(Boolean);
+  // Geen zichtbaarBedrijf filter — dit is een rijschoolhouder-only tool
 }
 
 function parseBeschikbaar(items) {
@@ -106,7 +109,7 @@ const VASTE_TIJDBLOKKEN = [
 ];
 
 const FALLBACK = {
-  diensten:    [{ id:"locatie", label:"Locatie", duur:"90 min", info:"CBR-gecertificeerde oefenlocatie", prijzen:{ consument:100, zzp:100, bedrijf:100 } }],
+  diensten:    [],
   opties:      [{ id:"motor", label:"Motor van L-rijopleidingen", prijs:100, info:"Gebruik van motor op locatie aanwezig", zichtbaarBedrijf:true, minAantal:1, maxAantal:6 }],
   beschikbaar: { weekdagen:[1,3,5], geblokkeerdeData:[] },
   tijdblokken: VASTE_TIJDBLOKKEN,
@@ -123,17 +126,14 @@ export async function onRequest(context) {
       return Response.json({ error: "Onbevoegd" }, { status: 403, headers: NO_CACHE });
     }
     try {
-      const [dData, oData, bData] = await Promise.all([
-        haalOp(COLLECTIE_DIENSTEN, token),
+      const [oData, bData] = await Promise.all([
         haalOp(COLLECTIE_OPTIES,   token),
         haalOp(COLLECTIE_BESCHIKBAAR, token),
       ]);
       return Response.json({
-        diensten_geparsed: parseDiensten(dData.items||[]),
-        opties_geparsed:   parseOpties(oData.items||[]),
-        diensten_raw:  (dData.items||[]).map(i=>({id:i.id,fieldData:i.fieldData})),
-        opties_raw:    (oData.items||[]).map(i=>({id:i.id,fieldData:i.fieldData})),
-        beschikbaar_raw:(bData.items||[]).map(i=>({id:i.id,fieldData:i.fieldData})),
+        opties_geparsed:    parseOpties(oData.items||[]),
+        opties_raw:         (oData.items||[]).map(i=>({id:i.id,fieldData:i.fieldData})),
+        beschikbaar_raw:    (bData.items||[]).map(i=>({id:i.id,fieldData:i.fieldData})),
       }, { headers: NO_CACHE });
     } catch(e) { return Response.json({ error: e.message }, { status:500, headers: NO_CACHE }); }
   }
@@ -141,18 +141,16 @@ export async function onRequest(context) {
   if (!token) return Response.json({ ...FALLBACK }, { headers: NO_CACHE });
 
   try {
-    const [dData, oData, bData] = await Promise.all([
-      haalOp(COLLECTIE_DIENSTEN,    token),
+    const [oData, bData] = await Promise.all([
       haalOp(COLLECTIE_OPTIES,      token),
       haalOp(COLLECTIE_BESCHIKBAAR, token),
     ]);
-    const diensten    = parseDiensten(dData.items   || []);
     const opties      = parseOpties(oData.items     || []);
     const beschikbaar = parseBeschikbaar(bData.items || []);
     return Response.json(
       {
-        diensten:    diensten.length ? diensten    : FALLBACK.diensten,
-        opties:      opties.length   ? opties      : FALLBACK.opties,
+        diensten:    [],
+        opties:      opties.length ? opties : FALLBACK.opties,
         beschikbaar,
         tijdblokken: VASTE_TIJDBLOKKEN,
       },

@@ -35,8 +35,7 @@ const BLOKKEN  = [
   {id:"13-15", label:"13:00\u200a\u2013\u200a15:00", start:"13:00", eind:"15:00"},
   {id:"15-17", label:"15:00\u200a\u2013\u200a17:00", start:"15:00", eind:"17:00"},
 ];
-const FB_D = [{id:"loc", label:"Locatie", duur:"90 min",
-               info:"CBR-gecertificeerde oefenlocatie", prijzen:{bedrijf:100}}];
+// Dienst "Locatie" verwijderd — niet meer van toepassing
 const FB_O = [];
 const FB_B = {weekdagen:[1,3,5], geblokkeerdeData:[]};
 
@@ -46,10 +45,16 @@ function datStr(j,m,d){
 }
 function eersteWd(j,m){ const x=new Date(j,m,1).getDay(); return x===0?6:x-1; }
 function dagenIn(j,m) { return new Date(j,m+1,0).getDate(); }
-function prijsTotaal(dIds,oIds,AD,AO,ao){
+function prijsDiensten(){
+  return 0; // Dienst locatie verwijderd
+}
+function prijsOpties(oIds,AO,ao){
   ao=ao||{};
-  return dIds.reduce((s,id)=>s+(AD.find(d=>d.id===id)?.prijzen?.bedrijf||0),0)
-       +oIds.reduce((s,id)=>{const o=AO.find(x=>x.id===id);return s+((o?.prijs||0)*(ao[id]||1));},0);
+  return oIds.reduce((s,id)=>{const o=AO.find(x=>x.id===id);return s+((o?.prijs||0)*(ao[id]||1));},0);
+}
+function prijsTotaal(oIds,AO,ao,uren){
+  const u=uren||1;
+  return prijsOpties(oIds,AO,ao)*u;
 }
 function re_email(v){ return /^[^@]+@[^@]+\.[^@]+$/.test(v); }
 
@@ -151,7 +156,7 @@ function Radio({aan}){
    ══════════════════════════════════════════════════ */
 
 function App(){
-  const [AD, setAD]     = S(FB_D);
+  // AD (diensten) verwijderd
   const [AO, setAO]     = S(FB_O);
   const [BS, setBS]     = S(FB_B);
   const [BZ, setBZ]     = S({});
@@ -169,7 +174,7 @@ function App(){
     (async()=>{
       try{
         const [cms,bz]=await Promise.all([apiCms(),apiBezet()]);
-        setAD(cms.diensten||FB_D);
+
         setAO(cms.opties||FB_O);
         setBS(cms.beschikbaar||FB_B);
         setBZ(bz);
@@ -183,7 +188,7 @@ function App(){
   E(()=>{
     const t1=setInterval(()=>apiBezet().then(setBZ).catch(()=>{}), 120000);
     const t2=setInterval(()=>apiCms()
-      .then(c=>{setAD(c.diensten||FB_D);setAO(c.opties||FB_O);setBS(c.beschikbaar||FB_B);})
+      .then(c=>{setAO(c.opties||FB_O);setBS(c.beschikbaar||FB_B);})
       .catch(()=>{}), 300000);
     return ()=>{ clearInterval(t1); clearInterval(t2); };
   },[]);
@@ -191,8 +196,8 @@ function App(){
   async function slaOp(data){
     const res=await apiPost("/api/boeking-opslaan",{
       ...data,
-      diensten:   data.dIds,
-      dienstLabels: data.dIds.map(id=>AD.find(d=>d.id===id)?.label||id),
+      diensten:   [],
+      dienstLabels: [],
       opties:     data.oIds,
       optieLabels: data.oIds.map(id=>AO.find(o=>o.id===id)?.label||id),
       totaal:     data.prijs,
@@ -209,16 +214,16 @@ function App(){
   }
 
   if(!ok) return h`<${Laadscherm}/>`;
-  if(bev) return h`<${Bevestiging} boeking=${bev} AD=${AD} AO=${AO}
+  if(bev) return h`<${Bevestiging} boeking=${bev} AO=${AO}
     onNieuw=${()=>{window.location.hash="";setBev(null);}} />`;
-  return h`<${Wizard} AD=${AD} AO=${AO} BS=${BS} BZ=${BZ} wrn=${wrn} slaOp=${slaOp} />`;
+  return h`<${Wizard} AO=${AO} BS=${BS} BZ=${BZ} wrn=${wrn} slaOp=${slaOp} />`;
 }
 
 /* ══════════════════════════════════════════════════
    BEVESTIGING
    ══════════════════════════════════════════════════ */
 
-function Bevestiging({boeking, AD, AO, onNieuw}){
+function Bevestiging({boeking, AO, onNieuw}){
   const parts = (boeking.datum||"").split("-");
   const dag   = parts[2]?parseInt(parts[2],10):"";
   const mnd   = parts[1]?MAANDEN[parseInt(parts[1],10)-1]:"";
@@ -229,13 +234,13 @@ function Bevestiging({boeking, AD, AO, onNieuw}){
   const tbLabel  = (tb && typeof tb==="object") ? (tb.label||"") : String(tb||"—");
 
   const cursisten = Array.isArray(boeking.cursisten) ? boeking.cursisten : [];
-  const dLabels = (boeking.dIds||[]).map(id=>AD.find(d=>d.id===id)?.label||String(id));
+
   const oLabels = (boeking.oIds||[]).map(id=>AO.find(o=>o.id===id)?.label||String(id));
 
   const rijen = [
     ["Datum",       datumTxt],
     ["Tijdblok",    tbLabel],
-    ["Dienst",      dLabels.join(", ")],
+
     oLabels.length ? ["Opties", oLabels.join(", ")] : null,
     ["Rijschool",   boeking.bedrijf||""],
     ["Betaling",    boeking.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
@@ -299,19 +304,19 @@ function Bevestiging({boeking, AD, AO, onNieuw}){
    WIZARD
    ══════════════════════════════════════════════════ */
 
-function Wizard({AD, AO, BS, BZ, wrn, slaOp}){
+function Wizard({AO, BS, BZ, wrn, slaOp}){
   const nu        = new Date();
   const dIds      = AD.map(d=>d.id);   // auto-select alle diensten
-  // Toon opties voor bedrijf: standaard zichtbaar tenzij expliciet false IN Webflow
-  const visOpties = AO.filter(o=>o.zichtbaarBedrijf!==false);
-  const heeftOpts = visOpties.length>0;
+  // visOpties: alle opties tonen — rijschoolhouder-only tool
+  const visOpties = AO;
 
-  const STAPPEN = [
+  // STAPPEN als useMemo zodat het reageert op AO die asynchroon laadt
+  const STAPPEN = React.useMemo(() => [
     {id:"cursisten", lbl:"Cursisten"},
     {id:"datum",     lbl:"Datum"},
-    ...(heeftOpts?[{id:"opties",lbl:"Opties"}]:[]),
+    ...(AO.length > 0 ? [{id:"opties",lbl:"Opties"}] : []),
     {id:"gegevens",  lbl:"Gegevens"},
-  ];
+  ], [AO.length]);
   const MAX = STAPPEN.length;
 
   const [stap,   setSt]  = S(1);
@@ -351,7 +356,8 @@ function Wizard({AD, AO, BS, BZ, wrn, slaOp}){
     start: blokken[0].start,
     eind:  blokken[blokken.length-1].eind,
   } : null;
-  const prijs = prijsTotaal(dIds,oIds,AD,AO,aoNr) * Math.max(1, blokken.length);
+  const aantalUren = blokken.length * 2;  // elk blok = 2 uur
+  const prijs = prijsTotaal(oIds,AO,aoNr,Math.max(1,blokken.length));
 
   function dagUitg(d,i){
     const wd=(i+eersteWd(jaar,maand))%7;
@@ -455,7 +461,7 @@ function Wizard({AD, AO, BS, BZ, wrn, slaOp}){
     try{
       const data={
         id:"BK-"+Date.now(),
-        dIds, oIds, datum,
+        oIds, datum,
         tijdblok: gecombineerdBlok,
         aantalCursisten: nC,
         cursisten: curs.map(c=>({voornaam:c.vn,achternaam:c.an,email:c.em,tel:c.tl})),
@@ -504,27 +510,28 @@ function Wizard({AD, AO, BS, BZ, wrn, slaOp}){
   </${Blok}>`;
 
   /* ── STAP 2: OPTIES ── */
-  const stapOpties = h`<${Blok} titel="Extra opties" sub="Optionele toevoegingen voor dit examen.">
+  const stapOpties = h`<${Blok} titel="Extra opties" sub=${"Optionele toevoegingen per uur. Geboekt voor "+Math.max(1,blokken.length)+" blok"+(blokken.length!==1?"ken":"")+" ("+Math.max(2,blokken.length*2)+" uur)."}>
     <ul class="option-list" role="list">
       ${visOpties.map(o=>{
         const sel = oIds.includes(o.id);
         const n   = aoNr[o.id]||1;
         const klass = "option-item__row"+(sel?" option-item__row--selected":"");
-        const prStr = o.prijs>0 ? ("\u20ac\u00a0"+String(o.prijs)) : "Gratis";
+        const prStr = o.prijs>0 ? ("\u20ac\u00a0"+String(o.prijs)+" p/u") : "Gratis";
         const pcls  = "option-item__price"+(sel?" option-item__price--selected":"")
                     +(o.prijs===0?" option-item__price--free":"");
-        const qty = (sel&&o.prijs>0&&(o.maxAantal||1)>1) ? h`<div class="option-item__qty">
+        const effMax = o.isMotor ? nC : (o.maxAantal||1);
+        const qty = (sel&&o.prijs>0&&effMax>1) ? h`<div class="option-item__qty">
           <span class="option-item__qty-label">Aantal:</span>
           <div class="qty-control" role="group">
             <button class="qty-control__btn qty-control__btn--minus"
-              onClick=${e=>{e.stopPropagation();setAoNr(v=>({...v,[o.id]:Math.max(o.minAantal||1,n-1)}));}}
+              onClick=${e=>{e.stopPropagation();setAoNr(v=>({...v,[o.id]:Math.max(1,n-1)}));}}
               aria-label="Minder">−</button>
             <span class="qty-control__value" role="status">${String(n)}</span>
             <button class="qty-control__btn qty-control__btn--plus"
-              onClick=${e=>{e.stopPropagation();setAoNr(v=>({...v,[o.id]:Math.min(o.maxAantal,n+1)}));}}
+              onClick=${e=>{e.stopPropagation();setAoNr(v=>({...v,[o.id]:Math.min(effMax,n+1)}));}}
               aria-label="Meer">+</button>
           </div>
-          <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n).toFixed(2)+" per blok"}</span>
+          <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*Math.max(1,blokken.length)).toFixed(2)+" totaal"+(blokken.length>1?" ("+blokken.length+" blokken)":"")}</span>
         </div>` : null;
 
         return h`<li key=${o.id} class="option-item">
@@ -648,7 +655,6 @@ function Wizard({AD, AO, BS, BZ, wrn, slaOp}){
   const overzichtRijen = [
     ["Datum",     dag?(String(dag)+" "+MAANDEN[maand]+" "+String(jaar)):"—"],
     ["Tijdblok",  gecombineerdBlok?gecombineerdBlok.label:"—"],
-    ["Dienst",    dIds.map(id=>AD.find(d=>d.id===id)?.label||String(id)).join(", ")],
     oIds.length?["Opties", oIds.map(id=>AO.find(o=>o.id===id)?.label||String(id)).join(", ")]:null,
     ["Cursisten", String(nC)],
     betaal?["Betaling",betaal==="pin"?"Pin op locatie":"Contant op locatie"]:null,
