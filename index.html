@@ -338,6 +338,21 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
 
   const stapId = STAPPEN[stap-1]?.id||"";
 
+  // Sync optie-aantallen automatisch als blokken wijzigen
+  E(()=>{
+    if(blokken.length === 0 || oIds.length === 0) return;
+    setAoNr(prev=>{
+      const update = {...prev};
+      oIds.forEach(id=>{
+        const o = AO.find(x=>x.id===id);
+        if(!o) return;
+        const effMax = o.isMotor ? nC : (o.maxAantal||1);
+        update[id] = Math.min(effMax, Math.max(1, blokken.length));
+      });
+      return update;
+    });
+  },[blokken.length]);
+
   E(()=>{
     setCurs(prev=>{
       const n=[...prev];
@@ -355,8 +370,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     start: blokken[0].start,
     eind:  blokken[blokken.length-1].eind,
   } : null;
-  const aantalUren = blokken.length * 2;  // elk blok = 2 uur
-  const prijs = prijsTotaal(oIds,AO,aoNr,Math.max(1,blokken.length));
+  const aantalUren = Math.max(2, blokken.length * 2); // minimum 2 uur (1 blok)
+  const prijs = prijsTotaal(oIds,AO,aoNr,aantalUren);
 
   function dagUitg(d,i){
     const wd=(i+eersteWd(jaar,maand))%7;
@@ -403,6 +418,23 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     const idxEerste  = BLOKKEN.indexOf(blokken[0]);
     return (idx === idxLaatste+1 || idx === idxEerste-1);
   }
+  // Sync aoNr naar blokken.length voor alle geselecteerde opties
+  function syncAoNrNaarBlokken(nieuwBlokken){
+    if(nieuwBlokken.length === 0) return;
+    setAoNr(prev=>{
+      const update = {...prev};
+      oIds.forEach(id=>{
+        const o = AO.find(x=>x.id===id);
+        if(!o) return;
+        const effMax = o.isMotor ? nC : (o.maxAantal||1);
+        // Alleen syncen als de optie een hoeveelheid-instelling heeft (effMax>1)
+        // of als de huidige waarde gelijk was aan het vorige aantal blokken
+        update[id] = Math.min(effMax, Math.max(1, nieuwBlokken.length));
+      });
+      return update;
+    });
+  }
+
   function togBlok(b){
     if(blokBezet(b)) return;
     setBlokken(prev=>{
@@ -477,7 +509,16 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     setBz(false);
   }
 
-  function togO(id){ setOIds(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id]); }
+  function togO(id){
+    setOIds(v=>{
+      const nu = v.includes(id) ? v.filter(x=>x!==id) : [...v,id];
+      if(!v.includes(id)){
+        // Optie wordt aangevinkt: zet aantal op huidige blokken
+        setAoNr(a=>({...a,[id]:Math.max(1,blokken.length)}));
+      }
+      return nu;
+    });
+  }
   function setCv(i,k,v){ setCurs(p=>p.map((c,j)=>j===i?{...c,[k]:v}:c)); }
 
   const pLabel = blokken.length&&datum ? ("\u20ac\u00a0"+prijs.toFixed(2)+" excl. btw"+" \u00b7 "+blokken.length+(blokken.length===1?" blok":" blokken")) : null;
@@ -509,7 +550,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
   </${Blok}>`;
 
   /* ── STAP 2: OPTIES ── */
-  const stapOpties = h`<${Blok} titel="Extra opties" sub=${"Optionele toevoegingen per uur. Geboekt voor "+Math.max(1,blokken.length)+" blok"+(blokken.length!==1?"ken":"")+" ("+Math.max(2,blokken.length*2)+" uur)."}>
+  const stapOpties = h`<${Blok} titel="Extra opties" sub=${"Optionele toevoegingen per uur · "+aantalUren+" uur geboekt ("+Math.max(1,blokken.length)+" blok"+(blokken.length!==1?"ken":"")+")"}>
     <ul class="option-list" role="list">
       ${visOpties.map(o=>{
         const sel = oIds.includes(o.id);
@@ -530,7 +571,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
               onClick=${e=>{e.stopPropagation();setAoNr(v=>({...v,[o.id]:Math.min(effMax,n+1)}));}}
               aria-label="Meer">+</button>
           </div>
-          <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*Math.max(1,blokken.length)).toFixed(2)+" totaal"+(blokken.length>1?" ("+blokken.length+" blokken)":"")}</span>
+          <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*aantalUren).toFixed(2)+" totaal ("+aantalUren+" uur)"}</span>
         </div>` : null;
 
         return h`<li key=${o.id} class="option-item">
