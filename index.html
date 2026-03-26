@@ -346,8 +346,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
       oIds.forEach(id=>{
         const o = AO.find(x=>x.id===id);
         if(!o) return;
-        const effMax = o.isMotor ? nC : (o.maxAantal||1);
-        update[id] = Math.min(effMax, Math.max(1, blokken.length));
+        // Instructeur altijd 1, motoren/kleding meescalen met blokken
+        update[id] = o.isMotor ? Math.min(nC, Math.max(1, blokken.length)) : 1;
       });
       return update;
     });
@@ -514,7 +514,9 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
       const nu = v.includes(id) ? v.filter(x=>x!==id) : [...v,id];
       if(!v.includes(id)){
         // Optie wordt aangevinkt: zet aantal op huidige blokken
-        setAoNr(a=>({...a,[id]:Math.max(1,blokken.length)}));
+        // Instructeur=1, motor/kleding = blokken.length (max nC)
+        const o = AO.find(x=>x.id===id);
+        setAoNr(a=>({...a,[id]: o?.isMotor ? Math.min(nC,Math.max(1,blokken.length)) : 1}));
       }
       return nu;
     });
@@ -559,8 +561,10 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         const prStr = o.prijs>0 ? ("\u20ac\u00a0"+String(o.prijs)+" p/u") : "Gratis";
         const pcls  = "option-item__price"+(sel?" option-item__price--selected":"")
                     +(o.prijs===0?" option-item__price--free":"");
-        const effMax = o.isMotor ? nC : (o.maxAantal||1);
-        const qty = (sel&&o.prijs>0&&effMax>1) ? h`<div class="option-item__qty">
+        const effMax = o.isMotor ? nC : 1;
+        // Stepper alleen voor motor/kleding, instructeur is altijd 1× (vast tarief)
+        const toonStepper = sel && o.isMotor && effMax > 1;
+        const qty = toonStepper ? h`<div class="option-item__qty">
           <span class="option-item__qty-label">Aantal:</span>
           <div class="qty-control" role="group">
             <button class="qty-control__btn qty-control__btn--minus"
@@ -572,6 +576,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
               aria-label="Meer">+</button>
           </div>
           <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*aantalUren).toFixed(2)+" totaal ("+aantalUren+" uur)"}</span>
+        </div>` : sel ? h`<div class="option-item__qty">
+          <span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" p/u \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+(o.prijs*aantalUren).toFixed(2)}</strong></span>
         </div>` : null;
 
         return h`<li key=${o.id} class="option-item">
