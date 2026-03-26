@@ -341,6 +341,13 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.option-list li {
+  list-style: none;
 }
 
 .option-item {
@@ -515,6 +522,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.timeslot-list li {
+  list-style: none;
 }
 
 .timeslot {
@@ -854,4 +868,33 @@ body {
   .form-row-2 { grid-template-columns: 1fr; }
 
   .footer-bar { padding: 12px 16px; }
+}
+
+/* ── Geselecteerde tijdblokken samenvatting ── */
+.timeslot-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-top: 4px;
+  background: var(--color-accent-bg);
+  border: 1px solid var(--color-accent-bor);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+.timeslot-summary strong { color: var(--color-accent); }
+.timeslot-summary span   { color: var(--color-sub); font-size: 12px; }
+
+.timeslot--disabled { opacity: 0.35; cursor: default; }
+
+/* ── Tijdblok samenvatting ── */
+.timeslot-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--color-accent-bg);
+  border: 1px solid var(--color-accent-bor);
+  border-radius: var(--radius-md);
 }

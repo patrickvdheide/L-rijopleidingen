@@ -45,10 +45,18 @@ function parseDiensten(items) {
 }
 
 function vindPrijsSlim(f) {
+  // Exacte veldnamen eerst (gezien in Webflow screenshots)
+  for (const exactKey of ["prijs","price","prijs-per-slot","bedrag","kosten"]) {
+    if (f[exactKey] !== undefined && f[exactKey] !== null) {
+      const val = Number(f[exactKey]);
+      if (!isNaN(val)) return val;
+    }
+  }
+  // Fallback: zoek op pattern
   for (const key in f) {
     if (/prijs|price|bedrag|kosten/i.test(key)) {
       const val = Number(f[key]);
-      if (!isNaN(val)) return val;
+      if (!isNaN(val) && val > 0) return val;
     }
   }
   return 0;
