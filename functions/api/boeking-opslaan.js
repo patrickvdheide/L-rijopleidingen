@@ -1,6 +1,6 @@
 // functions/api/boeking-opslaan.js
 
-import { maakBoeking, volgendBoekingsnummer } from "./_db.js";
+import { volgendBoekingsnummer } from "./_db.js";
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -19,14 +19,6 @@ function formatDatum(str) {
   return `${parseInt(d)} ${MAANDEN[parseInt(m) - 1]} ${j}`;
 }
 
-async function maakHmac(data, secret) {
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
-  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-}
-
 export async function onRequest(context) {
   const { request, env } = context;
   const db = env.DB;
@@ -38,138 +30,127 @@ export async function onRequest(context) {
   try { boeking = await request.json(); }
   catch { return new Response(JSON.stringify({ error: "Ongeldige JSON" }), { status: 400, headers: CORS }); }
 
-  const { kt, naam, email, tel, bedrijf, kvk, straat, huisnummer, postcode, plaats,
-          diensten, dienstLabels, opties, optieLabels, datum, slots, betaalMethode, p: prijs } = boeking;
+  const {
+    naam, email, tel, bedrijf, opleidingsnummer,
+    cursisten, aantalCursisten,
+    diensten, dienstLabels, opties, optieLabels,
+    datum, tijdblok, betaalMethode, totaal: totaalIn,
+  } = boeking;
 
-  // Genereer volgnummer server-side
-  const id = await volgendBoekingsnummer(db, datum || new Date().toISOString().slice(0, 10));
-
-  const annuleerSecret = env.ANNULEER_SECRET || "lrijo-annuleer-2026";
-  const cancelToken    = await maakHmac(id, annuleerSecret);
-  const cancelUrl      = `${BASE_URL}/api/annuleer?id=${id}&token=${cancelToken}`;
-
-  const slotsLabel  = slots?.length > 0 ? `${slots[0]}${slots.length > 1 ? ` – ${slots[slots.length - 1]}` : ""} (${slots.length}×)` : "—";
+  const id          = await volgendBoekingsnummer(db, datum || new Date().toISOString().slice(0, 10));
   const dienstenStr = (dienstLabels || diensten || []).join(", ");
   const optiesStr   = (optieLabels  || opties   || []).join(", ");
-  const totaal      = Number((prijs?.totaal || prijs?.tot || 0).toFixed(2));
-  const adresStr    = [straat, huisnummer, postcode, plaats].filter(Boolean).join(", ");
-  const ktLabel     = { consument: "Cursist", zzp: "Instructeur", bedrijf: "Rijschoolhouder" }[kt] || kt;
+  const totaal      = Number(Number(totaalIn || 0).toFixed(2));
+  const aantalC     = aantalCursisten || (cursisten ? cursisten.length : 1);
+  const slotsLabel  = tijdblok?.label || tijdblok || "—";
   const vanaf       = "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">";
-
-  const icalParams = new URLSearchParams({
-    datum, id,
-    start:   slots?.[0] || "09:00",
-    eind:    (() => {
-      const last = slots?.[slots.length-1] || "10:00";
-      const [h, m] = last.split(":").map(Number);
-      return String((h+1)%24).padStart(2,"0")+":"+String(m).padStart(2,"0");
-    })(),
-    naam:    naam    || "",
-    email:   email   || "",
-    dienst:  dienstenStr,
-    opties:  optiesStr,
-    betaling: betaalMethode || "",
-    totaal:  String(totaal),
-  });
-  const icalUrl = `${BASE_URL}/api/ical?${icalParams.toString()}`;
 
   // Sla op in D1
   try {
-    await maakBoeking(db, {
-      boekingsnummer: id,
-      naam, email,
-      telefoon:    tel || null,
-      klanttype:   kt,
-      datum,
-      tijdsloten:  slotsLabel,
-      diensten:    dienstenStr,
-      opties:      optiesStr || null,
-      betaalmethode: betaalMethode === "pin" ? "pin" : "contant",
-      totaal,
-      bedrijfsnaam: bedrijf || null,
-      kvk:         kvk || null,
-      straat:      straat || null,
-      huisnummer:  huisnummer ? String(huisnummer) : null,
-      postcode:    postcode || null,
-      plaats:      plaats || null,
-      adres:       adresStr || null,
-      status:      "Actief",
-    });
+    await db.prepare(`
+      INSERT INTO boekingen
+        (boekingsnummer, naam, email, telefoon, klanttype, datum, tijdsloten,
+         diensten, opties, betaalmethode, totaal, bedrijfsnaam,
+         opleidingsnummer, cursisten_json, aantal_cursisten, status, aangemaakt)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `).bind(
+      id, naam || "", email || "", tel || null, "bedrijf",
+      datum || "", slotsLabel, dienstenStr || "", optiesStr || null,
+      betaalMethode === "pin" ? "pin" : "contant", totaal,
+      bedrijf || null, opleidingsnummer || null,
+      cursisten ? JSON.stringify(cursisten) : null,
+      aantalC, "Actief", new Date().toISOString(),
+    ).run();
   } catch (err) {
     return new Response(JSON.stringify({ error: "Opslaan mislukt: " + err.message }), { status: 500, headers: CORS });
   }
 
-  // ── E-MAILS ──
-  const btwRegel = kt === "consument"
-    ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;width:120px;vertical-align:top;">BTW 21%</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#1a1f2e;">€ ${(totaal - totaal/1.21).toFixed(2)}</td></tr>`
-    : `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;width:120px;vertical-align:top;">BTW</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#1a1f2e;">Excl. — facturabel</td></tr>`;
+  // ── Bevestigingsmail klant ──
+  const logo      = `<img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" style="height:28px;width:auto;display:block;"/>`;
+  const logoZwart = `<img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc2137ec448353135e0a0a_L-rijopleidingen-logo-rgb.svg" alt="L-Rijopleidingen" style="height:24px;width:auto;display:block;"/>`;
 
-  const rijen = [
+  const basisRijen = [
     ["Boekingsnummer", id],
-    ["Klanttype",      ktLabel],
     ["Datum",          formatDatum(datum)],
-    ["Tijdsloten",     slotsLabel],
-    ["Diensten",       dienstenStr],
+    ["Tijdblok",       slotsLabel],
+    ["Dienst",         dienstenStr],
     opties?.length ? ["Opties", optiesStr] : null,
-    ["Betaalmethode",  betaalMethode === "pin" ? "Pin op locatie" : "Contant op locatie"],
-    adresStr ? ["Adres", adresStr] : null,
-    bedrijf  ? ["Bedrijf", bedrijf] : null,
-    kvk      ? ["KVK", kvk] : null,
-  ].filter(Boolean).map(([l,v]) =>
-    `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;width:120px;vertical-align:top;">${l}</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#1a1f2e;">${v}</td></tr>`
-  ).join("");
+    ["Betaling",       betaalMethode === "pin" ? "Pin op locatie" : "Contant op locatie"],
+    bedrijf          ? ["Rijschool",         bedrijf]          : null,
+    opleidingsnummer ? ["Opleidingsnummer",   opleidingsnummer] : null,
+    aantalC          ? ["Aantal cursisten",   String(aantalC)]  : null,
+  ].filter(Boolean);
 
-  const logo = `<img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc21b96d4617d6a3547348_L-rijopleidingen-logo-rgb-diap.svg" alt="L-Rijopleidingen" style="height:28px;width:auto;"/>`;
-  const logoZwart = `<img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69bc2137ec448353135e0a0a_L-rijopleidingen-logo-rgb.svg" alt="L-Rijopleidingen" style="height:24px;width:auto;"/>`;
+  const cursistenRijen = cursisten?.length
+    ? cursisten.map((c, i) => [
+        `Cursist ${i+1}`,
+        `${c.voornaam} ${c.achternaam} · ${c.email} · ${c.tel}`
+      ])
+    : [];
 
-  const bevestigingHtml = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"/></head><body style="margin:0;padding:0;background:#eef0f5;font-family:'DM Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-  <tr><td style="background:#0586f0;padding:20px 32px;">${logo}</td></tr>
-  <tr><td style="padding:32px;">
-    <h1 style="margin:0 0 8px;font-size:22px;color:#1a1f2e;">Afspraak bevestigd ✓</h1>
-    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Bedankt voor uw boeking! Hieronder vindt u een overzicht.</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">${rijen}${btwRegel}
-      <tr><td style="padding:12px 0;color:#1a1f2e;font-weight:700;font-size:16px;">Totaal te betalen op locatie</td><td style="padding:12px 0;font-weight:700;font-size:20px;color:#0586f0;">€ ${totaal.toFixed(2)}</td></tr>
-    </table>
-    <table cellpadding="0" cellspacing="0"><tr>
-      <td style="padding-right:8px;"><a href="${icalUrl}" style="display:inline-block;background:#0586f0;color:white;text-decoration:none;padding:10px 22px;border-radius:6px;font-size:13px;font-weight:600;">📅 Toevoegen aan agenda</a></td>
-      <td><a href="${cancelUrl}" style="display:inline-block;background:#f5f6f8;color:#6b7280;text-decoration:none;padding:10px 22px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid #dde1e9;">Annuleren</a></td>
-    </tr></table>
-  </td></tr>
-  <tr><td style="padding:20px 32px;border-top:1px solid #eef0f5;text-align:center;">${logoZwart}<p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">L-Rijopleidingen · info@l-rijopleidingen.nl</p></td></tr>
-</table></td></tr></table></body></html>`;
+  const alleRijen = [...basisRijen, ...cursistenRijen]
+    .map(([l, v]) => `
+      <tr>
+        <td style="padding:7px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;width:140px;vertical-align:top;">${l}</td>
+        <td style="padding:7px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#1a1f2e;">${v}</td>
+      </tr>`).join("");
 
-  const adminHtml = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"/></head><body style="margin:0;padding:0;background:#eef0f5;font-family:'DM Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-  <tr><td style="background:#1a1f2e;padding:20px 32px;">${logo}</td></tr>
-  <tr><td style="padding:32px;">
-    <h1 style="margin:0 0 8px;font-size:20px;color:#1a1f2e;">🔔 Nieuwe boeking: ${naam} — ${formatDatum(datum)} ${slotsLabel}</h1>
-    <table width="100%" cellpadding="0" cellspacing="0">${rijen}${btwRegel}
-      <tr><td style="padding:12px 0;font-weight:700;font-size:16px;color:#1a1f2e;">Totaal</td><td style="padding:12px 0;font-weight:700;font-size:18px;color:#0586f0;">€ ${totaal.toFixed(2)}</td></tr>
-    </table>
-  </td></tr>
-</table></td></tr></table></body></html>`;
+  const klantMail = `<!DOCTYPE html>
+<html lang="nl">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#eef0f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0586f0;padding:20px 32px;">${logo}</td></tr>
+        <tr><td style="padding:32px;">
+          <h1 style="margin:0 0 6px;font-size:22px;color:#1a1f2e;">Reservering bevestigd ✓</h1>
+          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Bedankt voor uw reservering bij L-Rijopleidingen. Hieronder het overzicht.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">${alleRijen}</table>
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td><div style="background:#f5f6f8;color:#1a1f2e;padding:10px 0;font-size:14px;font-weight:700;">
+              Totaal: <span style="color:#0586f0;">€ ${totaal.toFixed(2)}</span>
+              <span style="font-size:12px;font-weight:400;color:#9ca3af;"> excl. BTW · facturabel</span>
+            </div></td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:20px 32px;border-top:1px solid #f3f4f6;text-align:center;">${logoZwart}<p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">L-Rijopleidingen · info@l-rijopleidingen.nl</p></td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const adminMail = `<!DOCTYPE html>
+<html lang="nl">
+<head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#eef0f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;">
+        <tr><td style="background:#1a1f2e;padding:20px 32px;">${logo}</td></tr>
+        <tr><td style="padding:32px;">
+          <h1 style="margin:0 0 6px;font-size:20px;color:#1a1f2e;">🔔 Nieuwe reservering — ${bedrijf || naam}</h1>
+          <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">${formatDatum(datum)} · ${slotsLabel}</p>
+          <table width="100%" cellpadding="0" cellspacing="0">${alleRijen}</table>
+          <p style="margin:16px 0 0;font-size:14px;font-weight:700;color:#0586f0;">Totaal: € ${totaal.toFixed(2)} excl. BTW</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
   await Promise.allSettled([
     fetch(RESEND, {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: vanaf, to: [email],
-        subject: `Afspraak bevestigd — ${formatDatum(datum)} · ${slotsLabel} (${id})`,
-        html: bevestigingHtml,
-      }),
+      body: JSON.stringify({ from: vanaf, to: [email], subject: `Reservering bevestigd — ${formatDatum(datum)} (${id})`, html: klantMail }),
     }),
     fetch(RESEND, {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: vanaf, to: [env.RESEND_FROM],
-        subject: `🔔 Nieuwe boeking: ${naam} — ${formatDatum(datum)} ${slotsLabel}`,
-        html: adminHtml,
-      }),
+      body: JSON.stringify({ from: vanaf, to: [env.RESEND_FROM], subject: `🔔 Reservering: ${bedrijf || naam} — ${formatDatum(datum)} ${slotsLabel}`, html: adminMail }),
     }),
   ]);
 
