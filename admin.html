@@ -474,19 +474,24 @@
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="form-grid">
               <div class="form-group"><label>Datum</label><input type="date" id="modal-datum"/></div>
-              <div class="form-group"><label>Tijdsloten</label><select id="modal-tijdsloten"></select></div>
+              <div class="form-group">
+                <label>Tijdblok</label>
+                <select id="modal-tijdsloten">
+                  <option value="08:00 – 10:00">08:00 – 10:00 (2u)</option>
+                  <option value="10:00 – 12:00">10:00 – 12:00 (2u)</option>
+                  <option value="13:00 – 15:00">13:00 – 15:00 (2u)</option>
+                  <option value="15:00 – 17:00">15:00 – 17:00 (2u)</option>
+                  <option value="08:00 – 12:00">08:00 – 12:00 (4u)</option>
+                  <option value="13:00 – 17:00">13:00 – 17:00 (4u)</option>
+                  <option value="08:00 – 15:00">08:00 – 15:00 (6u)</option>
+                  <option value="08:00 – 17:00">08:00 – 17:00 (8u)</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group"><label>Locatie / Dienst</label><select id="modal-diensten"><option value="Locatie">Locatie</option></select></div>
+
             <div class="form-group" style="grid-column:1/-1">
               <label>Opties</label>
-              <div id="modal-opties-wrap" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;text-transform:none;letter-spacing:0;color:#1a1f2e;">
-                  <input type="checkbox" id="optie-instructeur" value="Met instructeur" style="width:auto;margin:0;accent-color:#0586f0;"/> Met instructeur
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;text-transform:none;letter-spacing:0;color:#1a1f2e;">
-                  <input type="checkbox" id="optie-motor" value="Motor op locatie" style="width:auto;margin:0;accent-color:#0586f0;"/> Motor op locatie
-                </label>
-              </div>
+              <div id="modal-opties-wrap" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;"></div>
               <input type="hidden" id="modal-opties"/>
             </div>
           </div>
@@ -805,10 +810,31 @@
     const TIJDSLOTEN = ["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
 
     function syncOptiesHidden() {
-      const vals = [];
-      if (document.getElementById("optie-instructeur").checked) vals.push("Met instructeur");
-      if (document.getElementById("optie-motor").checked)       vals.push("Motor op locatie");
-      document.getElementById("modal-opties").value = vals.join(", ");
+      const checked = [...document.querySelectorAll(".modal-optie-cb:checked")];
+      document.getElementById("modal-opties").value = checked.map(cb => cb.value).join(", ");
+    }
+
+    function vulModalOpties(huidig) {
+      // Laad opties uit CMS en vul bewerk-modal dynamisch
+      const wrap = document.getElementById("modal-opties-wrap");
+      if (!wrap) return;
+      const cmsOpties = (window.nbCmsData?.opties || []).filter(o => o.zichtbaarBedrijf !== false);
+      const huidigeOpties = (huidig || "").split(",").map(s => s.trim().toLowerCase());
+      if (cmsOpties.length === 0) {
+        wrap.innerHTML = '<span style="font-size:13px;color:#9ca3af;">Geen opties beschikbaar</span>';
+        return;
+      }
+      wrap.innerHTML = cmsOpties.map(o => {
+        const isChecked = huidigeOpties.some(h => h && o.label.toLowerCase().includes(h.split(" ")[0]));
+        return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;color:#1a1f2e;padding:6px 0;">
+          <input type="checkbox" class="modal-optie-cb" value="${o.label}"
+            ${isChecked ? "checked" : ""}
+            style="width:16px;height:16px;margin:0;accent-color:#0586f0;cursor:pointer;"
+            onchange="syncOptiesHidden()"/>
+          ${o.label}${o.prijs > 0 ? ` <span style="color:#6b7280;font-size:12px;">(€ ${o.prijs} p/u)</span>` : ""}
+        </label>`;
+      }).join("");
+      syncOptiesHidden();
     }
 
     function genereerSlotOpties() {
@@ -1038,8 +1064,11 @@
       document.getElementById("modal-naam").value           = f.Naam||"";
       document.getElementById("modal-bknr").value           = f.Boekingsnummer||"";
       document.getElementById("modal-datum").value          = f.Datum||"";
-      document.getElementById("modal-tijdsloten").value     = f.Tijdsloten||"";
-      document.getElementById("modal-diensten").value       = f.Diensten||"";
+      // Zet tijdblok (kies dichtstbijzijnde optie als exact niet bestaat)
+      const tijdSlot = f.Tijdsloten||"";
+      const tijdSel = document.getElementById("modal-tijdsloten");
+      const opties = [...tijdSel.options].map(o => o.value);
+      tijdSel.value = opties.find(o => tijdSlot.includes(o.split(" ")[0])) || opties[0] || "";
       document.getElementById("modal-opties").value         = f.Opties||"";
       document.getElementById("modal-betaalmethode").value  = f.Betaalmethode||"pin";
       document.getElementById("modal-totaal").value         = f.Totaal||"";
@@ -1047,25 +1076,14 @@
       document.getElementById("opslaan-btn").style.display  = geann?"none":"inline-block";
       document.getElementById("annuleer-btn").style.display = geann?"none":"inline-block";
       document.getElementById("herstel-btn").style.display  = geann?"inline-block":"none";
-      // Vul tijdsloten select en stel huidige waarde in
-      genereerSlotOpties();
-      document.getElementById("modal-tijdsloten").value = f.Tijdsloten||"";
-      // Vul diensten select met unieke waarden uit boekingen
-      const dsEl = document.getElementById("modal-diensten");
-      const dsWaarden = [...new Set(alleBoekingen.map(b=>b.fields?.Diensten).filter(Boolean))];
-      if (!dsWaarden.includes("Locatie")) dsWaarden.unshift("Locatie");
-      dsEl.innerHTML = dsWaarden.map(d=>`<option value="${d}">${d}</option>`).join("");
-      dsEl.value = f.Diensten||"Locatie";
-      // Zet opties checkboxes
-      const huidigeOpties = (f.Opties||"").split(",").map(s=>s.trim());
-      document.getElementById("optie-instructeur").checked = huidigeOpties.includes("Met instructeur");
-      document.getElementById("optie-motor").checked       = huidigeOpties.includes("Motor op locatie");
-      syncOptiesHidden();
+      // Laad opties dynamisch uit CMS
+      vulModalOpties(f.Opties||"");
       document.getElementById("bewerk-modal").style.display = "flex";
       setTimeout(()=>{ const first = document.querySelector("#bewerk-modal input, #bewerk-modal select, #bewerk-modal button"); if(first) first.focus(); }, 50);
     }
 
     // ── Nieuwe Boeking ──
+    window.nbCmsData = null;
     let nbCmsData = null;
     let nbGeselecteerdeOpties = new Set();
 
@@ -1073,7 +1091,7 @@
       if (!nbCmsData) {
         try {
           const res = await fetch("/api/cms-data?t="+Date.now(), { headers: {"Cache-Control":"no-cache"} });
-          nbCmsData = await res.json();
+          nbCmsData = await res.json(); window.nbCmsData = nbCmsData;
         } catch { nbCmsData = { opties:[] }; }
       }
 
@@ -1203,11 +1221,10 @@
 
     function herbereken() {
       if (!nbCmsData) return;
-      const n = parseInt(document.getElementById("nb-aantal").value)||1;
-      const tijdblokRaw = document.getElementById("nb-tijdblok").value;
-      const [,,,tbStart,tbEind] = tijdblokRaw ? ["","","",tijdblokRaw.split("|")[2],tijdblokRaw.split("|")[3]] : [];
-      // Bereken uren: elke slot = 2 uur, tijdblok = 1 slot = 2u
-      const uren = Math.max(1, nbGeselecteerdeBlokken.length) * 2; // elk blok = 2 uur
+      const aantalEl = document.getElementById("nb-aantal");
+      if (!aantalEl) return; // modal nog niet zichtbaar
+      const n = parseInt(aantalEl.value)||1;
+      const uren = Math.max(1, nbGeselecteerdeBlokken.length) * 2;
 
       let totaal = 0;
       document.querySelectorAll(".nb-optie-item.selected").forEach(el => {
@@ -1350,7 +1367,6 @@
             velden:{
               Datum:         document.getElementById("modal-datum").value,
               Tijdsloten:    document.getElementById("modal-tijdsloten").value,
-              Diensten:      document.getElementById("modal-diensten").value,
               Opties:        document.getElementById("modal-opties").value,
               Betaalmethode: document.getElementById("modal-betaalmethode").value,
               Totaal:        Number(document.getElementById("modal-totaal").value)||0,
@@ -1519,8 +1535,7 @@
     document.getElementById("bewerk-modal").addEventListener("click",function(e){
       if(e.target===this) sluitModal();
     });
-    document.getElementById("optie-instructeur").addEventListener("change", syncOptiesHidden);
-    document.getElementById("optie-motor").addEventListener("change", syncOptiesHidden);
+    // Opties event listeners nu dynamisch via onchange in vulModalOpties
 
     // Escape sluit modals
     // Hamburger menu functies

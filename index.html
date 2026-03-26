@@ -785,19 +785,19 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
           <span class="summary__label">${r[0]}</span>
           <span class="summary__value">${r[1]}</span>
         </div>`)}
-        <div class="summary__total">
-          <span class="summary__total-label">Totaal excl. BTW</span>
-          <div class="summary__total-amount">
-            <strong>${"\u20ac\u00a0"+fmtBedrag(prijs)}</strong>
+        <div style=${{borderTop:"1px solid var(--color-border)",padding:"10px 14px",display:"flex",flexDirection:"column",gap:"5px"}}>
+          <div style=${{display:"flex",justifyContent:"space-between",fontSize:"13px",color:"var(--color-sub)"}}>
+            <span>Excl. BTW</span>
+            <span>${"\u20ac\u00a0"+fmtBedrag(prijs)}</span>
           </div>
-        </div>
-        <div style=${{display:"flex",justifyContent:"space-between",padding:"6px 14px",fontSize:"13px",color:"var(--color-sub)",borderTop:"1px solid var(--color-border)"}}>
-          <span>BTW 21%</span>
-          <span>${"\u20ac\u00a0"+fmtBedrag(prijs*0.21)}</span>
-        </div>
-        <div style=${{display:"flex",justifyContent:"space-between",padding:"10px 14px",fontSize:"14px",fontWeight:700,borderTop:"1px solid var(--color-border)"}}>
-          <span>Totaal incl. BTW</span>
-          <span style=${{color:"var(--color-accent)"}}>${"\u20ac\u00a0"+fmtBedrag(prijs*1.21)}</span>
+          <div style=${{display:"flex",justifyContent:"space-between",fontSize:"13px",color:"var(--color-sub)"}}>
+            <span>BTW 21%</span>
+            <span>${"\u20ac\u00a0"+fmtBedrag(prijs*0.21)}</span>
+          </div>
+          <div style=${{display:"flex",justifyContent:"space-between",fontSize:"14px",fontWeight:600,color:"var(--color-text)",marginTop:"4px",paddingTop:"8px",borderTop:"1px solid var(--color-border)"}}>
+            <span>Incl. BTW</span>
+            <span style=${{color:"var(--color-accent)"}}>${"\u20ac\u00a0"+fmtBedrag(prijs*1.21)}</span>
+          </div>
         </div>
       </aside>
     </div>
