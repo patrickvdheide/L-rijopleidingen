@@ -86,7 +86,7 @@ function Laadspinner({ bericht }) {
     </div>`;
 }
 
-function Topbalk({ kinderen }) {
+function Topbalk({ children }) {
   return html`
     <header class="topbar">
       <a href="https://l-rijopleidingen.nl" aria-label="L-Rijopleidingen homepage">
@@ -96,7 +96,7 @@ function Topbalk({ kinderen }) {
           alt="L-Rijopleidingen"
         />
       </a>
-      ${kinderen}
+      ${children}
     </header>`;
 }
 
@@ -117,12 +117,12 @@ function Stappenbalk({ huidig, labels }) {
     </nav>`;
 }
 
-function Blok({ titel, sub, kinderen }) {
+function Blok({ titel, sub, children }) {
   return html`
     <section>
       <h2 class="block__title">${titel}</h2>
       ${sub && html`<p class="block__sub">${sub}</p>`}
-      ${kinderen}
+      ${children}
     </section>`;
 }
 
@@ -275,7 +275,7 @@ function Bevestiging({ boeking, diensten, opties, onNieuw }) {
         <div class="confirmation__table">
           ${[
             ["Datum",      datumTekst],
-            ["Tijdblok",   boeking.tijdblok?.label || boeking.tijdblok || "—"],
+            ["Tijdblok",   boeking.tijdblok?.label || (typeof boeking.tijdblok==="string"?boeking.tijdblok:"") || "—"],
             ["Dienst",     boeking.dienstIds?.map(id => diensten.find(d=>d.id===id)?.label||id).join(", ")],
             ...(boeking.optieIds?.length ? [["Opties", boeking.optieIds.map(id => opties.find(o=>o.id===id)?.label||id).join(", ")]] : []),
             ["Rijschool",  boeking.bedrijf],
@@ -286,10 +286,10 @@ function Bevestiging({ boeking, diensten, opties, onNieuw }) {
               <span>${v}</span>
             </div>`)}
 
-          ${boeking.cursisten?.length && html`
-            <div class="confirmation__row" style="flex-direction:column;gap:6px;">
+          ${(boeking.cursisten?.length > 0) && html`
+            <div class="confirmation__row" style=${{flexDirection:"column",gap:"6px"}}>
               <span class="confirmation__row-label">Cursisten (${boeking.cursisten.length})</span>
-              <ol style="padding-left:16px;margin:0;font-size:13px;display:flex;flex-direction:column;gap:4px;">
+              <ol style=${{paddingLeft:"16px",margin:0,fontSize:"13px",display:"flex",flexDirection:"column",gap:"4px"}}>
                 ${boeking.cursisten.map((c,i) => html`
                   <li key=${i}>${c.voornaam} ${c.achternaam} · ${c.email} · ${c.tel}</li>`)}
               </ol>
@@ -469,7 +469,7 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
                 disabled=${aantalCursisten <= 1}
                 aria-label="Minder cursisten"
               >−</button>
-              <output class="stepper__value" aria-live="polite">${aantalCursisten}</output>
+              <span class="stepper__value" aria-live="polite" role="status">${aantalCursisten}</span>
               <button
                 class="stepper__btn stepper__btn--right"
                 onClick=${() => setAantal(v => Math.min(5,v+1))}
@@ -481,7 +481,7 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
               <strong>${aantalCursisten} cursist${aantalCursisten>1?"en":""}</strong> —
               in de laatste stap vult u de gegevens per cursist in.
             </p>
-          </>`}
+          </${Blok}>`}
 
         <!-- STAP: OPTIES -->
         ${huidigId==="opties" && html`
@@ -518,7 +518,7 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
                             onClick=${e => { e.stopPropagation(); setAantalOpts(v=>({...v,[o.id]:Math.max(o.minAantal||1,aantal-1)})); }}
                             aria-label="Minder"
                           >−</button>
-                          <output class="qty-control__value">${aantal}</output>
+                          <span class="qty-control__value" role="status">${aantal}</span>
                           <button
                             class="qty-control__btn qty-control__btn--plus"
                             onClick=${e => { e.stopPropagation(); setAantalOpts(v=>({...v,[o.id]:Math.min(o.maxAantal,aantal+1)})); }}
@@ -530,7 +530,7 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
                   </li>`;
               })}
             </ul>
-          </>`}
+          </${Blok}>`}
 
         <!-- STAP: DATUM -->
         ${huidigId==="datum" && html`
@@ -612,12 +612,12 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
               </div>
 
             </div>
-          </>`}
+          </${Blok}>`}
 
         <!-- STAP: GEGEVENS -->
         ${huidigId==="gegevens" && html`
           <${Blok} titel="Gegevens invullen" sub="Rijschoolgegevens en cursistengegevens.">
-            <div style="display:flex;flex-direction:column;gap:20px;">
+            <div style=${{display:"flex",flexDirection:"column",gap:"20px"}}>
 
               <!-- Rijschool -->
               <div class="section-card">
@@ -627,9 +627,9 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
                   <${Invoerveld} label="Opleidingsnummer" vereist waarde=${oplnr} stel=${setOplnr} placeholder="12345" />
                   <${Invoerveld} label="E-mailadres rijschool" vereist waarde=${email} stel=${setEmail} placeholder="info@rijschool.nl" type="email" autoComplete="email" />
                   <${Invoerveld} label="Telefoonnummer rijschool" vereist waarde=${tel} stel=${setTel} placeholder="+31 6 12345678" type="tel" autoComplete="tel" />
-                  <fieldset style="border:none;padding:0;">
+                  <fieldset style=${{border:"none",padding:0}}>
                     <legend class="field__label">Betaalmethode op locatie <span class="field__required">*</span></legend>
-                    <div class="payment-options" style="margin-top:6px;">
+                    <div class="payment-options" style=${{marginTop:"6px"}}>
                       ${[{id:"contant",label:"Contant"},{id:"pin",label:"Pinnen"}].map(m => html`
                         <div
                           key=${m.id}
@@ -690,7 +690,7 @@ function Wizard({ diensten, opties, beschikbaar, tijdblokken, bezet, waarschuwin
 
             </div>
             ${fout && html`<p class="error-msg" role="alert">${fout}</p>`}
-          </>`}
+          </${Blok}>`}
 
       </main>
 
