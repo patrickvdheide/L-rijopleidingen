@@ -10,7 +10,14 @@ const COLLECTIE_KLANTTYPES  = "69c12855d0a90ac9efcf1dab";
 async function haalOp(collectieId, token) {
   const res = await fetch(
     `https://api.webflow.com/v2/collections/${collectieId}/items?limit=100&live=true`,
-    { headers: { Authorization: `Bearer ${token}`, accept: "application/json" } }
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "application/json",
+        "Cache-Control": "no-cache",
+      },
+      cf: { cacheEverything: false, cacheTtl: 0 }, // Cloudflare edge cache uitschakelen
+    }
   );
   if (!res.ok) throw new Error(`Webflow ${res.status}: ${await res.text()}`);
   return res.json();

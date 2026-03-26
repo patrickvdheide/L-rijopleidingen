@@ -55,7 +55,10 @@ function re_email(v){ return /^[^@]+@[^@]+\.[^@]+$/.test(v); }
 
 /* ── API ── */
 async function apiCms(){
-  const r=await fetch("/api/cms-data");
+  // cache-busting + no-cache headers zodat Cloudflare altijd verse data stuurt
+  const r=await fetch("/api/cms-data?t="+Date.now(),{
+    headers:{"Cache-Control":"no-cache","Pragma":"no-cache"}
+  });
   if(!r.ok) throw 0;
   return r.json();
 }
