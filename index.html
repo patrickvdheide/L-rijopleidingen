@@ -48,13 +48,19 @@ function dagenIn(j,m) { return new Date(j,m+1,0).getDate(); }
 function prijsDiensten(){
   return 0; // Dienst locatie verwijderd
 }
-function prijsOpties(oIds,AO,ao){
-  ao=ao||{};
-  return oIds.reduce((s,id)=>{const o=AO.find(x=>x.id===id);return s+((o?.prijs||0)*(ao[id]||1));},0);
+function prijsOpties(oIds,AO,ao,uren,nC){
+  ao=ao||{}; uren=uren||1; nC=nC||1;
+  return oIds.reduce((s,id)=>{
+    const o=AO.find(x=>x.id===id);
+    if(!o) return s;
+    const n=ao[id]||1;
+    if(o.isEenmalig) return s + o.prijs * nC;       // eenmalig × cursisten
+    if(o.isMotor)    return s + o.prijs * n * uren;  // motor × aantal × uren
+    return s + o.prijs * uren;                        // instructeur × uren
+  },0);
 }
-function prijsTotaal(oIds,AO,ao,uren){
-  const u=uren||1;
-  return prijsOpties(oIds,AO,ao)*u;
+function prijsTotaal(oIds,AO,ao,uren,nC){
+  return prijsOpties(oIds,AO,ao,uren,nC);
 }
 function re_email(v){ return /^[^@]+@[^@]+\.[^@]+$/.test(v); }
 
@@ -347,7 +353,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         const o = AO.find(x=>x.id===id);
         if(!o) return;
         // Instructeur altijd 1, motoren/kleding meescalen met blokken
-        update[id] = o.isMotor ? Math.min(nC, Math.max(1, blokken.length)) : 1;
+        // eenmalig: niet syncen (aantal = nC, intern); motor: blokken; rest: 1
+        if(!o.isEenmalig) update[id] = o.isMotor ? Math.min(nC, Math.max(1, blokken.length)) : 1;
       });
       return update;
     });
@@ -371,7 +378,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     eind:  blokken[blokken.length-1].eind,
   } : null;
   const aantalUren = Math.max(2, blokken.length * 2); // minimum 2 uur (1 blok)
-  const prijs = prijsTotaal(oIds,AO,aoNr,aantalUren);
+  const prijs = prijsTotaal(oIds,AO,aoNr,aantalUren,nC);
 
   function dagUitg(d,i){
     const wd=(i+eersteWd(jaar,maand))%7;
@@ -516,7 +523,9 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         // Optie wordt aangevinkt: zet aantal op huidige blokken
         // Instructeur=1, motor/kleding = blokken.length (max nC)
         const o = AO.find(x=>x.id===id);
-        setAoNr(a=>({...a,[id]: o?.isMotor ? Math.min(nC,Math.max(1,blokken.length)) : 1}));
+        if(o && !o.isEenmalig){
+          setAoNr(a=>({...a,[id]: o.isMotor ? Math.min(nC,Math.max(1,blokken.length)) : 1}));
+        }
       }
       return nu;
     });
@@ -558,11 +567,15 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         const sel = oIds.includes(o.id);
         const n   = aoNr[o.id]||1;
         const klass = "option-item__row"+(sel?" option-item__row--selected":"");
-        const prStr = o.prijs>0 ? ("\u20ac\u00a0"+String(o.prijs)+" p/u") : "Gratis";
+        const prStr = o.prijs===0 ? "Gratis"
+          : o.isEenmalig ? ("\u20ac\u00a0"+String(o.prijs)+" p/cursist")
+          : ("\u20ac\u00a0"+String(o.prijs)+" p/u");
         const pcls  = "option-item__price"+(sel?" option-item__price--selected":"")
                     +(o.prijs===0?" option-item__price--free":"");
         const effMax = o.isMotor ? nC : 1;
-        // Stepper alleen voor motor/kleding, instructeur is altijd 1× (vast tarief)
+        // Stepper alleen voor motor/kleding
+        // Instructeur: vast × uren (geen stepper)
+        // Eenmalig: vast × nC cursisten (geen stepper)
         const toonStepper = sel && o.isMotor && effMax > 1;
         const qty = toonStepper ? h`<div class="option-item__qty">
           <span class="option-item__qty-label">Aantal:</span>
@@ -577,7 +590,9 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
           </div>
           <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*aantalUren).toFixed(2)+" totaal ("+aantalUren+" uur)"}</span>
         </div>` : sel ? h`<div class="option-item__qty">
-          <span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" p/u \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+(o.prijs*aantalUren).toFixed(2)}</strong></span>
+          ${o.isEenmalig
+            ? h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+nC+" cursist"+(nC>1?"en":"")+" = "}<strong>${"\u20ac\u00a0"+(o.prijs*nC).toFixed(2)}</strong><span style=${{fontSize:"11px",color:"var(--color-faint)"}}> eenmalig</span></span>`
+            : h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" p/u \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+(o.prijs*aantalUren).toFixed(2)}</strong></span>`}
         </div>` : null;
 
         return h`<li key=${o.id} class="option-item">

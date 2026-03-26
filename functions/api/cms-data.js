@@ -77,15 +77,20 @@ function parseOpties(items) {
     if (f.actief === false) return null;
     const label = vind(f, "name","naam","label","titel") || "Optie";
     // isMotor en isLesmotor bepalen max-aantal (wordt client-side overschreven met nC)
-    const isMotor = /motor|lesmotor|motorkleding/i.test(label);
+    const isMotor    = /motor|lesmotor|motorkleding/i.test(label);
+    // eenmalig = vast bedrag per cursist, NIET vermenigvuldigd met blokken/uren
+    // Detectie via veld "eenmalig" (switch) OF via naampatroon (avb, examen)
+    const isEenmalig = !!(vind(f,"eenmalig","one-time","eenmalige-kost"))
+                     || /avb|examen|examengeld|eenmalig/i.test(label);
     return {
       id:       item.id,
       label,
       prijs:    vindPrijsSlim(f),
       info:     vind(f,"omschrijving","info","description","beschrijving") || "",
-      isMotor,  // client gebruikt dit om maxAantal = nC te zetten
+      isMotor,    // motor/kleding: prijs × aantal × uren
+      isEenmalig, // eenmalig: prijs × aantal cursisten (niet × blokken)
       minAantal: 0,
-      maxAantal: 6, // wordt client-side overschreven met aantalCursisten
+      maxAantal: 6,
     };
   }).filter(Boolean);
   // Geen zichtbaarBedrijf filter — dit is een rijschoolhouder-only tool
