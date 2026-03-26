@@ -48,15 +48,24 @@ function dagenIn(j,m) { return new Date(j,m+1,0).getDate(); }
 function prijsDiensten(){
   return 0; // Dienst locatie verwijderd
 }
+// Detecteer optie-type op basis van label (fallback als server isEenmalig niet stuurt)
+function optieType(o){
+  if(o.isEenmalig) return "eenmalig";
+  if(/avb|examen|examengeld|eenmalig/i.test(o.label||"")) return "eenmalig";
+  if(o.isMotor || /motor|lesmotor|motorkleding/i.test(o.label||"")) return "motor";
+  return "uur"; // instructeur, vast tarief per uur
+}
+
 function prijsOpties(oIds,AO,ao,uren,nC){
   ao=ao||{}; uren=uren||1; nC=nC||1;
   return oIds.reduce((s,id)=>{
     const o=AO.find(x=>x.id===id);
     if(!o) return s;
     const n=ao[id]||1;
-    if(o.isEenmalig) return s + o.prijs * nC;       // eenmalig × cursisten
-    if(o.isMotor)    return s + o.prijs * n * uren;  // motor × aantal × uren
-    return s + o.prijs * uren;                        // instructeur × uren
+    const tp=optieType(o);
+    if(tp==="eenmalig") return s + o.prijs * nC;       // eenmalig × cursisten
+    if(tp==="motor")    return s + o.prijs * n * uren;  // motor × aantal × uren
+    return s + o.prijs * uren;                           // instructeur × uren
   },0);
 }
 function prijsTotaal(oIds,AO,ao,uren,nC){
@@ -353,8 +362,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         const o = AO.find(x=>x.id===id);
         if(!o) return;
         // Instructeur altijd 1, motoren/kleding meescalen met blokken
-        // eenmalig: niet syncen (aantal = nC, intern); motor: blokken; rest: 1
-        if(!o.isEenmalig) update[id] = o.isMotor ? Math.min(nC, Math.max(1, blokken.length)) : 1;
+        // eenmalig: niet syncen; motor: blokken; rest: 1
+        const oTp=optieType(o); if(oTp!=="eenmalig") update[id] = oTp==="motor" ? Math.min(nC, Math.max(1, blokken.length)) : 1;
       });
       return update;
     });
@@ -523,8 +532,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         // Optie wordt aangevinkt: zet aantal op huidige blokken
         // Instructeur=1, motor/kleding = blokken.length (max nC)
         const o = AO.find(x=>x.id===id);
-        if(o && !o.isEenmalig){
-          setAoNr(a=>({...a,[id]: o.isMotor ? Math.min(nC,Math.max(1,blokken.length)) : 1}));
+        if(o && optieType(o)!=="eenmalig"){
+          setAoNr(a=>({...a,[id]: optieType(o)==="motor" ? Math.min(nC,Math.max(1,blokken.length)) : 1}));
         }
       }
       return nu;
@@ -567,16 +576,16 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         const sel = oIds.includes(o.id);
         const n   = aoNr[o.id]||1;
         const klass = "option-item__row"+(sel?" option-item__row--selected":"");
+        const tp = optieType(o);
         const prStr = o.prijs===0 ? "Gratis"
-          : o.isEenmalig ? ("\u20ac\u00a0"+String(o.prijs)+" p/cursist")
+          : tp==="eenmalig" ? ("\u20ac\u00a0"+String(o.prijs)+" p/cursist")
+          : tp==="motor"    ? ("\u20ac\u00a0"+String(o.prijs)+" p/u")
           : ("\u20ac\u00a0"+String(o.prijs)+" p/u");
         const pcls  = "option-item__price"+(sel?" option-item__price--selected":"")
                     +(o.prijs===0?" option-item__price--free":"");
-        const effMax = o.isMotor ? nC : 1;
+        const effMax = tp==="motor" ? nC : 1;
         // Stepper alleen voor motor/kleding
-        // Instructeur: vast × uren (geen stepper)
-        // Eenmalig: vast × nC cursisten (geen stepper)
-        const toonStepper = sel && o.isMotor && effMax > 1;
+        const toonStepper = sel && tp==="motor" && effMax > 1;
         const qty = toonStepper ? h`<div class="option-item__qty">
           <span class="option-item__qty-label">Aantal:</span>
           <div class="qty-control" role="group">
@@ -590,9 +599,9 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
           </div>
           <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*aantalUren).toFixed(2)+" totaal ("+aantalUren+" uur)"}</span>
         </div>` : sel ? h`<div class="option-item__qty">
-          ${o.isEenmalig
-            ? h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+nC+" cursist"+(nC>1?"en":"")+" = "}<strong>${"\u20ac\u00a0"+(o.prijs*nC).toFixed(2)}</strong><span style=${{fontSize:"11px",color:"var(--color-faint)"}}> eenmalig</span></span>`
-            : h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" p/u \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+(o.prijs*aantalUren).toFixed(2)}</strong></span>`}
+          ${tp==="eenmalig"
+            ? h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+nC+" cursist"+(nC>1?"en":"")+" = "}<strong>${"\u20ac\u00a0"+(o.prijs*nC).toFixed(2)}</strong><span style=${{fontSize:"11px",color:"var(--color-faint)"}}> eenmalig totaal</span></span>`
+            : h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+(o.prijs*aantalUren).toFixed(2)}</strong></span>`}
         </div>` : null;
 
         return h`<li key=${o.id} class="option-item">
