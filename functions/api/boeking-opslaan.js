@@ -11,6 +11,10 @@ const CORS = {
 
 const BASE_URL = "https://reserveren.l-rijopleidingen.nl";
 const RESEND   = "https://api.resend.com/emails";
+function fmtBedrag(v){
+  return Number(v).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
 const MAANDEN  = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
 
 function formatDatum(str) {
@@ -32,6 +36,7 @@ export async function onRequest(context) {
 
   const {
     naam, email, tel, bedrijf, opleidingsnummer,
+    straat, huisnr, postcode, plaats,
     cursisten, aantalCursisten,
     diensten, dienstLabels, opties, optieLabels,
     datum, tijdblok, betaalMethode, totaal: totaalIn,
@@ -44,6 +49,9 @@ export async function onRequest(context) {
   const aantalC     = aantalCursisten || (cursisten ? cursisten.length : 1);
   const slotsLabel  = tijdblok?.label || tijdblok || "—";
   const vanaf       = "L-Rijopleidingen <" + (env.RESEND_FROM || "").trim() + ">";
+  const adresStr    = [straat, huisnr, postcode, plaats].filter(Boolean).join(" ");
+  const btwBedrag   = totaal * 0.21;
+  const inclBtw     = totaal * 1.21;
 
   // ── Zorg dat alle kolommen bestaan (auto-migratie voor bestaande databases) ──
   try {
@@ -95,10 +103,10 @@ export async function onRequest(context) {
     ["Boekingsnummer", id],
     ["Datum",          formatDatum(datum)],
     ["Tijdblok",       slotsLabel],
-    ["Dienst",         dienstenStr],
     opties?.length ? ["Opties", optiesStr] : null,
     ["Betaling",       betaalMethode === "pin" ? "Pin op locatie" : "Contant op locatie"],
     bedrijf          ? ["Rijschool",         bedrijf]          : null,
+    adresStr         ? ["Adres",             adresStr]         : null,
     opleidingsnummer ? ["Opleidingsnummer",   opleidingsnummer] : null,
     aantalC          ? ["Aantal cursisten",   String(aantalC)]  : null,
   ].filter(Boolean);
@@ -129,12 +137,11 @@ export async function onRequest(context) {
           <h1 style="margin:0 0 6px;font-size:22px;color:#1a1f2e;">Reservering bevestigd ✓</h1>
           <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Bedankt voor uw reservering bij L-Rijopleidingen. Hieronder het overzicht.</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">${alleRijen}</table>
-          <table cellpadding="0" cellspacing="0"><tr>
-            <td><div style="background:#f5f6f8;color:#1a1f2e;padding:10px 0;font-size:14px;font-weight:700;">
-              Totaal: <span style="color:#0586f0;">€ ${totaal.toFixed(2)}</span>
-              <span style="font-size:12px;font-weight:400;color:#9ca3af;"> excl. BTW · facturabel</span>
-            </div></td>
-          </tr></table>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;border-top:2px solid #eef0f5;">
+            <tr><td style="padding:8px 0 2px;font-size:13px;color:#6b7280;">Excl. BTW</td><td style="text-align:right;padding:8px 0 2px;font-size:13px;color:#1a1f2e;">€ ${fmtBedrag(totaal)}</td></tr>
+            <tr><td style="padding:2px 0;font-size:13px;color:#6b7280;">BTW 21%</td><td style="text-align:right;padding:2px 0;font-size:13px;color:#1a1f2e;">€ ${fmtBedrag(btwBedrag)}</td></tr>
+            <tr style="border-top:1px solid #eef0f5;"><td style="padding:8px 0 0;font-size:14px;font-weight:700;color:#1a1f2e;">Totaal incl. BTW</td><td style="text-align:right;padding:8px 0 0;font-size:18px;font-weight:700;color:#0586f0;">€ ${fmtBedrag(inclBtw)}</td></tr>
+          </table>
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #f3f4f6;text-align:center;">${logoZwart}<p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">L-Rijopleidingen · info@l-rijopleidingen.nl</p></td></tr>
       </table>
@@ -155,7 +162,11 @@ export async function onRequest(context) {
           <h1 style="margin:0 0 6px;font-size:20px;color:#1a1f2e;">🔔 Nieuwe reservering — ${bedrijf || naam}</h1>
           <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">${formatDatum(datum)} · ${slotsLabel}</p>
           <table width="100%" cellpadding="0" cellspacing="0">${alleRijen}</table>
-          <p style="margin:16px 0 0;font-size:14px;font-weight:700;color:#0586f0;">Totaal: € ${totaal.toFixed(2)} excl. BTW</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;border-top:1px solid #f3f4f6;padding-top:12px;">
+            <tr><td style="font-size:13px;color:#6b7280;padding:3px 0;">Excl. BTW</td><td style="text-align:right;font-size:13px;color:#1a1f2e;padding:3px 0;">€ ${fmtBedrag(totaal)}</td></tr>
+            <tr><td style="font-size:13px;color:#6b7280;padding:3px 0;">BTW 21%</td><td style="text-align:right;font-size:13px;color:#1a1f2e;padding:3px 0;">€ ${fmtBedrag(btwBedrag)}</td></tr>
+            <tr><td style="font-size:14px;font-weight:700;color:#1a1f2e;padding:6px 0 0;">Totaal incl. BTW</td><td style="text-align:right;font-size:16px;font-weight:700;color:#0586f0;padding:6px 0 0;">€ ${fmtBedrag(inclBtw)}</td></tr>
+          </table>
         </td></tr>
       </table>
     </td></tr>

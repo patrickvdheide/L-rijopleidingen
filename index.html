@@ -48,6 +48,11 @@ function dagenIn(j,m) { return new Date(j,m+1,0).getDate(); }
 function prijsDiensten(){
   return 0; // Dienst locatie verwijderd
 }
+// Getal opmaak: punt→komma, punten als duizendtalscheider
+function fmtBedrag(v){
+  return Number(v).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
 // Detecteer optie-type op basis van label (fallback als server isEenmalig niet stuurt)
 function optieType(o){
   if(o.isEenmalig) return "eenmalig";
@@ -255,9 +260,9 @@ function Bevestiging({boeking, AO, onNieuw}){
   const rijen = [
     ["Datum",       datumTxt],
     ["Tijdblok",    tbLabel],
-
     oLabels.length ? ["Opties", oLabels.join(", ")] : null,
     ["Rijschool",   boeking.bedrijf||""],
+    boeking.straat ? ["Adres", [boeking.straat,boeking.huisnr,boeking.postcode,boeking.plaats].filter(Boolean).join(" ")] : null,
     ["Betaling",    boeking.betaalMethode==="pin"?"Pin op locatie":"Contant op locatie"],
   ].filter(r=>r&&r[1]);
 
@@ -300,7 +305,7 @@ function Bevestiging({boeking, AO, onNieuw}){
         <div class="confirmation__total">
           <span class="confirmation__total-label">Te betalen op locatie</span>
           <div class="summary__total-amount">
-            <strong>${"\u20ac\u00a0"+totaal.toFixed(2)}</strong>
+            <strong>${"\u20ac\u00a0"+fmtBedrag(totaal)}</strong>
             <span>Excl. BTW \u00b7 facturabel</span>
           </div>
         </div>
@@ -346,6 +351,10 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
   const [oplnr,  setOp]  = S("");
   const [email,  setEm]  = S("");
   const [tel,    setTl]  = S("");
+  const [straat, setSt2] = S("");
+  const [huisnr, setHnr] = S("");
+  const [postcode,setPc] = S("");
+  const [plaats, setPl]  = S("");
   const [betaal, setBt]  = S(null);
   const [bezig,  setBz]  = S(false);
   const [fout,   setFt]  = S("");
@@ -476,7 +485,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     if(stapId==="datum")     return !!datum&&!!geselecteerdeBlokken.length;
     if(stapId==="opties")    return true;
     if(stapId==="gegevens"){
-      if(!bedrijf||!oplnr||!email||!re_email(email)||!tel||!betaal) return false;
+      if(!bedrijf||!oplnr||!email||!re_email(email)||!tel||!straat||!huisnr||!postcode||!plaats||!betaal) return false;
       return curs.every(c=>c.vn&&c.an&&c.em&&re_email(c.em)&&c.tl);
     }
     return true;
@@ -491,6 +500,10 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
       if(!oplnr)   m.push("opleidingsnummer");
       if(!email||!re_email(email)) m.push("e-mail rijschool");
       if(!tel)     m.push("telefoon rijschool");
+      if(!straat)  m.push("straatnaam");
+      if(!huisnr)  m.push("huisnummer");
+      if(!postcode)m.push("postcode");
+      if(!plaats)  m.push("woonplaats");
       if(!betaal)  m.push("betaalmethode");
       curs.forEach((c,i)=>{
         if(!c.vn) m.push("voornaam cursist "+(i+1));
@@ -513,7 +526,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         aantalCursisten: nC,
         cursisten: curs.map(c=>({voornaam:c.vn,achternaam:c.an,email:c.em,tel:c.tl})),
         naam: curs.map(c=>c.vn+" "+c.an).join(", "),
-        email, tel, bedrijf,
+        email, tel, bedrijf, straat, huisnr, postcode, plaats,
         opleidingsnummer: oplnr,
         betaalMethode: betaal,
         aoNr, prijs,
@@ -541,7 +554,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
   }
   function setCv(i,k,v){ setCurs(p=>p.map((c,j)=>j===i?{...c,[k]:v}:c)); }
 
-  const pLabel = blokken.length&&datum ? ("\u20ac\u00a0"+prijs.toFixed(2)+" excl. btw"+" \u00b7 "+blokken.length+(blokken.length===1?" blok":" blokken")) : null;
+  const pLabel = blokken.length&&datum ? ("\u20ac\u00a0"+fmtBedrag(prijs)+" excl. btw"+" \u00b7 "+blokken.length+(blokken.length===1?" blok":" blokken")) : null;
   const hintMsg = hint();
 
   /* ── TOPBAR ── */
@@ -600,8 +613,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
           <span class="option-item__qty-label">${"= \u20ac\u00a0"+(o.prijs*n*aantalUren).toFixed(2)+" totaal ("+aantalUren+" uur)"}</span>
         </div>` : sel ? h`<div class="option-item__qty">
           ${tp==="eenmalig"
-            ? h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+nC+" cursist"+(nC>1?"en":"")+" = "}<strong>${"\u20ac\u00a0"+(o.prijs*nC).toFixed(2)}</strong><span style=${{fontSize:"11px",color:"var(--color-faint)"}}> eenmalig totaal</span></span>`
-            : h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+(o.prijs*aantalUren).toFixed(2)}</strong></span>`}
+            ? h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+nC+" cursist"+(nC>1?"en":"")+" = "}<strong>${"\u20ac\u00a0"+fmtBedrag(o.prijs*nC)}</strong><span style=${{fontSize:"11px",color:"var(--color-faint)"}}> eenmalig totaal</span></span>`
+            : h`<span class="option-item__qty-label">${"\u20ac\u00a0"+o.prijs+" \u00d7 "+aantalUren+" uur = "}<strong>${"\u20ac\u00a0"+fmtBedrag(o.prijs*aantalUren)}</strong></span>`}
         </div>` : null;
 
         return h`<li key=${o.id} class="option-item">
@@ -722,11 +735,13 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     </div>
   </div>`);
 
+  const adresStr = [straat,huisnr,postcode,plaats].filter(Boolean).join(" ");
   const overzichtRijen = [
     ["Datum",     dag?(String(dag)+" "+MAANDEN[maand]+" "+String(jaar)):"—"],
     ["Tijdblok",  gecombineerdBlok?gecombineerdBlok.label:"—"],
     oIds.length?["Opties", oIds.map(id=>AO.find(o=>o.id===id)?.label||String(id)).join(", ")]:null,
     ["Cursisten", String(nC)],
+    adresStr?["Adres", adresStr]:null,
     betaal?["Betaling",betaal==="pin"?"Pin op locatie":"Contant op locatie"]:null,
   ].filter(Boolean);
 
@@ -743,6 +758,17 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
             ph="info@rijschool.nl" type="email" ac="email"/>
           <${Veld} label="Telefoonnummer rijschool" req val=${tel} set=${setTl}
             ph="+31 6 12345678" type="tel" ac="tel"/>
+          <div style=${{display:"grid",gridTemplateColumns:"1fr 80px",gap:"8px"}}>
+            <${Veld} label="Straatnaam" req val=${straat} set=${setSt2}
+              ph="Hoofdstraat" ac="address-line1"/>
+            <${Veld} label="Nr." req val=${huisnr} set=${setHnr} ph="12"/>
+          </div>
+          <div style=${{display:"grid",gridTemplateColumns:"120px 1fr",gap:"8px"}}>
+            <${Veld} label="Postcode" req val=${postcode} set=${setPc}
+              ph="1234 AB" ac="postal-code"/>
+            <${Veld} label="Woonplaats" req val=${plaats} set=${setPl}
+              ph="Amsterdam" ac="address-level2"/>
+          </div>
           <fieldset style=${{border:"none",padding:0}}>
             <legend class="field__label">
               ${"Betaalmethode op locatie"}
@@ -762,16 +788,16 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         <div class="summary__total">
           <span class="summary__total-label">Totaal excl. BTW</span>
           <div class="summary__total-amount">
-            <strong>${"\u20ac\u00a0"+prijs.toFixed(2)}</strong>
+            <strong>${"\u20ac\u00a0"+fmtBedrag(prijs)}</strong>
           </div>
         </div>
         <div style=${{display:"flex",justifyContent:"space-between",padding:"6px 14px",fontSize:"13px",color:"var(--color-sub)",borderTop:"1px solid var(--color-border)"}}>
           <span>BTW 21%</span>
-          <span>${"\u20ac\u00a0"+(prijs*0.21).toFixed(2)}</span>
+          <span>${"\u20ac\u00a0"+fmtBedrag(prijs*0.21)}</span>
         </div>
         <div style=${{display:"flex",justifyContent:"space-between",padding:"10px 14px",fontSize:"14px",fontWeight:700,borderTop:"1px solid var(--color-border)"}}>
           <span>Totaal incl. BTW</span>
-          <span style=${{color:"var(--color-accent)"}}>${"\u20ac\u00a0"+(prijs*1.21).toFixed(2)}</span>
+          <span style=${{color:"var(--color-accent)"}}>${"\u20ac\u00a0"+fmtBedrag(prijs*1.21)}</span>
         </div>
       </aside>
     </div>

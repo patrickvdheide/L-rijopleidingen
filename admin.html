@@ -89,6 +89,64 @@
     .mobile-menu button.active { background:#e6f4fe;color:#0586f0;font-weight:700; }
     .mobile-menu button.active { background:rgba(255,255,255,0.15);font-weight:700; }
     .mobile-menu .menu-logout { color:#dc2626;font-size:14px; }
+    /* Nieuwe boeking modal responsive */
+    @media (max-width: 560px) {
+      .nb-grid { grid-template-columns: 1fr !important; }
+      .nb-full  { grid-column: 1 !important; }
+    }
+    /* Nette checkbox stijl voor opties */
+    .nb-optie-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #dde1e9;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1a1f2e;
+      background: #fff;
+      transition: background 0.1s, border-color 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nb-optie-item:hover { background: #f5f6f8; }
+    .nb-optie-item.selected { background: #e6f4fe; border-color: #0586f0; }
+    .nb-optie-cb {
+      width: 18px; height: 18px;
+      border: 1.5px solid #dde1e9;
+      border-radius: 4px;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.1s;
+    }
+    .nb-optie-item.selected .nb-optie-cb {
+      background: #0586f0; border-color: #0586f0;
+    }
+    .nb-optie-prijs { margin-left: auto; font-size: 13px; color: #6b7280; white-space: nowrap; }
+    .nb-optie-item.selected .nb-optie-prijs { color: #0586f0; font-weight: 600; }
+
+    /* Tijdblok items in nieuwe boeking modal */
+    .nb-blok-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #dde1e9;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1a1f2e;
+      background: #fff;
+      transition: background 0.1s, border-color 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .nb-blok-item:hover { background: #f5f6f8; }
+    .nb-blok-item.selected { background: #e6f4fe; border-color: #0586f0; color: #0586f0; font-weight: 600; }
+    .nb-blok-item.selected .nb-optie-cb { background: #0586f0; border-color: #0586f0; }
+    .nb-blok-item.disabled { opacity: 0.35; cursor: default; }
+
     @media (max-width: 520px) {
       .hamburger { display:flex; }
       #nav-bar { display:none !important; }
@@ -297,52 +355,63 @@
 
   <!-- NIEUWE BOEKING MODAL -->
   <div id="nieuwe-boeking-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="nb-titel" style="display:none">
-    <div class="modal-box" style="max-width:620px;max-height:90vh;overflow-y:auto;">
-      <div class="modal-header">
+    <div class="modal-box" style="width:100%;max-width:600px;max-height:95dvh;overflow-y:auto;margin:8px;">
+      <div class="modal-header" style="position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid #dde1e9;padding:14px 20px;">
         <h2 id="nb-titel" style="font-size:15px;font-weight:700;color:#1a1f2e">Nieuwe boeking</h2>
-        <button onclick="sluitNieuweBoeking()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;padding:0 2px;line-height:1">&#215;</button>
+        <button onclick="sluitNieuweBoeking()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;padding:0 4px;line-height:1;touch-action:manipulation;">&#215;</button>
       </div>
-      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
 
-        <!-- Rijschoolgegevens -->
-        <fieldset style="border:1px solid #dde1e9;border-radius:6px;padding:14px;">
+        <!-- Rijschool -->
+        <fieldset style="border:1px solid #dde1e9;border-radius:8px;padding:16px;margin:0;">
           <legend style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding:0 6px;">Rijschool</legend>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
-            <div class="form-group"><label>Bedrijfsnaam *</label><input type="text" id="nb-bedrijf" placeholder="Rijschool B.V."/></div>
-            <div class="form-group"><label>Opleidingsnummer *</label><input type="text" id="nb-oplnr" placeholder="12345"/></div>
-            <div class="form-group"><label>E-mailadres *</label><input type="email" id="nb-email" placeholder="info@rijschool.nl"/></div>
-            <div class="form-group"><label>Telefoon *</label><input type="tel" id="nb-tel" placeholder="+31 6 12345678"/></div>
+          <div class="nb-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+            <div class="form-group nb-full"><label>Bedrijfsnaam *</label><input type="text" id="nb-bedrijf" placeholder="Rijschool B.V." autocomplete="organization"/></div>
+            <div class="form-group nb-full"><label>Opleidingsnummer *</label><input type="text" id="nb-oplnr" placeholder="12345"/></div>
+            <div class="form-group"><label>E-mailadres *</label><input type="email" id="nb-email" placeholder="info@rijschool.nl" autocomplete="email"/></div>
+            <div class="form-group"><label>Telefoon *</label><input type="tel" id="nb-tel" placeholder="+31 6 12345678" autocomplete="tel"/></div>
           </div>
         </fieldset>
 
-        <!-- Dienst, opties, datum, tijdblok -->
-        <fieldset style="border:1px solid #dde1e9;border-radius:6px;padding:14px;">
+        <!-- Boeking -->
+        <fieldset style="border:1px solid #dde1e9;border-radius:8px;padding:16px;margin:0;">
           <legend style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding:0 6px;">Boeking</legend>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
-            <div class="form-group">
-              <label>Dienst *</label>
-              <select id="nb-dienst"></select>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
+
+            <!-- Opties als checkboxen -->
+            <div class="form-group" id="nb-opties-wrap">
+              <label style="display:block;margin-bottom:8px;">Opties</label>
+              <div id="nb-opties-lijst" style="display:flex;flex-direction:column;gap:6px;"></div>
             </div>
-            <div class="form-group" id="nb-opties-wrap" style="display:none">
-              <label>Opties</label>
-              <div id="nb-opties-lijst" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+            <div class="nb-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <div class="form-group">
                 <label>Datum *</label>
-                <input type="date" id="nb-datum" min="" />
+                <input type="date" id="nb-datum" min="" style="padding:8px 10px;font-size:14px;"/>
               </div>
               <div class="form-group">
-                <label>Tijdblok *</label>
-                <select id="nb-tijdblok">
-                  <option value="">Kies tijdblok…</option>
-                  <option value="08-10|08:00 – 10:00|08:00|10:00">08:00 – 10:00</option>
-                  <option value="10-12|10:00 – 12:00|10:00|12:00">10:00 – 12:00</option>
-                  <option value="13-15|13:00 – 15:00|13:00|15:00">13:00 – 15:00</option>
-                  <option value="15-17|15:00 – 17:00|15:00|17:00">15:00 – 17:00</option>
-                </select>
+                <label style="display:block;margin-bottom:8px;">Tijdblok * <span id="nb-blok-label" style="font-weight:400;color:#0586f0;font-size:12px;"></span></label>
+                <div id="nb-tijdblokken" style="display:flex;flex-direction:column;gap:6px;">
+                  <div class="nb-blok-item" data-id="08-10" data-start="08:00" data-eind="10:00" data-label="08:00 – 10:00" onclick="toggleNbBlok(this)">
+                    <span class="nb-optie-cb"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span>08:00 – 10:00</span>
+                  </div>
+                  <div class="nb-blok-item" data-id="10-12" data-start="10:00" data-eind="12:00" data-label="10:00 – 12:00" onclick="toggleNbBlok(this)">
+                    <span class="nb-optie-cb"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span>10:00 – 12:00</span>
+                  </div>
+                  <div class="nb-blok-item" data-id="13-15" data-start="13:00" data-eind="15:00" data-label="13:00 – 15:00" onclick="toggleNbBlok(this)">
+                    <span class="nb-optie-cb"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span>13:00 – 15:00</span>
+                  </div>
+                  <div class="nb-blok-item" data-id="15-17" data-start="15:00" data-eind="17:00" data-label="15:00 – 17:00" onclick="toggleNbBlok(this)">
+                    <span class="nb-optie-cb"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span>15:00 – 17:00</span>
+                  </div>
+                </div>
               </div>
             </div>
+
             <div class="form-group">
               <label>Betaalmethode *</label>
               <select id="nb-betaal">
@@ -354,30 +423,30 @@
           </div>
         </fieldset>
 
-        <!-- Aantal cursisten -->
-        <fieldset style="border:1px solid #dde1e9;border-radius:6px;padding:14px;">
+        <!-- Cursisten -->
+        <fieldset style="border:1px solid #dde1e9;border-radius:8px;padding:16px;margin:0;">
           <legend style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding:0 6px;">Cursisten</legend>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:8px;">
-            <label style="font-size:13px;color:#6b7280;">Aantal:</label>
-            <select id="nb-aantal" onchange="renderNbCursisten()" style="width:auto;flex:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;margin-top:8px;">
+            <label style="font-size:13px;color:#6b7280;white-space:nowrap;">Aantal:</label>
+            <select id="nb-aantal" onchange="renderNbCursisten()" style="width:80px;flex:none;">
               <option value="1">1</option><option value="2">2</option><option value="3">3</option>
               <option value="4">4</option><option value="5">5</option>
             </select>
           </div>
-          <div id="nb-cursisten" style="display:flex;flex-direction:column;gap:12px;"></div>
+          <div id="nb-cursisten" style="display:flex;flex-direction:column;gap:14px;"></div>
         </fieldset>
 
         <!-- Prijs preview -->
-        <div id="nb-prijs-preview" style="background:#f5f6f8;border:1px solid #dde1e9;border-radius:6px;padding:12px 14px;font-size:13px;color:#6b7280;display:none;">
-          Totaal: <strong id="nb-totaal-bedrag" style="color:#0586f0;font-size:16px;"></strong>
-          <span style="font-size:11px;"> excl. BTW</span>
+        <div id="nb-prijs-preview" style="background:#e6f4fe;border:1px solid #b3d9fd;border-radius:8px;padding:14px 16px;display:none;">
+          <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Totaal excl. BTW</div>
+          <div style="font-size:20px;font-weight:700;color:#0586f0;" id="nb-totaal-bedrag"></div>
         </div>
 
-        <div id="nb-fout" style="display:none;color:#dc2626;font-size:13px;padding:8px 12px;background:#fef2f2;border-radius:5px;"></div>
+        <div id="nb-fout" style="display:none;color:#dc2626;font-size:13px;padding:10px 12px;background:#fef2f2;border-radius:6px;"></div>
 
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn btn-secondary" onclick="sluitNieuweBoeking()">Annuleren</button>
-          <button class="btn btn-primary" onclick="slaaNieuweBoekingOp()">Boeking opslaan</button>
+        <div style="display:flex;gap:8px;flex-direction:row-reverse;">
+          <button class="btn btn-primary" onclick="slaaNieuweBoekingOp()" style="flex:1;">Boeking opslaan</button>
+          <button class="btn btn-secondary" onclick="sluitNieuweBoeking()" style="flex:none;">Annuleren</button>
         </div>
       </div>
     </div>
@@ -998,65 +1067,161 @@
 
     // ── Nieuwe Boeking ──
     let nbCmsData = null;
+    let nbGeselecteerdeOpties = new Set();
 
     async function toonNieuweBoeking() {
-      // Laad CMS data als nog niet geladen
       if (!nbCmsData) {
         try {
-          const res = await fetch("/api/cms-data", { headers: { "Authorization": "Bearer "+ADMIN_TOKEN } });
+          const res = await fetch("/api/cms-data?t="+Date.now(), { headers: {"Cache-Control":"no-cache"} });
           nbCmsData = await res.json();
-        } catch { nbCmsData = { diensten:[], opties:[] }; }
+        } catch { nbCmsData = { opties:[] }; }
       }
 
-      // Vul diensten select
-      const dienstSel = document.getElementById("nb-dienst");
-      dienstSel.innerHTML = (nbCmsData.diensten||[]).map(d =>
-        `<option value="${d.id}" data-prijs="${d.prijzen?.bedrijf||0}">${d.label} — € ${d.prijzen?.bedrijf||0}</option>`
-      ).join("") || '<option value="">Geen diensten gevonden</option>';
-
-      // Vul opties
+      // Vul opties als nette klikbare kaartjes
       const visOpties = (nbCmsData.opties||[]).filter(o => o.zichtbaarBedrijf !== false);
-      const optiesWrap = document.getElementById("nb-opties-wrap");
       const optiesLijst = document.getElementById("nb-opties-lijst");
+      nbGeselecteerdeOpties = new Set();
+
       if (visOpties.length > 0) {
-        optiesLijst.innerHTML = visOpties.map(o => `
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px;border:1px solid #dde1e9;border-radius:5px;">
-            <input type="checkbox" name="nb-optie" value="${o.id}" data-prijs="${o.prijs||0}" data-label="${o.label}" onchange="herbereken()"/>
-            ${o.label}${o.prijs>0 ? ` — € ${o.prijs}` : " — Gratis"}
-          </label>`).join("");
-        optiesWrap.style.display = "block";
+        optiesLijst.innerHTML = visOpties.map(o => {
+          const prijsLabel = o.prijs > 0
+            ? (o.isEenmalig || /avb|examen/i.test(o.label||"")
+               ? `€ ${o.prijs} p/cursist`
+               : `€ ${o.prijs} p/u`)
+            : "Gratis";
+          return `<div class="nb-optie-item" data-id="${o.id}" data-prijs="${o.prijs||0}"
+              data-label="${o.label}" data-eenmalig="${!!(o.isEenmalig||/avb|examen/i.test(o.label||""))}"
+              onclick="toggleNbOptie(this)">
+            <span class="nb-optie-cb">
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none">
+                <path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span style="font-size:14px;color:#1a1f2e;">${o.label}</span>
+            <span class="nb-optie-prijs">${prijsLabel}</span>
+          </div>`;
+        }).join("");
+        document.getElementById("nb-opties-wrap").style.display = "block";
       } else {
-        optiesWrap.style.display = "none";
+        document.getElementById("nb-opties-wrap").style.display = "none";
       }
 
-      // Datum min = vandaag
       document.getElementById("nb-datum").min = new Date().toISOString().slice(0,10);
-
-      // Reset velden
       ["nb-bedrijf","nb-oplnr","nb-email","nb-tel"].forEach(id => document.getElementById(id).value="");
-      document.getElementById("nb-tijdblok").value="";
+      // Reset tijdblokken
+      nbGeselecteerdeBlokken = [];
+      document.querySelectorAll(".nb-blok-item").forEach(b => {
+        b.classList.remove("selected","disabled");
+        b.querySelector("svg").style.display = "none";
+      });
+      document.getElementById("nb-blok-label").textContent = "";
       document.getElementById("nb-betaal").value="";
       document.getElementById("nb-aantal").value="1";
       document.getElementById("nb-fout").style.display="none";
       document.getElementById("nb-prijs-preview").style.display="none";
 
       renderNbCursisten();
-      dienstSel.addEventListener("change", herbereken);
-      herbereken();
-
       document.getElementById("nieuwe-boeking-modal").style.display="flex";
+    }
+
+    // Vaste volgorde van blokken voor aaneengesloten selectie
+    const NB_BLOKKEN = ["08-10","10-12","13-15","15-17"];
+    let nbGeselecteerdeBlokken = [];
+
+    function toggleNbBlok(el) {
+      if (el.classList.contains("disabled")) return;
+      const id = el.dataset.id;
+      const idx = NB_BLOKKEN.indexOf(id);
+      const gesIdx = nbGeselecteerdeBlokken.map(b => NB_BLOKKEN.indexOf(b));
+      const minIdx = Math.min(...gesIdx);
+      const maxIdx = Math.max(...gesIdx);
+
+      if (nbGeselecteerdeBlokken.includes(id)) {
+        // Deselecteer — alleen randen
+        if (nbGeselecteerdeBlokken.length === 1) {
+          nbGeselecteerdeBlokken = [];
+        } else if (idx === minIdx) {
+          nbGeselecteerdeBlokken = nbGeselecteerdeBlokken.filter(b => b !== id);
+        } else if (idx === maxIdx) {
+          nbGeselecteerdeBlokken = nbGeselecteerdeBlokken.filter(b => b !== id);
+        }
+        // Midden mag niet verwijderd worden
+      } else {
+        // Voeg toe als aaneengesloten
+        if (nbGeselecteerdeBlokken.length === 0) {
+          nbGeselecteerdeBlokken = [id];
+        } else if (idx === minIdx - 1) {
+          nbGeselecteerdeBlokken = [id, ...nbGeselecteerdeBlokken];
+        } else if (idx === maxIdx + 1) {
+          nbGeselecteerdeBlokken = [...nbGeselecteerdeBlokken, id];
+        } else {
+          // Niet aaneengesloten → reset
+          nbGeselecteerdeBlokken = [id];
+        }
+      }
+
+      // Update UI
+      document.querySelectorAll(".nb-blok-item").forEach(b => {
+        const bIdx = NB_BLOKKEN.indexOf(b.dataset.id);
+        const sel = nbGeselecteerdeBlokken.includes(b.dataset.id);
+        const gesIdx2 = nbGeselecteerdeBlokken.map(x => NB_BLOKKEN.indexOf(x));
+        const min2 = Math.min(...gesIdx2, 99);
+        const max2 = Math.max(...gesIdx2, -1);
+        // Disable: blokken die niet aaneengesloten kunnen worden
+        const kanToevoegen = gesIdx2.length === 0 || bIdx === min2 - 1 || bIdx === max2 + 1;
+        const isRand = bIdx === min2 || bIdx === max2;
+        b.classList.toggle("selected", sel);
+        b.classList.toggle("disabled", !sel && !kanToevoegen && gesIdx2.length > 0);
+        b.querySelector("svg").style.display = sel ? "block" : "none";
+      });
+
+      // Label bijwerken
+      const labelEl = document.getElementById("nb-blok-label");
+      if (nbGeselecteerdeBlokken.length > 0) {
+        const items = document.querySelectorAll(".nb-blok-item");
+        const eerste = [...items].find(b => b.dataset.id === nbGeselecteerdeBlokken[0]);
+        const laatste = [...items].find(b => b.dataset.id === nbGeselecteerdeBlokken[nbGeselecteerdeBlokken.length-1]);
+        labelEl.textContent = eerste.dataset.start + " – " + laatste.dataset.eind
+          + " (" + nbGeselecteerdeBlokken.length + " blok" + (nbGeselecteerdeBlokken.length > 1 ? "ken" : "") + ")";
+      } else {
+        labelEl.textContent = "";
+      }
+
+      herbereken();
+    }
+
+    function toggleNbOptie(el) {
+      const id = el.dataset.id;
+      const isSelected = el.classList.contains("selected");
+      el.classList.toggle("selected");
+      const svg = el.querySelector("svg");
+      svg.style.display = isSelected ? "none" : "block";
+      if (isSelected) nbGeselecteerdeOpties.delete(id);
+      else nbGeselecteerdeOpties.add(id);
+      herbereken();
     }
 
     function herbereken() {
       if (!nbCmsData) return;
-      const dienstSel = document.getElementById("nb-dienst");
-      const gekozenD  = [...dienstSel.options].filter(o=>o.selected);
-      let totaal = gekozenD.reduce((s,o)=>s+Number(o.dataset.prijs||0),0);
-      document.querySelectorAll("input[name='nb-optie']:checked").forEach(cb => {
-        totaal += Number(cb.dataset.prijs||0);
+      const n = parseInt(document.getElementById("nb-aantal").value)||1;
+      const tijdblokRaw = document.getElementById("nb-tijdblok").value;
+      const [,,,tbStart,tbEind] = tijdblokRaw ? ["","","",tijdblokRaw.split("|")[2],tijdblokRaw.split("|")[3]] : [];
+      // Bereken uren: elke slot = 2 uur, tijdblok = 1 slot = 2u
+      const uren = Math.max(1, nbGeselecteerdeBlokken.length) * 2; // elk blok = 2 uur
+
+      let totaal = 0;
+      document.querySelectorAll(".nb-optie-item.selected").forEach(el => {
+        const prijs = Number(el.dataset.prijs||0);
+        const eenmalig = el.dataset.eenmalig === "true";
+        const isMotor = /motor|kleding|lesmotor/i.test(el.dataset.label||"");
+        if (eenmalig) totaal += prijs * n;
+        else if (isMotor) totaal += prijs * n * uren;
+        else totaal += prijs * uren;
       });
+
       const preview = document.getElementById("nb-prijs-preview");
-      document.getElementById("nb-totaal-bedrag").textContent = "€ "+totaal.toFixed(2);
+      document.getElementById("nb-totaal-bedrag").textContent =
+        "€ " + totaal.toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
       preview.style.display = totaal > 0 ? "block" : "none";
     }
 
@@ -1064,19 +1229,22 @@
       const n = parseInt(document.getElementById("nb-aantal").value) || 1;
       const wrap = document.getElementById("nb-cursisten");
       wrap.innerHTML = Array.from({length:n}).map((_,i) => `
-        <div style="border:1px solid #dde1e9;border-radius:6px;padding:12px;">
-          <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Cursist ${i+1}</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="form-group"><label>Voornaam *</label><input type="text" id="nb-c${i}-vnaam" placeholder="Jan"/></div>
-            <div class="form-group"><label>Achternaam *</label><input type="text" id="nb-c${i}-anaam" placeholder="de Vries"/></div>
+        <div style="border:1px solid #dde1e9;border-radius:8px;padding:14px;">
+          <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Cursist ${i+1}</p>
+          <div class="nb-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="form-group"><label>Voornaam *</label><input type="text" id="nb-c${i}-vnaam" placeholder="Jan" autocomplete="given-name"/></div>
+            <div class="form-group"><label>Achternaam *</label><input type="text" id="nb-c${i}-anaam" placeholder="de Vries" autocomplete="family-name"/></div>
             <div class="form-group"><label>E-mail *</label><input type="email" id="nb-c${i}-email" placeholder="jan@voorbeeld.nl"/></div>
             <div class="form-group"><label>Telefoon *</label><input type="tel" id="nb-c${i}-tel" placeholder="+31 6 12345678"/></div>
           </div>
         </div>`).join("");
+      // Herbereken na aantalwijziging
+      herbereken();
     }
 
     function sluitNieuweBoeking() {
       document.getElementById("nieuwe-boeking-modal").style.display="none";
+      nbGeselecteerdeOpties = new Set();
     }
 
     async function slaaNieuweBoekingOp() {
@@ -1085,55 +1253,66 @@
       const email   = document.getElementById("nb-email").value.trim();
       const tel     = document.getElementById("nb-tel").value.trim();
       const datum   = document.getElementById("nb-datum").value;
-      const tijdblokRaw = document.getElementById("nb-tijdblok").value;
       const betaal  = document.getElementById("nb-betaal").value;
       const n       = parseInt(document.getElementById("nb-aantal").value)||1;
       const emailRe = /^[^@]+@[^@]+\.[^@]+$/;
       const foutEl  = document.getElementById("nb-fout");
 
-      if (!bedrijf||!oplnr||!email||!emailRe.test(email)||!tel||!datum||!tijdblokRaw||!betaal) {
+      if (!bedrijf||!oplnr||!email||!emailRe.test(email)||!tel||!datum||nbGeselecteerdeBlokken.length===0||!betaal) {
         foutEl.textContent="Vul alle verplichte velden in."; foutEl.style.display="block"; return;
       }
 
-      // Cursisten
       const cursisten=[];
       for(let i=0;i<n;i++){
         const vn=document.getElementById(`nb-c${i}-vnaam`).value.trim();
         const an=document.getElementById(`nb-c${i}-anaam`).value.trim();
         const em=document.getElementById(`nb-c${i}-email`).value.trim();
         const tl=document.getElementById(`nb-c${i}-tel`).value.trim();
-        if(!vn||!an||!em||!emailRe.test(em)||!tl){ foutEl.textContent=`Vul de gegevens van cursist ${i+1} correct in.`; foutEl.style.display="block"; return; }
+        if(!vn||!an||!em||!emailRe.test(em)||!tl){
+          foutEl.textContent=`Vul de gegevens van cursist ${i+1} correct in.`;
+          foutEl.style.display="block"; return;
+        }
         cursisten.push({voornaam:vn,achternaam:an,email:em,tel:tl});
       }
 
-      // Tijdblok
-      const [tbId,tbLabel,tbStart,tbEind] = tijdblokRaw.split("|");
-      const tijdblok = { id:tbId, label:tbLabel, start:tbStart, eind:tbEind };
+      const blokItems = [...document.querySelectorAll(".nb-blok-item")]
+        .filter(b => nbGeselecteerdeBlokken.includes(b.dataset.id));
+      const eersteBlok = blokItems[0];
+      const laasteBlok = blokItems[blokItems.length-1];
+      const tijdblok = {
+        id:    nbGeselecteerdeBlokken.join("+"),
+        label: eersteBlok.dataset.start + " – " + laasteBlok.dataset.eind,
+        start: eersteBlok.dataset.start,
+        eind:  laasteBlok.dataset.eind,
+      };
 
-      // Dienst + opties
-      const dienstSel  = document.getElementById("nb-dienst");
-      const dienstIds  = [dienstSel.value];
-      const dienstLabels = [[...dienstSel.options].find(o=>o.selected)?.text?.split(" — ")[0]||""];
-      const optieChecks = [...document.querySelectorAll("input[name='nb-optie']:checked")];
-      const optieIds    = optieChecks.map(cb=>cb.value);
-      const optieLabels = optieChecks.map(cb=>cb.dataset.label||"");
+      const geselecteerd = [...document.querySelectorAll(".nb-optie-item.selected")];
+      const optieIds    = geselecteerd.map(el=>el.dataset.id);
+      const optieLabels = geselecteerd.map(el=>el.dataset.label||"");
 
-      // Totaal
-      const dPrijs = Number([...dienstSel.options].find(o=>o.selected)?.dataset.prijs||0);
-      const oPrijs = optieChecks.reduce((s,cb)=>s+Number(cb.dataset.prijs||0),0);
-      const totaal = dPrijs + oPrijs;
+      // Totaal (zelfde logica als herbereken)
+      const uren = Math.max(1, nbGeselecteerdeBlokken.length) * 2;
+      let totaal = 0;
+      geselecteerd.forEach(el => {
+        const prijs = Number(el.dataset.prijs||0);
+        const eenmalig = el.dataset.eenmalig === "true";
+        const isMotor = /motor|kleding|lesmotor/i.test(el.dataset.label||"");
+        if (eenmalig) totaal += prijs * n;
+        else if (isMotor) totaal += prijs * n * uren;
+        else totaal += prijs * uren;
+      });
 
       foutEl.style.display="none";
       try {
         const res = await fetch("/api/boeking-opslaan", {
           method:"POST",
-          headers:{"Content-Type":"application/json","Authorization":"Bearer "+ADMIN_TOKEN},
+          headers:{"Content-Type":"application/json"},
           body: JSON.stringify({
             naam: cursisten.map(c=>`${c.voornaam} ${c.achternaam}`).join(", "),
             email, tel, bedrijf, opleidingsnummer: oplnr,
             cursisten, aantalCursisten: n,
-            diensten: dienstIds, dienstLabels,
-            opties:   optieIds,  optieLabels,
+            diensten: [], dienstLabels: [],
+            opties: optieIds, optieLabels,
             datum, tijdblok,
             betaalMethode: betaal,
             totaal,
