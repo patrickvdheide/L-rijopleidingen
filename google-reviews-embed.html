@@ -1,136 +1,88 @@
 <!--
   ============================================================
   L-Rijopleidingen — Google Reviews Embed
-  Vervangt de statische placeholder-cards in de Swiper slider
-  met live reviews via /api/reviews (Cloudflare Pages Function)
   ============================================================
-  Plaatsing: Embed component direct NA de slider_wrap div
-  in de Reviews sectie.
+  Plaatsing in Webflow:
+    Embed component BINNEN de Reviews sectie,
+    direct NA de slider_wrap div.
+
+  Werking:
+    Haalt live reviews op via /api/reviews en vervangt
+    de placeholder swiper-slides met echte content.
+    Gebruikt exact dezelfde card-HTML als de bestaande slides.
   ============================================================
 -->
-
 <script>
 (function () {
-  const PROXY_URL  = '/api/reviews';
-  const STAR_URL   = 'https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b929a205184ac6b2ec39b2_star_24dp_0586F0_FILL1_wght400_GRAD0_opsz24.svg';
+  const PROXY_URL = '/api/reviews';
+  const STAR_SRC  = 'https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b929a205184ac6b2ec39b2_star_24dp_0586F0_FILL1_wght400_GRAD0_opsz24.svg';
 
   function esc(s) {
-    return String(s || '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function buildStars(rating) {
     return Array.from({ length: 5 }, (_, i) =>
-      `<img src="${STAR_URL}" loading="lazy" alt="" class="star_svg${i >= rating ? ' gray' : ''}" />`
+      `<img src="${STAR_SRC}" loading="lazy" alt="" class="star_svg${i >= rating ? ' gray' : ''}">`
     ).join('');
   }
 
-  function buildCard(r) {
-    const text   = (r.text || '').trim();
-    const match  = text.match(/^[^.!?]+[.!?]/);
-    const title  = match ? match[0].trim() : text.slice(0, 80).trim();
-    const body   = text.slice(title.length).replace(/^\s+/, '');
-    const time   = r.time ? `<p class="u-text-style-small" style="opacity:.6;margin-top:2px">${esc(r.time)}</p>` : '';
+  function buildSlide(r) {
+    const text  = (r.text || '').trim();
+    const match = text.match(/^[^.!?]+[.!?]/);
+    const title = match ? match[0].trim() : text.slice(0, 80).trim();
+    const body  = text.slice(title.length).replace(/^\s+/, '');
 
-    return `
-      <div data-wf--review-card-primary--variant="default" class="card_primary_wrap" role="none">
-        <div data-trigger="hover-if-clickable focus" class="card_primary_group">
-          <div class="card_primary_element">
-            <div class="card_primary_content u-margin-trim">
-              <h3 class="card_primary_title u-text-style-h4">${esc(title)}</h3>
-              <div class="card_primary_text u-text-style-small w-richtext">
-                <p>${esc(r.author)}</p>
-                ${time}
-              </div>
-              <div class="star_wrapper">${buildStars(r.rating)}</div>
-              ${body ? `<div class="card_primary_text w-richtext"><p>${esc(body)}</p></div>` : ''}
-            </div>
-          </div>
+    return `<div data-wf--review-card-primary--variant="default" class="card_primary_wrap swiper-slide" role="group">
+  <div data-trigger="hover-if-clickable focus" class="card_primary_group">
+    <div class="card_primary_element">
+      <div class="card_primary_content u-margin-trim">
+        <h3 class="card_primary_title u-text-style-h4">${esc(title)}</h3>
+        <div class="card_primary_text u-text-style-small w-richtext">
+          <p>${esc(r.author)}${r.time ? ` &middot; <span style="opacity:.55">${esc(r.time)}</span>` : ''}</p>
         </div>
-      </div>`;
+        <div class="star_wrapper">${buildStars(r.rating)}</div>
+        ${body ? `<div class="card_primary_text w-richtext"><p>${esc(body)}</p></div>` : ''}
+      </div>
+    </div>
+  </div>
+</div>`;
   }
 
-  function injectReviews(reviews) {
-    // Zoek de reviews sectie op basis van de eyebrow tekst
-    const sections = document.querySelectorAll('[data-slider="component"]');
-    let sliderComponent = null;
-
-    sections.forEach(section => {
-      const eyebrow = section.closest('section')?.querySelector('.u-eyebrow-text');
-      if (eyebrow && eyebrow.textContent.trim().toLowerCase().includes('reviews')) {
-        sliderComponent = section;
+  function inject(reviews) {
+    // Vind de Reviews sectie via de eyebrow tekst
+    let swiperEl = null;
+    document.querySelectorAll('.u-eyebrow-text').forEach(el => {
+      if (el.textContent.trim().toLowerCase() === 'reviews') {
+        swiperEl = el.closest('section')?.querySelector('.slider_element');
       }
     });
+    if (!swiperEl) return console.warn('[Reviews] slider niet gevonden');
 
-    // Fallback: pak de eerste slider op de pagina
-    if (!sliderComponent) sliderComponent = document.querySelector('[data-slider="component"]');
-    if (!sliderComponent) return;
+    const wrapper = swiperEl.querySelector('.slider_list');
+    if (!wrapper) return;
 
-    const swiperEl      = sliderComponent.querySelector('.slider_element');
-    const swiperWrapper = sliderComponent.querySelector('.slider_list');
-    if (!swiperEl || !swiperWrapper) return;
+    // Vervang placeholder slides met live content
+    wrapper.innerHTML = reviews.map(buildSlide).join('');
 
-    // Destroy bestaande Swiper instantie als die bestaat
-    if (swiperEl.swiper) swiperEl.swiper.destroy(true, true);
-
-    // Vervang placeholder cards met live content
-    swiperWrapper.innerHTML = reviews.map(r => buildCard(r)).join('');
-
-    // Voeg swiper-slide class toe aan elke card (vereist door Swiper)
-    swiperWrapper.querySelectorAll('.card_primary_wrap').forEach(el => {
-      el.classList.add('swiper-slide');
-    });
-
-    // Reinitaliseer Swiper met dezelfde config als de pagina
-    if (typeof Swiper !== 'undefined') {
-      new Swiper(swiperEl, {
-        slidesPerView : 'auto',
-        followFinger  : true,
-        speed         : 600,
-        mousewheel    : { enabled: true, forceToAxis: true },
-        keyboard      : { enabled: true, onlyInViewport: true },
-        navigation    : {
-          nextEl : sliderComponent.querySelector("[data-slider='next'] button"),
-          prevEl : sliderComponent.querySelector("[data-slider='previous'] button"),
-        },
-        pagination    : {
-          el                : sliderComponent.querySelector('.slider_bullet_list'),
-          bulletActiveClass : 'is-active',
-          bulletClass       : 'slider_bullet_item',
-          bulletElement     : 'button',
-          clickable         : true,
-        },
-        slideActiveClass          : 'is-active',
-        slideDuplicateActiveClass : 'is-active',
-      });
-    }
-
-    // Update de samenvatting indien aanwezig
-    const summaryEl = sliderComponent.closest('section')?.querySelector('[data-reviews-summary]');
-    if (summaryEl && reviews._meta) {
-      summaryEl.textContent = `Gemiddeld ${reviews._meta.rating} / 5 op basis van ${reviews._meta.total} beoordelingen`;
+    // Herinitialiseer de bestaande Swiper instantie
+    const swiper = swiperEl.swiper;
+    if (swiper) {
+      swiper.update();
+      swiper.pagination.render();
+      swiper.pagination.update();
+      swiper.navigation.update();
+      swiper.slideTo(0, 0);
     }
   }
 
-  // Wacht tot de pagina + Swiper JS geladen zijn
-  function waitAndFetch() {
-    fetch(PROXY_URL)
-      .then(r => r.json())
-      .then(data => {
-        if (!data.reviews?.length) return;
-        const sorted = data.reviews.sort((a, b) => b.rating - a.rating);
-        sorted._meta = { rating: data.rating, total: data.total };
-        injectReviews(sorted);
-      })
-      .catch(err => console.warn('Reviews konden niet geladen worden:', err));
-  }
-
-  // Start na DOMContentLoaded zodat de slider al in de DOM staat
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitAndFetch);
-  } else {
-    waitAndFetch();
-  }
+  fetch(PROXY_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data.reviews?.length) {
+        inject(data.reviews.sort((a, b) => b.rating - a.rating));
+      }
+    })
+    .catch(err => console.warn('[Reviews] ophalen mislukt:', err));
 })();
 </script>
