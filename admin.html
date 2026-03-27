@@ -476,7 +476,7 @@
               <div class="form-group"><label>Datum</label><input type="date" id="modal-datum"/></div>
               <div class="form-group">
                 <label>Tijdblok</label>
-                <select id="modal-tijdsloten">
+                <select id="modal-tijdsloten" onchange="modalHerbereken()">
                   <option value="08:00 – 10:00">08:00 – 10:00 (2u)</option>
                   <option value="10:00 – 12:00">10:00 – 12:00 (2u)</option>
                   <option value="13:00 – 15:00">13:00 – 15:00 (2u)</option>
@@ -507,7 +507,21 @@
                 <option value="contant">Contant op locatie</option>
               </select>
             </div>
-            <div class="form-group"><label>Bedrag (euro)</label><input id="modal-totaal" type="number" step="0.01" placeholder="190.00"/></div>
+            <div class="form-group"><label>Bedrag excl. BTW</label>
+              <input id="modal-totaal" type="number" step="0.01" placeholder="0.00"/>
+            </div>
+          </div>
+          <!-- Live prijs breakdown -->
+          <div id="modal-prijs-preview" style="margin-top:12px;border:1px solid #dde1e9;border-radius:8px;overflow:hidden;display:none;">
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;font-size:13px;color:#6b7280;border-bottom:1px solid #f3f4f6;">
+              <span>Excl. BTW</span><span id="mp-excl"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;font-size:13px;color:#6b7280;border-bottom:1px solid #f3f4f6;">
+              <span>BTW 21%</span><span id="mp-btw"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 12px;font-size:14px;font-weight:600;background:#f8faff;">
+              <span>Incl. BTW</span><span id="mp-incl" style="color:#0586f0;"></span>
+            </div>
           </div>
         </div>
 
@@ -812,29 +826,108 @@
     function syncOptiesHidden() {
       const checked = [...document.querySelectorAll(".modal-optie-cb:checked")];
       document.getElementById("modal-opties").value = checked.map(cb => cb.value).join(", ");
+      modalHerbereken();
     }
 
-    function vulModalOpties(huidig) {
-      // Laad opties uit CMS en vul bewerk-modal dynamisch
+    function modalHerbereken() {
+      if (!window.nbCmsData) return;
+      const tijdSel = document.getElementById("modal-tijdsloten");
+      if (!tijdSel) return;
+
+      // Uren bepalen uit tijdblok label
+      const tijdLabel = tijdSel.value || "";
+      const urenMap = {
+        "08:00 – 10:00": 2, "10:00 – 12:00": 2,
+        "13:00 – 15:00": 2, "15:00 – 17:00": 2,
+        "08:00 – 12:00": 4, "13:00 – 17:00": 4,
+        "08:00 – 15:00": 6, "08:00 – 17:00": 8,
+      };
+      const uren = urenMap[tijdLabel] || 2;
+
+      // Aantal cursisten uit huidige boeking
+      const boeking = huidigIdx !== null ? alleBoekingen[huidigIdx] : null;
+      const nC = parseInt(boeking?.fields?.["Aantal cursisten"] || boeking?.fields?.AantalCursisten || 1) || 1;
+
+      // Geselecteerde opties
+      const geselecteerd = [...document.querySelectorAll(".modal-optie-cb:checked")];
+      let totaal = 0;
+      geselecteerd.forEach(cb => {
+        const label = cb.value || "";
+        const o = (window.nbCmsData.opties || []).find(x => x.label === label);
+        if (!o) return;
+        const eenmalig = o.isEenmalig || /avb|examen/i.test(label);
+        const isMotor  = o.isMotor   || /motor|kleding|lesmotor/i.test(label);
+        if (eenmalig)      totaal += o.prijs * nC;
+        else if (isMotor)  totaal += o.prijs * nC * uren;
+        else               totaal += o.prijs * uren;
+      });
+
+      // Update totaal input
+      const totaalInput = document.getElementById("modal-totaal");
+      if (totaalInput) totaalInput.value = totaal.toFixed(2);
+
+      // Update BTW preview
+      const preview = document.getElementById("modal-prijs-preview");
+      if (preview) {
+        if (totaal > 0) {
+          preview.style.display = "block";
+          document.getElementById("mp-excl").textContent = "€ " + totaal.toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+          document.getElementById("mp-btw").textContent  = "€ " + (totaal*0.21).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+          document.getElementById("mp-incl").textContent = "€ " + (totaal*1.21).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+        } else {
+          preview.style.display = "none";
+        }
+      }
+    }
+
+    function renderModalOpties(opties, huidig) {
       const wrap = document.getElementById("modal-opties-wrap");
       if (!wrap) return;
-      const cmsOpties = (window.nbCmsData?.opties || []).filter(o => o.zichtbaarBedrijf !== false);
       const huidigeOpties = (huidig || "").split(",").map(s => s.trim().toLowerCase());
-      if (cmsOpties.length === 0) {
+      if (!opties || opties.length === 0) {
         wrap.innerHTML = '<span style="font-size:13px;color:#9ca3af;">Geen opties beschikbaar</span>';
         return;
       }
-      wrap.innerHTML = cmsOpties.map(o => {
-        const isChecked = huidigeOpties.some(h => h && o.label.toLowerCase().includes(h.split(" ")[0]));
-        return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;color:#1a1f2e;padding:6px 0;">
+      wrap.innerHTML = opties.map(o => {
+        // Match op exacte naam of eerste woord
+        const isChecked = huidigeOpties.some(h => h && (
+          o.label.toLowerCase() === h ||
+          o.label.toLowerCase().startsWith(h.split(" ")[0])
+        ));
+        const prijsLabel = o.prijs > 0
+          ? (o.isEenmalig || /avb|examen/i.test(o.label||"")
+             ? ` <span style="color:#6b7280;font-size:12px;">(€ ${o.prijs} p/cursist)</span>`
+             : ` <span style="color:#6b7280;font-size:12px;">(€ ${o.prijs} p/u)</span>`)
+          : "";
+        return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;color:#1a1f2e;padding:7px 10px;border:1px solid #dde1e9;border-radius:6px;background:#fff;">
           <input type="checkbox" class="modal-optie-cb" value="${o.label}"
             ${isChecked ? "checked" : ""}
-            style="width:16px;height:16px;margin:0;accent-color:#0586f0;cursor:pointer;"
-            onchange="syncOptiesHidden()"/>
-          ${o.label}${o.prijs > 0 ? ` <span style="color:#6b7280;font-size:12px;">(€ ${o.prijs} p/u)</span>` : ""}
+            style="width:16px;height:16px;margin:0;accent-color:#0586f0;cursor:pointer;flex-shrink:0;"
+            onchange="syncOptiesHidden(); modalHerbereken();"/>
+          ${o.label}${prijsLabel}
         </label>`;
       }).join("");
       syncOptiesHidden();
+    }
+
+    async function vulModalOpties(huidig) {
+      const wrap = document.getElementById("modal-opties-wrap");
+      if (!wrap) return;
+      // Toon loading state
+      wrap.innerHTML = '<span style="font-size:13px;color:#9ca3af;">Opties laden…</span>';
+      // Laad CMS als nog niet beschikbaar
+      if (!window.nbCmsData) {
+        try {
+          const res = await fetch("/api/cms-data?t="+Date.now(), {headers:{"Cache-Control":"no-cache"}});
+          window.nbCmsData = await res.json();
+          nbCmsData = window.nbCmsData;
+        } catch {
+          window.nbCmsData = { opties:[] };
+          nbCmsData = window.nbCmsData;
+        }
+      }
+      const cmsOpties = (window.nbCmsData?.opties || []).filter(o => o.zichtbaarBedrijf !== false);
+      renderModalOpties(cmsOpties, huidig);
     }
 
     function genereerSlotOpties() {
@@ -1076,8 +1169,8 @@
       document.getElementById("opslaan-btn").style.display  = geann?"none":"inline-block";
       document.getElementById("annuleer-btn").style.display = geann?"none":"inline-block";
       document.getElementById("herstel-btn").style.display  = geann?"inline-block":"none";
-      // Laad opties dynamisch uit CMS
-      vulModalOpties(f.Opties||"");
+      // Laad opties dynamisch uit CMS (modalHerbereken wordt aangeroepen na laden)
+      vulModalOpties(f.Opties||"").then(() => { modalHerbereken(); });
       document.getElementById("bewerk-modal").style.display = "flex";
       setTimeout(()=>{ const first = document.querySelector("#bewerk-modal input, #bewerk-modal select, #bewerk-modal button"); if(first) first.focus(); }, 50);
     }

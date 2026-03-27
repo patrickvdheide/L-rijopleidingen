@@ -49,6 +49,7 @@ export async function onRequest(context) {
         Huisnummer:     r.huisnummer,
         Postcode:       r.postcode,
         Plaats:         r.plaats,
+        AantalCursisten: r.aantal_cursisten || 1,
         Status:         r.status || "Actief",
         "Aangemaakt op": r.aangemaakt,
       },
