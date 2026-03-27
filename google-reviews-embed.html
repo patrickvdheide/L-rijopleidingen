@@ -1,29 +1,17 @@
 <!--
   ============================================================
-  L-Rijopleidingen — Reviews Carousel (data-attribuut variant)
+  L-Rijopleidingen — Google Reviews Embed (live via API)
   ============================================================
+  Vereisten:
+  - Cloudflare Pages environment variables:
+      GOOGLE_API_KEY  = jouw Google Places API key
+      PLACE_ID        = Google Place ID van L-Rijopleidingen
+                        (beschikbaar zodra Google Bedrijfsprofiel
+                         geverifieerd is via business.google.com)
 
-  WEBFLOW CMS SETUP:
-  1. Maak een CMS-collectie "Reviews" met velden:
-       - Titel        (Plain text)
-       - Naam         (Plain text)
-       - Sterren      (Number, 1–5)
-       - Tekst        (Plain text)
-
-  2. Plaats een Collection List op de pagina (display: none)
-  3. Bind elk Collection Item als volgt:
-
-     <div class="lr-review-item"
-          data-title="[CMS: Titel]"
-          data-author="[CMS: Naam]"
-          data-rating="[CMS: Sterren]"
-          data-text="[CMS: Tekst]">
-     </div>
-
-  4. Geef de Collection List wrapper het ID: lr-data
-  5. Plak dit embed-blok eronder op dezelfde pagina
-
-  De carousel leest automatisch alle items uit en toont ze.
+  Gebruik:
+  - Plak deze volledige code in een Webflow Embed component
+  - De carousel laadt automatisch live reviews van Google
   ============================================================
 -->
 
@@ -33,13 +21,13 @@
 
 <style>
   .lr-section {
-    --brand:      #0586f0;
-    --highlight:  #f59e0b;
-    --dark:       #0f172a;
-    --dark-800:   #1f1d1e;
-    --light-200:  #edf2f3;
-    --muted:      #6b7280;
-    --white:      #ffffff;
+    --brand:     #0586f0;
+    --highlight: #f59e0b;
+    --dark:      #0f172a;
+    --dark-800:  #1f1d1e;
+    --light-200: #edf2f3;
+    --muted:     #6b7280;
+    --white:     #ffffff;
 
     font-family: 'Open Sans', sans-serif;
     background: var(--white);
@@ -74,11 +62,23 @@
     font-size: 16px;
     color: var(--muted);
     line-height: 1.5;
-    margin: 0 auto 36px;
+    margin: 0 auto 12px;
     max-width: 400px;
   }
 
-  /* Card */
+  .lr-summary {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 auto 36px;
+  }
+
+  .lr-summary strong {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dark);
+  }
+
   .lr-wrapper {
     max-width: 680px;
     margin: 0 auto;
@@ -111,6 +111,12 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--dark-800);
+    margin: 0 0 4px;
+  }
+
+  .lr-time {
+    font-size: 12px;
+    color: var(--muted);
     margin: 0 0 12px;
   }
 
@@ -127,7 +133,6 @@
     margin: 0;
   }
 
-  /* Nav */
   .lr-nav {
     display: flex;
     justify-content: flex-end;
@@ -151,9 +156,7 @@
 
   .lr-btn:hover { background: var(--highlight); transform: scale(1.07); }
   .lr-btn:hover svg path { stroke: var(--white); }
-
   .lr-btn svg { width: 17px; height: 17px; pointer-events: none; }
-
   .lr-btn svg path {
     stroke: var(--highlight);
     stroke-width: 2.5;
@@ -163,7 +166,6 @@
     transition: stroke 0.18s ease;
   }
 
-  /* Dots */
   .lr-dots {
     display: flex;
     justify-content: center;
@@ -182,12 +184,13 @@
 
   .lr-dot.active { background: var(--brand); transform: scale(1.3); }
 
-  .lr-empty {
+  .lr-state {
     font-size: 14px;
     color: var(--muted);
     background: var(--light-200);
     border-radius: 20px;
     padding: 48px 32px;
+    text-align: center;
   }
 </style>
 
@@ -195,9 +198,12 @@
   <span class="lr-eyebrow">Reviews</span>
   <h2 class="lr-heading">Wat onze rijders en partners zeggen!</h2>
   <p class="lr-subtext">Echte ervaringen van mensen die ons al kennen.</p>
+  <p class="lr-summary" id="lr-summary"></p>
 
   <div class="lr-wrapper">
-    <div id="lr-card-area"></div>
+    <div id="lr-card-area">
+      <div class="lr-state">Reviews laden…</div>
+    </div>
     <div class="lr-dots" id="lr-dots"></div>
     <div class="lr-nav">
       <button class="lr-btn" id="lr-prev" aria-label="Vorige review">
@@ -212,15 +218,9 @@
 
 <script>
 (function () {
-  // Lees alle review-items uit de verborgen CMS Collection List
-  const items = document.querySelectorAll('[data-review-item]');
-  const reviews = Array.from(items).map(el => ({
-    title:  el.dataset.title  || '',
-    author: el.dataset.author || '',
-    rating: parseInt(el.dataset.rating) || 5,
-    text:   el.dataset.text   || '',
-  }));
+  const PROXY_URL = '/api/reviews';
 
+  let reviews = [];
   let current = 0;
 
   function starSVG(on) {
@@ -238,11 +238,17 @@
 
   function renderCard(r) {
     const stars = Array.from({length: 5}, (_, i) => starSVG(i < r.rating)).join('');
+    const text = (r.text || '').trim();
+    const match = text.match(/^[^.!?]+[.!?]/);
+    const title = match ? match[0].trim() : text.slice(0, 90).trim();
+    const body  = text.slice(title.length).replace(/^\s+/, '');
+
     return `<div class="lr-card" id="lr-active-card">
-      <p class="lr-title">${esc(r.title)}</p>
+      <p class="lr-title">${esc(title)}</p>
       <p class="lr-author">${esc(r.author)}</p>
+      ${r.time ? `<p class="lr-time">${esc(r.time)}</p>` : ''}
       <div class="lr-stars">${stars}</div>
-      ${r.text ? `<p class="lr-body">${esc(r.text)}</p>` : ''}
+      ${body ? `<p class="lr-body">${esc(body)}</p>` : ''}
     </div>`;
   }
 
@@ -276,13 +282,25 @@
   document.getElementById('lr-prev').addEventListener('click', () => go(-1));
   document.getElementById('lr-next').addEventListener('click', () => go(1));
 
-  if (!reviews.length) {
-    document.getElementById('lr-card-area').innerHTML =
-      '<div class="lr-empty">Nog geen reviews toegevoegd.</div>';
-    return;
-  }
-
-  buildDots();
-  showReview(0);
+  fetch(PROXY_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.reviews?.length) {
+        document.getElementById('lr-card-area').innerHTML =
+          '<div class="lr-state">Nog geen reviews beschikbaar.</div>';
+        return;
+      }
+      if (data.rating) {
+        document.getElementById('lr-summary').innerHTML =
+          `Gemiddeld <strong>${data.rating} / 5</strong> op basis van ${data.total} beoordelingen`;
+      }
+      reviews = data.reviews.sort((a, b) => b.rating - a.rating);
+      buildDots();
+      showReview(0);
+    })
+    .catch(() => {
+      document.getElementById('lr-card-area').innerHTML =
+        '<div class="lr-state">Reviews tijdelijk niet beschikbaar.</div>';
+    });
 })();
 </script>
