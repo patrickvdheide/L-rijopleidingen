@@ -1,0 +1,278 @@
+<!-- 
+  ============================================================
+  L-Rijopleidingen — Google Reviews Embed (met Cloudflare proxy)
+  ============================================================
+  Vervang PROXY_URL door jouw Cloudflare Worker URL
+  Voorbeeld: /api/reviews
+  ============================================================
+-->
+
+<style>
+  .lr-reviews-section {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #ffffff;
+    padding: 60px 24px 72px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .lr-label {
+    display: inline-block;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a73e8;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .lr-heading {
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 800;
+    color: #0d1b2a;
+    line-height: 1.15;
+    margin: 0 auto 16px;
+    max-width: 560px;
+  }
+
+  .lr-subtext {
+    font-size: 16px;
+    color: #555;
+    margin: 0 auto 40px;
+    max-width: 380px;
+    line-height: 1.6;
+  }
+
+  .lr-carousel-wrapper {
+    position: relative;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .lr-card {
+    background: #f2f3f5;
+    border-radius: 18px;
+    padding: 36px 32px 32px;
+    text-align: left;
+    min-height: 200px;
+    transition: opacity 0.3s ease;
+  }
+
+  .lr-card.lr-fade { opacity: 0; }
+
+  .lr-quote {
+    font-size: clamp(18px, 4vw, 26px);
+    font-weight: 700;
+    color: #0d1b2a;
+    line-height: 1.3;
+    margin: 0 0 14px;
+  }
+
+  .lr-author {
+    font-size: 15px;
+    color: #444;
+    margin: 0 0 4px;
+    font-weight: 500;
+  }
+
+  .lr-meta {
+    font-size: 13px;
+    color: #999;
+    margin: 0 0 12px;
+  }
+
+  .lr-stars {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .lr-text {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .lr-nav {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .lr-nav-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid #c8973a;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+
+  .lr-nav-btn:hover {
+    background: #c8973a;
+    transform: scale(1.06);
+  }
+
+  .lr-nav-btn:hover svg path { stroke: #fff; }
+
+  .lr-nav-btn svg { width: 18px; height: 18px; }
+
+  .lr-nav-btn svg path {
+    stroke: #c8973a;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.2s ease;
+  }
+
+  .lr-summary {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 28px;
+  }
+
+  .lr-summary strong {
+    color: #0d1b2a;
+    font-size: 18px;
+  }
+
+  .lr-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 20px;
+  }
+
+  .lr-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ccc;
+    transition: background 0.2s;
+  }
+
+  .lr-dot.active { background: #1a73e8; }
+
+  .lr-loading, .lr-error {
+    color: #888;
+    font-size: 14px;
+    padding: 32px;
+    text-align: center;
+    background: #f2f3f5;
+    border-radius: 18px;
+  }
+</style>
+
+<section class="lr-reviews-section">
+  <span class="lr-label">Reviews</span>
+  <h2 class="lr-heading">Wat onze rijders en partners zeggen!</h2>
+  <p class="lr-subtext">Echte ervaringen van mensen die ons al kennen.</p>
+  <div class="lr-summary" id="lr-summary"></div>
+
+  <div class="lr-carousel-wrapper">
+    <div id="lr-card-area">
+      <div class="lr-loading">Reviews laden...</div>
+    </div>
+    <div class="lr-dots" id="lr-dots"></div>
+    <div class="lr-nav">
+      <button class="lr-nav-btn" id="lr-prev" aria-label="Vorige review">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="lr-nav-btn" id="lr-next" aria-label="Volgende review">
+        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  // ============================================================
+  // Vervang dit door jouw Cloudflare Worker URL na deployment
+  const PROXY_URL = '/api/reviews';
+  // ============================================================
+
+  let reviews = [];
+  let current = 0;
+
+  function starSVG(filled) {
+    const color = filled ? '#1a73e8' : '#ccc';
+    return `<svg style="width:24px;height:24px;flex-shrink:0" viewBox="0 0 24 24">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+        fill="${color}" stroke="none"/>
+    </svg>`;
+  }
+
+  function esc(str) {
+    return String(str || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function renderCard(r) {
+    const stars = Array.from({length:5},(_,i)=>starSVG(i<r.rating)).join('');
+    const text = r.text || '';
+    const match = text.match(/^[^.!?]+[.!?]/);
+    const quote = match ? match[0].trim() : text.slice(0, 80).trim();
+    const rest = text.slice(quote.length).replace(/^\s+/, '');
+
+    return `<div class="lr-card" id="lr-active-card">
+      <p class="lr-quote">${esc(quote)}</p>
+      <p class="lr-author">${esc(r.author)}</p>
+      <p class="lr-meta">${esc(r.time || '')}</p>
+      <div class="lr-stars">${stars}</div>
+      ${rest ? `<p class="lr-text">${esc(rest)}</p>` : ''}
+    </div>`;
+  }
+
+  function showReview(index) {
+    const area = document.getElementById('lr-card-area');
+    area.innerHTML = renderCard(reviews[index]);
+    const card = document.getElementById('lr-active-card');
+    card.classList.add('lr-fade');
+    requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove('lr-fade')));
+    document.querySelectorAll('.lr-dot').forEach((d,i) => d.classList.toggle('active', i===index));
+  }
+
+  function buildDots() {
+    document.getElementById('lr-dots').innerHTML =
+      reviews.map((_,i) => `<div class="lr-dot${i===0?' active':''}"></div>`).join('');
+  }
+
+  function navigate(dir) {
+    current = (current + dir + reviews.length) % reviews.length;
+    showReview(current);
+  }
+
+  document.getElementById('lr-prev').addEventListener('click', () => navigate(-1));
+  document.getElementById('lr-next').addEventListener('click', () => navigate(1));
+
+  fetch(PROXY_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.reviews || !data.reviews.length) {
+        document.getElementById('lr-card-area').innerHTML =
+          '<div class="lr-error">Geen reviews gevonden.</div>';
+        return;
+      }
+      if (data.rating) {
+        document.getElementById('lr-summary').innerHTML =
+          `Gemiddeld <strong>${data.rating}</strong> / 5 op basis van ${data.total} beoordelingen`;
+      }
+      reviews = data.reviews.sort((a,b) => b.rating - a.rating);
+      buildDots();
+      showReview(0);
+    })
+    .catch(() => {
+      document.getElementById('lr-card-area').innerHTML =
+        '<div class="lr-error">Reviews tijdelijk niet beschikbaar.</div>';
+    });
+})();
+</script>
