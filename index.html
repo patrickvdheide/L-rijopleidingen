@@ -77,6 +77,7 @@ function prijsTotaal(oIds,AO,ao,uren,nC){
   return prijsOpties(oIds,AO,ao,uren,nC);
 }
 function re_email(v){ return /^[^@]+@[^@]+\.[^@]+$/.test(v); }
+function re_oplnr(v){ return /^\d{4}[A-Za-z]\d$/.test(v.trim()); }
 
 /* ── API ── */
 async function apiCms(){
@@ -490,7 +491,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     if(stapId==="datum")     return !!datum&&!!geselecteerdeBlokken.length;
     if(stapId==="opties")    return true;
     if(stapId==="gegevens"){
-      if(!bedrijf||!oplnr||!email||!re_email(email)||!tel||!straat||!huisnr||!postcode||!plaats||!betaal) return false;
+      if(!bedrijf||!oplnr||!re_oplnr(oplnr)||!email||!re_email(email)||!tel||!straat||!huisnr||!postcode||!plaats||!betaal) return false;
       return curs.every(c=>c.vn&&c.an&&c.em&&re_email(c.em)&&c.tl);
     }
     return true;
@@ -502,7 +503,8 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
     if(stapId==="gegevens"){
       const m=[];
       if(!bedrijf) m.push("bedrijfsnaam");
-      if(!oplnr)   m.push("opleidingsnummer");
+      if(!oplnr)           m.push("opleidingsnummer");
+      else if(!re_oplnr(oplnr)) m.push("opleidingsnummer (formaat: 1234A1)");
       if(!email||!re_email(email)) m.push("e-mail rijschool");
       if(!tel)     m.push("telefoon rijschool");
       if(!straat)  m.push("straatnaam");
@@ -758,7 +760,7 @@ function Wizard({AO, BS, BZ, wrn, slaOp}){
         <div class="form-grid">
           <${Veld} label="Bedrijfsnaam" req val=${bedrijf} set=${setBd}
             ph="Rijschool B.V." ac="organization"/>
-          <${Veld} label="Opleidingsnummer" req val=${oplnr} set=${setOp} ph="12345"/>
+          <${Veld} label="Opleidingsnummer" req val=${oplnr} set=${setOp} ph="1234A1"/>
           <${Veld} label="E-mailadres rijschool" req val=${email} set=${setEm}
             ph="info@rijschool.nl" type="email" ac="email"/>
           <${Veld} label="Telefoonnummer rijschool" req val=${tel} set=${setTl}
