@@ -1,234 +1,18 @@
 <!--
   ============================================================
-  L-Rijopleidingen — Google Reviews Embed (live via API)
+  L-Rijopleidingen — Google Reviews Embed
+  Vervangt de statische placeholder-cards in de Swiper slider
+  met live reviews via /api/reviews (Cloudflare Pages Function)
   ============================================================
-  Vereisten:
-  - Cloudflare Pages environment variables:
-      GOOGLE_API_KEY  = jouw Google Places API key
-      PLACE_ID        = Google Place ID van L-Rijopleidingen
-                        (beschikbaar zodra Google Bedrijfsprofiel
-                         geverifieerd is via business.google.com)
-
-  Gebruik:
-  - Plak deze volledige code in een Webflow Embed component
-  - De carousel laadt automatisch live reviews van Google
+  Plaatsing: Embed component direct NA de slider_wrap div
+  in de Reviews sectie.
   ============================================================
 -->
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
-<style>
-  .lr-section {
-    --brand:     #0586f0;
-    --highlight: #f59e0b;
-    --dark:      #0f172a;
-    --dark-800:  #1f1d1e;
-    --light-200: #edf2f3;
-    --muted:     #6b7280;
-    --white:     #ffffff;
-
-    font-family: 'Open Sans', sans-serif;
-    background: var(--white);
-    padding: 64px 24px 80px;
-    text-align: center;
-    box-sizing: border-box;
-  }
-
-  .lr-eyebrow {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--brand);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    margin-bottom: 16px;
-  }
-
-  .lr-heading {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: clamp(28px, 5.5vw, 48px);
-    font-weight: 700;
-    color: var(--dark);
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    margin: 0 auto 14px;
-    max-width: 560px;
-    text-wrap: balance;
-  }
-
-  .lr-subtext {
-    font-size: 16px;
-    color: var(--muted);
-    line-height: 1.5;
-    margin: 0 auto 12px;
-    max-width: 400px;
-  }
-
-  .lr-summary {
-    font-size: 14px;
-    color: var(--muted);
-    margin: 0 auto 36px;
-  }
-
-  .lr-summary strong {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--dark);
-  }
-
-  .lr-wrapper {
-    max-width: 680px;
-    margin: 0 auto;
-  }
-
-  .lr-card {
-    background: var(--light-200);
-    border-radius: 20px;
-    padding: 40px 36px 36px;
-    text-align: left;
-    min-height: 200px;
-    opacity: 1;
-    transition: opacity 0.25s ease;
-  }
-
-  .lr-card.lr-fade { opacity: 0; }
-
-  .lr-title {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: clamp(18px, 3.5vw, 26px);
-    font-weight: 700;
-    color: var(--dark);
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    margin: 0 0 16px;
-    text-wrap: balance;
-  }
-
-  .lr-author {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--dark-800);
-    margin: 0 0 4px;
-  }
-
-  .lr-time {
-    font-size: 12px;
-    color: var(--muted);
-    margin: 0 0 12px;
-  }
-
-  .lr-stars {
-    display: flex;
-    gap: 3px;
-    margin-bottom: 16px;
-  }
-
-  .lr-body {
-    font-size: 15px;
-    color: #374151;
-    line-height: 1.65;
-    margin: 0;
-  }
-
-  .lr-nav {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-  }
-
-  .lr-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: 2px solid var(--highlight);
-    background: transparent;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.18s ease, transform 0.12s ease;
-    padding: 0;
-  }
-
-  .lr-btn:hover { background: var(--highlight); transform: scale(1.07); }
-  .lr-btn:hover svg path { stroke: var(--white); }
-  .lr-btn svg { width: 17px; height: 17px; pointer-events: none; }
-  .lr-btn svg path {
-    stroke: var(--highlight);
-    stroke-width: 2.5;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: stroke 0.18s ease;
-  }
-
-  .lr-dots {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 18px;
-  }
-
-  .lr-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #d1d5db;
-    transition: background 0.2s, transform 0.2s;
-    cursor: pointer;
-  }
-
-  .lr-dot.active { background: var(--brand); transform: scale(1.3); }
-
-  .lr-state {
-    font-size: 14px;
-    color: var(--muted);
-    background: var(--light-200);
-    border-radius: 20px;
-    padding: 48px 32px;
-    text-align: center;
-  }
-</style>
-
-<section class="lr-section">
-  <span class="lr-eyebrow">Reviews</span>
-  <h2 class="lr-heading">Wat onze rijders en partners zeggen!</h2>
-  <p class="lr-subtext">Echte ervaringen van mensen die ons al kennen.</p>
-  <p class="lr-summary" id="lr-summary"></p>
-
-  <div class="lr-wrapper">
-    <div id="lr-card-area">
-      <div class="lr-state">Reviews laden…</div>
-    </div>
-    <div class="lr-dots" id="lr-dots"></div>
-    <div class="lr-nav">
-      <button class="lr-btn" id="lr-prev" aria-label="Vorige review">
-        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <button class="lr-btn" id="lr-next" aria-label="Volgende review">
-        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
-    </div>
-  </div>
-</section>
-
 <script>
 (function () {
-  const PROXY_URL = '/api/reviews';
-
-  let reviews = [];
-  let current = 0;
-
-  function starSVG(on) {
-    return `<svg width="22" height="22" viewBox="0 0 24 24">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-        fill="${on ? '#0586f0' : '#d1d5db'}" stroke="none"/>
-    </svg>`;
-  }
+  const PROXY_URL  = '/api/reviews';
+  const STAR_URL   = 'https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69b929a205184ac6b2ec39b2_star_24dp_0586F0_FILL1_wght400_GRAD0_opsz24.svg';
 
   function esc(s) {
     return String(s || '')
@@ -236,71 +20,117 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function renderCard(r) {
-    const stars = Array.from({length: 5}, (_, i) => starSVG(i < r.rating)).join('');
-    const text = (r.text || '').trim();
-    const match = text.match(/^[^.!?]+[.!?]/);
-    const title = match ? match[0].trim() : text.slice(0, 90).trim();
-    const body  = text.slice(title.length).replace(/^\s+/, '');
-
-    return `<div class="lr-card" id="lr-active-card">
-      <p class="lr-title">${esc(title)}</p>
-      <p class="lr-author">${esc(r.author)}</p>
-      ${r.time ? `<p class="lr-time">${esc(r.time)}</p>` : ''}
-      <div class="lr-stars">${stars}</div>
-      ${body ? `<p class="lr-body">${esc(body)}</p>` : ''}
-    </div>`;
-  }
-
-  function showReview(i) {
-    const area = document.getElementById('lr-card-area');
-    area.innerHTML = renderCard(reviews[i]);
-    const card = document.getElementById('lr-active-card');
-    card.classList.add('lr-fade');
-    requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove('lr-fade')));
-    document.querySelectorAll('.lr-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-  }
-
-  function buildDots() {
-    const container = document.getElementById('lr-dots');
-    container.innerHTML = reviews.map((_, i) =>
-      `<div class="lr-dot${i === 0 ? ' active' : ''}" data-index="${i}"></div>`
+  function buildStars(rating) {
+    return Array.from({ length: 5 }, (_, i) =>
+      `<img src="${STAR_URL}" loading="lazy" alt="" class="star_svg${i >= rating ? ' gray' : ''}" />`
     ).join('');
-    container.querySelectorAll('.lr-dot').forEach(dot => {
-      dot.addEventListener('click', () => {
-        current = parseInt(dot.dataset.index);
-        showReview(current);
+  }
+
+  function buildCard(r) {
+    const text   = (r.text || '').trim();
+    const match  = text.match(/^[^.!?]+[.!?]/);
+    const title  = match ? match[0].trim() : text.slice(0, 80).trim();
+    const body   = text.slice(title.length).replace(/^\s+/, '');
+    const time   = r.time ? `<p class="u-text-style-small" style="opacity:.6;margin-top:2px">${esc(r.time)}</p>` : '';
+
+    return `
+      <div data-wf--review-card-primary--variant="default" class="card_primary_wrap" role="none">
+        <div data-trigger="hover-if-clickable focus" class="card_primary_group">
+          <div class="card_primary_element">
+            <div class="card_primary_content u-margin-trim">
+              <h3 class="card_primary_title u-text-style-h4">${esc(title)}</h3>
+              <div class="card_primary_text u-text-style-small w-richtext">
+                <p>${esc(r.author)}</p>
+                ${time}
+              </div>
+              <div class="star_wrapper">${buildStars(r.rating)}</div>
+              ${body ? `<div class="card_primary_text w-richtext"><p>${esc(body)}</p></div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function injectReviews(reviews) {
+    // Zoek de reviews sectie op basis van de eyebrow tekst
+    const sections = document.querySelectorAll('[data-slider="component"]');
+    let sliderComponent = null;
+
+    sections.forEach(section => {
+      const eyebrow = section.closest('section')?.querySelector('.u-eyebrow-text');
+      if (eyebrow && eyebrow.textContent.trim().toLowerCase().includes('reviews')) {
+        sliderComponent = section;
+      }
+    });
+
+    // Fallback: pak de eerste slider op de pagina
+    if (!sliderComponent) sliderComponent = document.querySelector('[data-slider="component"]');
+    if (!sliderComponent) return;
+
+    const swiperEl      = sliderComponent.querySelector('.slider_element');
+    const swiperWrapper = sliderComponent.querySelector('.slider_list');
+    if (!swiperEl || !swiperWrapper) return;
+
+    // Destroy bestaande Swiper instantie als die bestaat
+    if (swiperEl.swiper) swiperEl.swiper.destroy(true, true);
+
+    // Vervang placeholder cards met live content
+    swiperWrapper.innerHTML = reviews.map(r => buildCard(r)).join('');
+
+    // Voeg swiper-slide class toe aan elke card (vereist door Swiper)
+    swiperWrapper.querySelectorAll('.card_primary_wrap').forEach(el => {
+      el.classList.add('swiper-slide');
+    });
+
+    // Reinitaliseer Swiper met dezelfde config als de pagina
+    if (typeof Swiper !== 'undefined') {
+      new Swiper(swiperEl, {
+        slidesPerView : 'auto',
+        followFinger  : true,
+        speed         : 600,
+        mousewheel    : { enabled: true, forceToAxis: true },
+        keyboard      : { enabled: true, onlyInViewport: true },
+        navigation    : {
+          nextEl : sliderComponent.querySelector("[data-slider='next'] button"),
+          prevEl : sliderComponent.querySelector("[data-slider='previous'] button"),
+        },
+        pagination    : {
+          el                : sliderComponent.querySelector('.slider_bullet_list'),
+          bulletActiveClass : 'is-active',
+          bulletClass       : 'slider_bullet_item',
+          bulletElement     : 'button',
+          clickable         : true,
+        },
+        slideActiveClass          : 'is-active',
+        slideDuplicateActiveClass : 'is-active',
       });
-    });
+    }
+
+    // Update de samenvatting indien aanwezig
+    const summaryEl = sliderComponent.closest('section')?.querySelector('[data-reviews-summary]');
+    if (summaryEl && reviews._meta) {
+      summaryEl.textContent = `Gemiddeld ${reviews._meta.rating} / 5 op basis van ${reviews._meta.total} beoordelingen`;
+    }
   }
 
-  function go(dir) {
-    current = (current + dir + reviews.length) % reviews.length;
-    showReview(current);
+  // Wacht tot de pagina + Swiper JS geladen zijn
+  function waitAndFetch() {
+    fetch(PROXY_URL)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.reviews?.length) return;
+        const sorted = data.reviews.sort((a, b) => b.rating - a.rating);
+        sorted._meta = { rating: data.rating, total: data.total };
+        injectReviews(sorted);
+      })
+      .catch(err => console.warn('Reviews konden niet geladen worden:', err));
   }
 
-  document.getElementById('lr-prev').addEventListener('click', () => go(-1));
-  document.getElementById('lr-next').addEventListener('click', () => go(1));
-
-  fetch(PROXY_URL)
-    .then(r => r.json())
-    .then(data => {
-      if (!data.reviews?.length) {
-        document.getElementById('lr-card-area').innerHTML =
-          '<div class="lr-state">Nog geen reviews beschikbaar.</div>';
-        return;
-      }
-      if (data.rating) {
-        document.getElementById('lr-summary').innerHTML =
-          `Gemiddeld <strong>${data.rating} / 5</strong> op basis van ${data.total} beoordelingen`;
-      }
-      reviews = data.reviews.sort((a, b) => b.rating - a.rating);
-      buildDots();
-      showReview(0);
-    })
-    .catch(() => {
-      document.getElementById('lr-card-area').innerHTML =
-        '<div class="lr-state">Reviews tijdelijk niet beschikbaar.</div>';
-    });
+  // Start na DOMContentLoaded zodat de slider al in de DOM staat
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitAndFetch);
+  } else {
+    waitAndFetch();
+  }
 })();
 </script>
