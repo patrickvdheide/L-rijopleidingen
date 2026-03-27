@@ -1,191 +1,230 @@
 <!-- 
   ============================================================
-  L-Rijopleidingen — Google Reviews Embed (met Cloudflare proxy)
+  L-Rijopleidingen — Google Reviews Embed
+  Design tokens: Bricolage Grotesque + Open Sans
+  Kleuren: brand #0586f0 | highlight #f59e0b | dark #0f172a
   ============================================================
-  Vervang PROXY_URL door jouw Cloudflare Worker URL
-  Voorbeeld: /api/reviews
+  Plak deze code in een Webflow Embed component.
+  De API-aanroep loopt via /api/reviews (Cloudflare Pages Function).
   ============================================================
 -->
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
-  .lr-reviews-section {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #ffffff;
-    padding: 60px 24px 72px;
+  .lr-section {
+    --brand:      #0586f0;
+    --highlight:  #f59e0b;
+    --dark:       #0f172a;
+    --dark-800:   #1f1d1e;
+    --light-200:  #edf2f3;
+    --text-muted: #6b7280;
+    --white:      #ffffff;
+
+    font-family: 'Open Sans', sans-serif;
+    background: var(--white);
+    padding: 64px 24px 80px;
     text-align: center;
     box-sizing: border-box;
   }
 
-  .lr-label {
+  .lr-eyebrow {
     display: inline-block;
-    font-size: 15px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 13px;
     font-weight: 600;
-    color: #1a73e8;
-    letter-spacing: 0.04em;
+    color: var(--brand);
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     margin-bottom: 16px;
   }
 
   .lr-heading {
-    font-size: clamp(28px, 6vw, 48px);
-    font-weight: 800;
-    color: #0d1b2a;
-    line-height: 1.15;
-    margin: 0 auto 16px;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: clamp(28px, 5.5vw, 48px);
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin: 0 auto 14px;
     max-width: 560px;
+    text-wrap: balance;
   }
 
   .lr-subtext {
+    font-family: 'Open Sans', sans-serif;
     font-size: 16px;
-    color: #555;
-    margin: 0 auto 40px;
-    max-width: 380px;
-    line-height: 1.6;
+    font-weight: 400;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0 auto 12px;
+    max-width: 400px;
   }
 
-  .lr-carousel-wrapper {
-    position: relative;
+  .lr-summary {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 auto 36px;
+  }
+
+  .lr-summary strong {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dark);
+  }
+
+  /* Card */
+  .lr-wrapper {
     max-width: 680px;
     margin: 0 auto;
   }
 
   .lr-card {
-    background: #f2f3f5;
-    border-radius: 18px;
-    padding: 36px 32px 32px;
+    background: var(--light-200);
+    border-radius: 20px;
+    padding: 40px 36px 36px;
     text-align: left;
-    min-height: 200px;
-    transition: opacity 0.3s ease;
+    min-height: 210px;
+    opacity: 1;
+    transition: opacity 0.25s ease;
   }
 
   .lr-card.lr-fade { opacity: 0; }
 
   .lr-quote {
-    font-size: clamp(18px, 4vw, 26px);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: clamp(18px, 3.5vw, 26px);
     font-weight: 700;
-    color: #0d1b2a;
-    line-height: 1.3;
-    margin: 0 0 14px;
+    color: var(--dark);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+    text-wrap: balance;
   }
 
   .lr-author {
-    font-size: 15px;
-    color: #444;
-    margin: 0 0 4px;
-    font-weight: 500;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dark-800);
+    margin: 0 0 3px;
   }
 
-  .lr-meta {
-    font-size: 13px;
-    color: #999;
-    margin: 0 0 12px;
+  .lr-time {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
   }
 
   .lr-stars {
     display: flex;
-    gap: 4px;
+    gap: 3px;
     margin-bottom: 16px;
   }
 
-  .lr-text {
+  .lr-body {
+    font-family: 'Open Sans', sans-serif;
     font-size: 15px;
-    color: #555;
+    color: #374151;
     line-height: 1.65;
     margin: 0;
   }
 
+  /* Navigation */
   .lr-nav {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 24px;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
   }
 
-  .lr-nav-btn {
-    width: 52px;
-    height: 52px;
+  .lr-btn {
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    border: 2px solid #c8973a;
+    border: 2px solid var(--highlight);
     background: transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease, transform 0.15s ease;
+    transition: background 0.18s ease, transform 0.12s ease;
+    padding: 0;
   }
 
-  .lr-nav-btn:hover {
-    background: #c8973a;
-    transform: scale(1.06);
+  .lr-btn:hover {
+    background: var(--highlight);
+    transform: scale(1.07);
   }
 
-  .lr-nav-btn:hover svg path { stroke: #fff; }
+  .lr-btn:hover svg path { stroke: var(--white); }
 
-  .lr-nav-btn svg { width: 18px; height: 18px; }
+  .lr-btn svg { width: 17px; height: 17px; pointer-events: none; }
 
-  .lr-nav-btn svg path {
-    stroke: #c8973a;
-    stroke-width: 2.2;
+  .lr-btn svg path {
+    stroke: var(--highlight);
+    stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
-    transition: stroke 0.2s ease;
+    transition: stroke 0.18s ease;
   }
 
-  .lr-summary {
-    font-size: 14px;
-    color: #777;
-    margin-bottom: 28px;
-  }
-
-  .lr-summary strong {
-    color: #0d1b2a;
-    font-size: 18px;
-  }
-
+  /* Dots */
   .lr-dots {
     display: flex;
     justify-content: center;
     gap: 6px;
-    margin-top: 20px;
+    margin-top: 18px;
   }
 
   .lr-dot {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: #ccc;
-    transition: background 0.2s;
+    background: #d1d5db;
+    transition: background 0.2s, transform 0.2s;
   }
 
-  .lr-dot.active { background: #1a73e8; }
+  .lr-dot.active {
+    background: var(--brand);
+    transform: scale(1.3);
+  }
 
+  /* States */
   .lr-loading, .lr-error {
-    color: #888;
+    font-family: 'Open Sans', sans-serif;
     font-size: 14px;
-    padding: 32px;
+    color: var(--text-muted);
+    background: var(--light-200);
+    border-radius: 20px;
+    padding: 48px 32px;
     text-align: center;
-    background: #f2f3f5;
-    border-radius: 18px;
   }
 </style>
 
-<section class="lr-reviews-section">
-  <span class="lr-label">Reviews</span>
+<section class="lr-section">
+  <span class="lr-eyebrow">Reviews</span>
   <h2 class="lr-heading">Wat onze rijders en partners zeggen!</h2>
   <p class="lr-subtext">Echte ervaringen van mensen die ons al kennen.</p>
-  <div class="lr-summary" id="lr-summary"></div>
+  <p class="lr-summary" id="lr-summary"></p>
 
-  <div class="lr-carousel-wrapper">
+  <div class="lr-wrapper">
     <div id="lr-card-area">
-      <div class="lr-loading">Reviews laden...</div>
+      <div class="lr-loading">Reviews laden…</div>
     </div>
     <div class="lr-dots" id="lr-dots"></div>
     <div class="lr-nav">
-      <button class="lr-nav-btn" id="lr-prev" aria-label="Vorige review">
+      <button class="lr-btn" id="lr-prev" aria-label="Vorige review">
         <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <button class="lr-nav-btn" id="lr-next" aria-label="Volgende review">
+      <button class="lr-btn" id="lr-next" aria-label="Volgende review">
         <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     </div>
@@ -194,79 +233,75 @@
 
 <script>
 (function () {
-  // ============================================================
-  // Vervang dit door jouw Cloudflare Worker URL na deployment
   const PROXY_URL = '/api/reviews';
-  // ============================================================
 
   let reviews = [];
   let current = 0;
 
-  function starSVG(filled) {
-    const color = filled ? '#1a73e8' : '#ccc';
-    return `<svg style="width:24px;height:24px;flex-shrink:0" viewBox="0 0 24 24">
+  function starSVG(on) {
+    return `<svg width="22" height="22" viewBox="0 0 24 24">
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-        fill="${color}" stroke="none"/>
+        fill="${on ? '#0586f0' : '#d1d5db'}" stroke="none"/>
     </svg>`;
   }
 
-  function esc(str) {
-    return String(str || '')
+  function esc(s) {
+    return String(s || '')
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function renderCard(r) {
-    const stars = Array.from({length:5},(_,i)=>starSVG(i<r.rating)).join('');
-    const text = r.text || '';
+    const stars = Array.from({length: 5}, (_, i) => starSVG(i < r.rating)).join('');
+    const text = (r.text || '').trim();
     const match = text.match(/^[^.!?]+[.!?]/);
-    const quote = match ? match[0].trim() : text.slice(0, 80).trim();
-    const rest = text.slice(quote.length).replace(/^\s+/, '');
+    const quote = match ? match[0].trim() : text.slice(0, 90).trim();
+    const body  = text.slice(quote.length).replace(/^\s+/, '');
 
     return `<div class="lr-card" id="lr-active-card">
       <p class="lr-quote">${esc(quote)}</p>
       <p class="lr-author">${esc(r.author)}</p>
-      <p class="lr-meta">${esc(r.time || '')}</p>
+      ${r.time ? `<p class="lr-time">${esc(r.time)}</p>` : ''}
       <div class="lr-stars">${stars}</div>
-      ${rest ? `<p class="lr-text">${esc(rest)}</p>` : ''}
+      ${body ? `<p class="lr-body">${esc(body)}</p>` : ''}
     </div>`;
   }
 
-  function showReview(index) {
+  function showReview(i) {
     const area = document.getElementById('lr-card-area');
-    area.innerHTML = renderCard(reviews[index]);
+    area.innerHTML = renderCard(reviews[i]);
     const card = document.getElementById('lr-active-card');
     card.classList.add('lr-fade');
     requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove('lr-fade')));
-    document.querySelectorAll('.lr-dot').forEach((d,i) => d.classList.toggle('active', i===index));
+    document.querySelectorAll('.lr-dot').forEach((d, j) => d.classList.toggle('active', j === i));
   }
 
   function buildDots() {
     document.getElementById('lr-dots').innerHTML =
-      reviews.map((_,i) => `<div class="lr-dot${i===0?' active':''}"></div>`).join('');
+      reviews.map((_, i) => `<div class="lr-dot${i === 0 ? ' active' : ''}"></div>`).join('');
   }
 
-  function navigate(dir) {
+  function go(dir) {
     current = (current + dir + reviews.length) % reviews.length;
     showReview(current);
   }
 
-  document.getElementById('lr-prev').addEventListener('click', () => navigate(-1));
-  document.getElementById('lr-next').addEventListener('click', () => navigate(1));
+  document.getElementById('lr-prev').addEventListener('click', () => go(-1));
+  document.getElementById('lr-next').addEventListener('click', () => go(1));
 
   fetch(PROXY_URL)
     .then(r => r.json())
     .then(data => {
-      if (!data.reviews || !data.reviews.length) {
+      if (!data.reviews?.length) {
         document.getElementById('lr-card-area').innerHTML =
           '<div class="lr-error">Geen reviews gevonden.</div>';
         return;
       }
       if (data.rating) {
         document.getElementById('lr-summary').innerHTML =
-          `Gemiddeld <strong>${data.rating}</strong> / 5 op basis van ${data.total} beoordelingen`;
+          `Gemiddeld <strong>${data.rating} / 5</strong> op basis van ${data.total} beoordelingen`;
       }
-      reviews = data.reviews.sort((a,b) => b.rating - a.rating);
+      reviews = data.reviews.sort((a, b) => b.rating - a.rating);
       buildDots();
       showReview(0);
     })
