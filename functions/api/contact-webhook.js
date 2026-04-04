@@ -12,32 +12,36 @@ export async function onRequestPost(context) {
     let adminOnderwerp, adminInhoud, klantMail, klantOnderwerp, klantHtml;
 
     if (formulierNaam === "AVB-examenformulier") {
-      const naam        = d["Voornaam"] + " " + d["Achternaam"];
-      const examendatum = d["Gewenste examendatum"];
-      const pakket      = d["Gewenst pakket"];
-      const betaalwijze = d["Gewenste betaalmethode"];
-      const adres       = d["Straatnaam"] + " " + d["Huisnummer"] + ", " + d["Postcode"] + " " + d["Woonplaats"];
-      const telefoon    = d["Telefoonnummer"];
-      klantMail         = d["E-mail"];
+      const naam               = d["Voornaam"] + " " + d["Achternaam"];
+      const pakket             = parseFloat(d["Gewenst pakket"]) || 0;
+      const reserveringskosten = 50;
+      const totaal             = pakket + reserveringskosten;
+      const examendatum        = d["Gewenste examendatum"];
+      const betaalwijze        = d["Gewenste betaalmethode"];
+      const adres              = d["Straatnaam"] + " " + d["Huisnummer"] + ", " + d["Postcode"] + " " + d["Woonplaats"];
+      const telefoon           = d["Telefoonnummer"];
+      klantMail                = d["E-mail"];
 
-      adminOnderwerp = "📋 Nieuwe reservering – " + naam + " (" + examendatum + ")";
+      adminOnderwerp = "📋 Nieuwe reservering – " + naam;
       adminInhoud =
         "Nieuwe inschrijving ontvangen via het AVB-examenformulier.\n\n" +
-        "Naam: "             + naam        + "\n" +
-        "E-mail: "           + klantMail   + "\n" +
-        "Telefoon: "         + telefoon    + "\n" +
-        "Adres: "            + adres       + "\n" +
-        "Pakket: "           + pakket      + "\n" +
-        "Examendatum: "      + examendatum + "\n" +
-        "Betaalmethode: "    + betaalwijze + "\n" +
-        "Rijschoolhouder: "  + d["Rijschoolhouder"]   + "\n" +
-        "Bedrijfsnaam: "     + d["Bedrijfsnaam"]       + "\n" +
-        "Opleidingsnummer: " + d["Opleidingsnummer"]   + "\n" +
-        "Bericht: "          + d["Bericht"]            + "\n" +
-        "Machtiging: "       + d["Machtiging"];
+        "Naam: "                  + naam        + "\n" +
+        "E-mail: "                + klantMail   + "\n" +
+        "Telefoon: "              + telefoon    + "\n" +
+        "Adres: "                 + adres       + "\n" +
+        "Pakketprijs: €"          + pakket      + "\n" +
+        "Reserveringskosten: €50\n" +
+        "Totaal: €"               + totaal      + "\n" +
+        "Gewenste examendatum: "  + examendatum + "\n" +
+        "Betaalmethode: "         + betaalwijze + "\n" +
+        "Rijschoolhouder: "       + d["Rijschoolhouder"]   + "\n" +
+        "Bedrijfsnaam: "          + d["Bedrijfsnaam"]       + "\n" +
+        "Opleidingsnummer: "      + d["Opleidingsnummer"]   + "\n" +
+        "Bericht: "               + d["Bericht"]            + "\n" +
+        "Machtiging: "            + d["Machtiging"];
 
       klantOnderwerp = "Bevestiging: jouw AVB-examen aanvraag";
-      klantHtml = avbHtml(d, naam, klantMail, telefoon, adres, pakket, examendatum, betaalwijze);
+      klantHtml = avbHtml(d, naam, klantMail, telefoon, adres, pakket, reserveringskosten, totaal, examendatum, betaalwijze);
 
     } else if (formulierNaam === "Contactformulier") {
       const naam    = d["Voornaam"] + " " + d["Achternaam"];
@@ -102,8 +106,22 @@ function rij(label, waarde) {
       <td style="padding:10px 24px;border-top:1px solid #e8edf5;">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:12px;color:#8899bb;width:130px;vertical-align:top;padding-top:2px;">${label}</td>
+            <td style="font-size:12px;color:#8899bb;width:150px;vertical-align:top;padding-top:2px;">${label}</td>
             <td style="font-size:14px;color:#12182b;font-weight:600;">${waarde}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
+}
+
+function rijTotaal(label, waarde) {
+  return `
+    <tr>
+      <td style="padding:10px 24px;border-top:2px solid #0586f0;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px;color:#12182b;font-weight:800;width:150px;vertical-align:top;padding-top:2px;">${label}</td>
+            <td style="font-size:16px;color:#0586f0;font-weight:800;">${waarde}</td>
           </tr>
         </table>
       </td>
@@ -140,14 +158,14 @@ function footerHtml() {
 </body></html>`;
 }
 
-function avbHtml(d, naam, klantMail, telefoon, adres, pakket, examendatum, betaalwijze) {
+function avbHtml(d, naam, klantMail, telefoon, adres, pakket, reserveringskosten, totaal, examendatum, betaalwijze) {
   return headerHtml("Aanvraag ontvangen", "AVB-examen inschrijving") + `
 <tr><td style="background-color:#0586f0;padding:14px 40px;">
   <p style="margin:0;font-size:14px;color:#ffffff;font-weight:600;">✓ &nbsp;Je inschrijving is succesvol ontvangen</p>
 </td></tr>
 <tr><td style="padding:36px 40px 24px;">
   <p style="margin:0 0 12px;font-size:17px;color:#12182b;font-weight:700;">Hoi ${d["Voornaam"]},</p>
-  <p style="margin:0;font-size:15px;color:#555555;line-height:1.8;">Bedankt voor je aanvraag bij L-Rijopleidingen. We hebben je inschrijving voor het AVB-examen goed ontvangen en nemen zo snel mogelijk contact met je op om alles te bevestigen.</p>
+  <p style="margin:0;font-size:15px;color:#555555;line-height:1.8;">Bedankt voor je aanvraag bij L-Rijopleidingen. We hebben je inschrijving voor het AVB-examen goed ontvangen en nemen zo snel mogelijk contact met je op om de examendatum en betaling te bevestigen.</p>
 </td></tr>
 <tr><td style="padding:0 40px 32px;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fc;border-radius:10px;overflow:hidden;border:1px solid #e8edf5;">
@@ -158,8 +176,10 @@ function avbHtml(d, naam, klantMail, telefoon, adres, pakket, examendatum, betaa
     ${rij("E-mail", klantMail)}
     ${rij("Telefoon", telefoon)}
     ${rij("Adres", adres)}
-    ${rij("Prijs in €", pakket)}
-    ${rij("Examendatum", examendatum)}
+    ${rij("Pakketprijs", "€" + pakket)}
+    ${rij("Reserveringskosten", "€" + reserveringskosten)}
+    ${rijTotaal("Totaal", "€" + totaal)}
+    ${rij("Gewenste examendatum", examendatum)}
     ${rij("Betaalmethode", betaalwijze)}
   </table>
 </td></tr>
@@ -167,7 +187,7 @@ function avbHtml(d, naam, klantMail, telefoon, adres, pakket, examendatum, betaa
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff8f0;border-radius:10px;border:1px solid #f5dfc0;">
     <tr><td style="padding:18px 24px;">
       <p style="margin:0 0 8px;font-size:11px;font-weight:800;color:#e07b00;letter-spacing:1.5px;text-transform:uppercase;">Wat gebeurt er nu?</p>
-      <p style="margin:0;font-size:14px;color:#666666;line-height:1.7;">We bekijken je aanvraag en nemen binnen <strong style="color:#12182b;">1 werkdag</strong> contact met je op om de datum en betaling te bevestigen.</p>
+      <p style="margin:0;font-size:14px;color:#666666;line-height:1.7;">We bekijken je aanvraag en nemen binnen <strong style="color:#12182b;">1 werkdag</strong> contact met je op om de examendatum en betaling te bevestigen.</p>
     </td></tr>
   </table>
 </td></tr>` + footerHtml();
