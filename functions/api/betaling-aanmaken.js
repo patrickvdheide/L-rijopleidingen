@@ -1,10 +1,16 @@
 export async function onRequestPost(context) {
 
-  // CORS preflight
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://l-rijopleidingen.nl",
-  };
+const headers = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+// OPTIONS preflight afhandelen
+if (context.request.method === "OPTIONS") {
+  return new Response(null, { status: 204, headers });
+}
 
   try {
     const body = await context.request.json();
