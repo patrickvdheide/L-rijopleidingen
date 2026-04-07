@@ -1,24 +1,35 @@
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+// Vangt OPTIONS preflight op
+export async function onRequest(context) {
+  if (context.request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+  return onRequestPost(context);
+}
+
 export async function onRequestPost(context) {
 
   const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    ...CORS_HEADERS,
   };
 
-  // OPTIONS preflight afhandelen
-  if (context.request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers });
-  }
-
   try {
+
     const body = await context.request.json();
     const { voornaam, achternaam, email, telefoon, pakket, bedrag } = body;
 
     // Validatie
     if (!bedrag || isNaN(parseFloat(bedrag)) || parseFloat(bedrag) <= 0) {
-      return Response.json({ error: "Ongeldig bedrag" }, { status: 400, headers });
+      return Response.json(
+        { error: "Ongeldig bedrag" },
+        { status: 400, headers }
+      );
     }
 
     const naam = `${voornaam} ${achternaam}`.trim();
@@ -50,7 +61,7 @@ export async function onRequestPost(context) {
     const betaling = await mollieRes.json();
 
     if (!betaling._links?.checkout?.href) {
-      console.error("Mollie fout:", betaling);
+      console.error("Mollie fout:", JSON.stringify(betaling));
       return Response.json(
         { error: betaling.detail || "Mollie kon geen betaling aanmaken" },
         { status: 500, headers }
@@ -64,6 +75,9 @@ export async function onRequestPost(context) {
 
   } catch (err) {
     console.error("Onverwachte fout:", err);
-    return Response.json({ error: "Serverfout" }, { status: 500, headers });
+    return Response.json(
+      { error: "Serverfout" },
+      { status: 500, headers }
+    );
   }
 }
