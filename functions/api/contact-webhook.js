@@ -61,10 +61,8 @@ export async function onRequestPost(context) {
     } else {
       return new Response("Onbekend formulier", { status: 200 });
     }
-  try {
-    const formData = await context.request.formData();
-    const betalingId = formData.get("id");
 
+    // Admin mail
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Authorization": "Bearer " + RESEND_API_KEY, "Content-Type": "application/json" },
@@ -75,8 +73,8 @@ export async function onRequestPost(context) {
         text: adminInhoud
       })
     });
-    if (!betalingId) return new Response("ok", { status: 200 });
 
+    // Klant mail
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Authorization": "Bearer " + RESEND_API_KEY, "Content-Type": "application/json" },
@@ -86,8 +84,6 @@ export async function onRequestPost(context) {
         subject: klantOnderwerp,
         html: klantHtml
       })
-    const res = await fetch(`https://api.mollie.com/v2/payments/${betalingId}`, {
-      headers: { "Authorization": `Bearer ${context.env.MOLLIE_API_KEY}` },
     });
 
     return new Response("OK", { status: 200 });
@@ -96,6 +92,11 @@ export async function onRequestPost(context) {
     return new Response("Fout: " + err.message, { status: 500 });
   }
 }
+
+
+/* ===============================
+   HELPER FUNCTIES
+=============================== */
 
 function formatDatum(datum) {
   if (!datum) return "";
@@ -122,65 +123,38 @@ function rij(label, waarde) {
 function cssBlok() {
   return `
   <style>
-    /* Reset */
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; background-color: #f0f2f5; }
-
-    /* Wrapper */
     .email-wrapper { width: 100%; background-color: #f0f2f5; padding: 40px 0; }
     .email-container { width: 600px; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; }
-
-    /* Header */
     .email-header { background-color: #12182b; padding: 36px 40px 32px; text-align: center; }
     .email-header img { display: block; margin: 0 auto 20px; height: auto; width: 220px; }
     .email-header h1 { margin: 0; font-size: 26px; color: #ffffff; font-weight: 800; letter-spacing: -0.5px; }
     .email-header p { margin: 10px 0 0; font-size: 14px; color: #8899bb; }
-
-    /* Accentbalk */
     .email-accent { background-color: #0586f0; padding: 14px 40px; }
     .email-accent p { margin: 0; font-size: 14px; color: #ffffff; font-weight: 600; }
-    const betaling = await res.json();
-
-    /* Body */
     .email-body { padding: 36px 40px 24px; }
     .email-body .groet { margin: 0 0 12px; font-size: 17px; color: #12182b; font-weight: 700; }
     .email-body .intro { margin: 0; font-size: 15px; color: #555555; line-height: 1.8; }
-    if (betaling.status === "paid") {
-      const { naam, email, telefoon, pakket, pakketprijs, reservering, totaal } = betaling.metadata;
-
-    /* Samenvatting tabel */
     .samenvatting-wrapper { padding: 0 40px 32px; }
     .samenvatting { width: 100%; background: #f7f9fc; border-radius: 10px; overflow: hidden; border: 1px solid #e8edf5; border-collapse: collapse; }
     .samenvatting-titel td { padding: 18px 24px 12px; }
     .samenvatting-titel p { margin: 0; font-size: 11px; font-weight: 800; color: #0586f0; letter-spacing: 1.5px; text-transform: uppercase; }
     .rij-label { font-size: 12px; color: #8899bb; width: 160px; vertical-align: top; padding-top: 2px; white-space: nowrap; }
     .rij-waarde { font-size: 14px; color: #12182b; font-weight: 600; word-break: break-word; }
-      const pakketBedrag = parseFloat(pakketprijs || 0);
-      const heeftReservering = reservering === true || reservering === "true";
-      const reserveringBedrag = heeftReservering ? 50 : 0;
-      const totaalBedrag = parseFloat(totaal || betaling.amount.value);
-
-    /* Info blok */
     .info-wrapper { padding: 0 40px 32px; }
     .info-blok { width: 100%; background: #fff8f0; border-radius: 10px; border: 1px solid #f5dfc0; border-collapse: collapse; }
     .info-blok td { padding: 18px 24px; }
     .info-titel { margin: 0 0 8px; font-size: 11px; font-weight: 800; color: #e07b00; letter-spacing: 1.5px; text-transform: uppercase; }
     .info-tekst { margin: 0; font-size: 14px; color: #666666; line-height: 1.7; }
-      const formatBedrag = (n) =>
-        "€" + Number(n).toLocaleString("nl-NL", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
-    /* CTA */
     .cta-wrapper { padding: 0 40px 40px; text-align: center; }
     .cta-knop { display: inline-block; background-color: #0586f0; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 16px 36px; border-radius: 50px; }
     .cta-sub { margin: 20px 0 0; font-size: 13px; color: #999999; }
     .cta-link { color: #0586f0; font-weight: 600; text-decoration: none; }
-
-    /* Footer */
     .email-footer { background-color: #12182b; padding: 24px 40px; text-align: center; }
     .email-footer .footer-naam { margin: 0 0 4px; font-size: 12px; color: #6677aa; font-weight: 600; }
     .email-footer .footer-sub { margin: 0; font-size: 11px; color: #445577; }
 
-    /* ── Tablet: 480px–600px ── */
     @media only screen and (max-width: 600px) {
       .email-container { width: 100% !important; border-radius: 0 !important; }
       .email-header { padding: 28px 24px 24px !important; }
@@ -194,7 +168,6 @@ function cssBlok() {
       .email-footer { padding: 20px 24px !important; }
     }
 
-    /* ── Mobile: tot 480px ── */
     @media only screen and (max-width: 480px) {
       .email-header { padding: 24px 16px 20px !important; }
       .email-header img { width: 150px !important; margin-bottom: 14px !important; }
@@ -226,22 +199,16 @@ function cssBlok() {
 
 function headerHtml(titel, subtitel) {
   return `<!DOCTYPE html>
-      const html = `<!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
   ${cssBlok()}
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Betaling ontvangen</title>
 </head>
 <body>
 <div class="email-wrapper">
   <table class="email-container" cellpadding="0" cellspacing="0" align="center">
-<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:'DM Sans',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 20px;">
     <tr>
       <td class="email-header">
         <img src="https://cdn.prod.website-files.com/69b283988aeea6c6faa49f24/69d0e3c9654259c2c3e9c18a_L-rijopleidingen-logo-rgb-diap.avif" alt="L-Rijopleidingen" width="220" />
@@ -250,8 +217,6 @@ function headerHtml(titel, subtitel) {
       </td>
     </tr>`;
 }
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
 function footerHtml() {
   return `
@@ -272,12 +237,6 @@ function footerHtml() {
 </body>
 </html>`;
 }
-          <!-- Header -->
-          <tr>
-            <td style="background-color:#12182b;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
-              <p style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">L rijopleidingen.nl</p>
-            </td>
-          </tr>
 
 function avbHtml(d, naam, klantMail, telefoon, adres, pakket, reserveringskosten, totaal, examendatum, betaalwijze) {
   return headerHtml("Aanvraag ontvangen", "AVB-examen inschrijving") + `
@@ -311,14 +270,10 @@ function avbHtml(d, naam, klantMail, telefoon, adres, pakket, reserveringskosten
     <tr>
       <td class="info-wrapper">
         <table class="info-blok" cellpadding="0" cellspacing="0">
-          <!-- Hero -->
           <tr>
             <td>
               <p class="info-titel">Wat gebeurt er nu?</p>
               <p class="info-tekst">We bekijken je aanvraag en nemen binnen <strong style="color:#12182b;">1 werkdag</strong> contact met je op om de examendatum en betaling te bevestigen.</p>
-            <td style="background-color:#0586f0;padding:28px 40px;text-align:center;">
-              <p style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:700;">Betaling ontvangen ✓</p>
-              <p style="margin:0;color:rgba(255,255,255,0.85);font-size:15px;">AVB-examen inschrijving</p>
             </td>
           </tr>
         </table>
@@ -352,113 +307,13 @@ function contactHtml(d, naam, klantMail, bericht) {
     <tr>
       <td class="info-wrapper">
         <table class="info-blok" cellpadding="0" cellspacing="0">
-          <!-- Body -->
-          <tr>
-            <td style="background-color:#ffffff;padding:36px 40px;">
-              <p style="margin:0 0 24px;font-size:17px;color:#12182b;">Hoi ${naam},</p>
-              <p style="margin:0 0 28px;font-size:15px;color:#4a5568;line-height:1.7;">
-                Je betaling is succesvol ontvangen. Hieronder vind je een overzicht van je inschrijving.
-                We nemen zo snel mogelijk contact met je op om de examendatum te bevestigen.
-              </p>
-
-              <!-- Samenvatting -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:28px;">
-                <tr>
-                  <td colspan="2" style="background-color:#f8fafc;padding:14px 20px;border-bottom:1px solid #e2e8f0;">
-                    <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;color:#0586f0;text-transform:uppercase;">Samenvatting betaling</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#718096;font-size:14px;">Naam</td>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#12182b;font-size:14px;font-weight:600;text-align:right;">${naam}</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#718096;font-size:14px;">E-mail</td>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#12182b;font-size:14px;font-weight:600;text-align:right;">${email}</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#718096;font-size:14px;">Pakket</td>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#12182b;font-size:14px;font-weight:600;text-align:right;">${pakket}</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#718096;font-size:14px;">Pakketprijs</td>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#12182b;font-size:14px;font-weight:600;text-align:right;">${formatBedrag(pakketBedrag)}</td>
-                </tr>
-                ${heeftReservering ? `
-                <tr>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#718096;font-size:14px;">Reserveringskosten</td>
-                  <td style="padding:14px 20px;border-bottom:1px solid #f0f0f0;color:#12182b;font-size:14px;font-weight:600;text-align:right;">${formatBedrag(reserveringBedrag)}</td>
-                </tr>` : ""}
-                <tr style="background-color:#f8fafc;">
-                  <td style="padding:16px 20px;color:#12182b;font-size:15px;font-weight:700;">Totaal betaald</td>
-                  <td style="padding:16px 20px;color:#0586f0;font-size:15px;font-weight:700;text-align:right;">${formatBedrag(totaalBedrag)}</td>
-                </tr>
-              </table>
-
-              <!-- Wat nu -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#fff8f0;border:1px solid #ffe0b2;border-radius:8px;margin-bottom:28px;">
-                <tr>
-                  <td style="padding:20px 24px;">
-                    <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:1px;color:#e65c00;text-transform:uppercase;">Wat gebeurt er nu?</p>
-                    <p style="margin:0;font-size:14px;color:#4a5568;line-height:1.7;">
-                      We bekijken je aanvraag en nemen binnen <strong>1 werkdag</strong> contact met je op
-                      om de examendatum en verdere details te bevestigen.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- CTA -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center">
-                    <a href="https://l-rijopleidingen.nl" style="display:inline-block;background-color:#0586f0;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;">
-                      Bekijk onze website →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Footer -->
           <tr>
             <td>
               <p class="info-titel">Wat gebeurt er nu?</p>
               <p class="info-tekst">We lezen je bericht en nemen binnen <strong style="color:#12182b;">1 werkdag</strong> contact met je op via je e-mailadres of telefonisch.</p>
-            <td style="background-color:#12182b;border-radius:0 0 12px 12px;padding:24px 40px;text-align:center;">
-              <p style="margin:0 0 6px;color:rgba(255,255,255,0.6);font-size:13px;">Vragen? Mail naar <a href="mailto:info@l-rijopleidingen.nl" style="color:#0586f0;text-decoration:none;">info@l-rijopleidingen.nl</a></p>
-              <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;">L-rijopleidingen · Plantage 1A, 1944 JK Beverwijk</p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>` + footerHtml();
-    </tr>
-  </table>
-</body>
-</html>`;
-
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${context.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "L-rijopleidingen <noreply@l-rijopleidingen.nl>",
-          to: [email],
-          subject: `Betaling ontvangen - ${pakket}`,
-          html,
-        }),
-      });
-    }
-
-    return new Response("ok", { status: 200 });
-
-  } catch (err) {
-    console.error("Webhook fout:", err);
-    return new Response("ok", { status: 200 });
-  }
 }
