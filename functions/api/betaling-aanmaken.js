@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
   try {
 
     const body = await context.request.json();
-    const { voornaam, achternaam, email, telefoon, pakket, bedrag } = body;
+    const { voornaam, achternaam, email, telefoon, pakket, bedrag, pakketprijs, reservering } = body;
 
     // Validatie
     if (!bedrag || isNaN(parseFloat(bedrag)) || parseFloat(bedrag) <= 0) {
@@ -54,6 +54,9 @@ export async function onRequestPost(context) {
           email,
           telefoon,
           pakket,
+          reservering, // true/false
+          pakketprijs,
+          totaal: bedrag,
         },
       }),
     });
