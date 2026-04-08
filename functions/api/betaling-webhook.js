@@ -15,11 +15,11 @@ export async function onRequestPost(context) {
     if (betaling.status === "paid") {
       const { naam, email, telefoon, pakket, pakketprijs, reservering, totaal } = betaling.metadata;
 
-      const pakketBedrag     = parseFloat(pakketprijs || 0);
-      const heeftReservering = reservering === true || reservering === "true";
+      const pakketBedrag      = parseFloat(pakketprijs || 0);
+      const heeftReservering  = reservering === true || reservering === "true";
       const reserveringBedrag = heeftReservering ? 50 : 0;
-      const totaalBedrag     = parseFloat(totaal || betaling.amount.value);
-      const voornaam         = naam?.split(" ")[0] || naam;
+      const totaalBedrag      = parseFloat(totaal || betaling.amount.value);
+      const voornaam          = naam?.split(" ")[0] || naam;
 
       const formatBedrag = (n) =>
         "€" + Number(n).toLocaleString("nl-NL", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -63,20 +63,6 @@ function rij(label, waarde) {
           <tr>
             <td class="rij-label" style="font-size:12px;color:#8899bb;width:160px;vertical-align:top;padding-top:2px;white-space:nowrap;">${label}</td>
             <td class="rij-waarde" style="font-size:14px;color:#12182b;font-weight:600;word-break:break-word;">${waarde}</td>
-          </tr>
-        </table>
-      </td>
-    </tr>`;
-}
-
-function rijTotaal(label, waarde) {
-  return `
-    <tr>
-      <td style="padding:10px 24px;border-top:2px solid #0586f0;">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="font-size:13px;color:#12182b;font-weight:800;width:160px;vertical-align:top;padding-top:2px;">${label}</td>
-            <td style="font-size:16px;color:#0586f0;font-weight:800;">${waarde}</td>
           </tr>
         </table>
       </td>
@@ -224,7 +210,7 @@ function betalingHtml(naam, voornaam, email, telefoon, pakket, pakketBedrag, hee
           ${rij("Pakket", pakket)}
           ${rij("Pakketprijs", formatBedrag(pakketBedrag))}
           ${heeftReservering ? rij("Reserveringskosten", formatBedrag(reserveringBedrag)) : ""}
-          ${rijTotaal("Totaal betaald", formatBedrag(totaalBedrag))}
+          ${rij("Totaal betaald", formatBedrag(totaalBedrag))}
           ${rij("Betaalmethode", "iDEAL")}
         </table>
       </td>
