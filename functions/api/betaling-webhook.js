@@ -1,3 +1,9 @@
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export async function onRequestPost(context) {
 
   try {
@@ -15,10 +21,10 @@ export async function onRequestPost(context) {
     if (betaling.status === "paid") {
       const { naam, email, telefoon, pakket, pakketprijs, reservering, totaal } = betaling.metadata;
 
-      const pakketBedrag = parseFloat(pakketprijs || 0);
+      const pakketBedrag    = parseFloat(pakketprijs || 0);
       const heeftReservering = reservering === true || reservering === "true";
       const reserveringBedrag = heeftReservering ? 50 : 0;
-      const totaalBedrag = parseFloat(totaal || betaling.amount.value);
+      const totaalBedrag    = parseFloat(totaal || betaling.amount.value);
 
       const formatBedrag = (n) =>
         "€" + Number(n).toLocaleString("nl-NL", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -30,7 +36,7 @@ export async function onRequestPost(context) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Betaling ontvangen</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:'DM Sans',Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 20px;">
     <tr>
       <td align="center">
