@@ -24,8 +24,9 @@ export async function onRequestPost(context) {
       const formatBedrag = (n) =>
         "€" + Number(n).toLocaleString("nl-NL", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-      const html = betalingHtml(naam, voornaam, email, telefoon, pakket, pakketBedrag, heeftReservering, reserveringBedrag, totaalBedrag, formatBedrag);
+      const klantHtml = betalingHtml(naam, voornaam, email, telefoon, pakket, pakketBedrag, heeftReservering, reserveringBedrag, totaalBedrag, formatBedrag);
 
+      // Klant mail
       await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -36,7 +37,31 @@ export async function onRequestPost(context) {
           from: "L-Rijopleidingen <no-reply@l-rijopleidingen.nl>",
           to: [email],
           subject: `Betaling ontvangen - AVB-examen inschrijving`,
-          html,
+          html: klantHtml,
+        }),
+      });
+
+      // Admin mail
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${context.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "L-Rijopleidingen <no-reply@l-rijopleidingen.nl>",
+          to: ["info@l-rijopleidingen.nl"],
+          subject: `💳 Nieuwe iDEAL betaling – ${naam} – ${formatBedrag(totaalBedrag)}`,
+          text:
+            "Nieuwe betaling ontvangen via iDEAL.\n\n" +
+            "Naam: "               + naam                                                        + "\n" +
+            "E-mail: "             + email                                                       + "\n" +
+            "Telefoon: "           + (telefoon || "-")                                           + "\n" +
+            "Pakket: "             + pakket                                                      + "\n" +
+            "Pakketprijs: "        + formatBedrag(pakketBedrag)                                  + "\n" +
+            "Reserveringskosten: " + (heeftReservering ? formatBedrag(reserveringBedrag) : "Nee") + "\n" +
+            "Totaal betaald: "     + formatBedrag(totaalBedrag)                                  + "\n" +
+            "Betaling ID: "        + betalingId,
         }),
       });
     }
